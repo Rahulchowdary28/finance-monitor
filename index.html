@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Finance Tracker | Rahul Edition</title>
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/584/584026.png" type="image/png">
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        --bg: #0b0e1a;
+        --card: #161b2c;
+        --text: #f8fafc;
+        --dim: #94a3b8;
+        --accent: #6366f1;
+        --green: #10b981;
+        --red: #ff4d4d;
+        --lime: #00ff88;
+        --cyan: #00d4ff;
+        --border: rgba(255,255,255,0.07);
+        --input: #0f172a;
+        --r: 14px;
+    }
+    [data-theme="light"] {
+        --bg: #f1f5f9; --card: #fff; --text: #0f172a;
+        --dim: #64748b; --border: rgba(0,0,0,0.08); --input: #f8fafc;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+
+    html { width: 100%; overflow-x: hidden; }
+
+    body {
+        width: 100%;
+        max-width: 100vw;
+        overflow-x: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 15px;
+        transition: background 0.3s;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    #parallax-bg {
+        position: fixed; inset: 0; z-index: 0;
+        background: radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(99,102,241,0.1) 0%, transparent 55%);
+        pointer-events: none;
+    }
+
+    .wrap {
+        width: 100%;
+        padding: 12px 14px 100px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ─── HEADER ─── */
+    .hdr {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 12px;
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .hdr-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .logo { font-weight: 900; font-size: 0.75rem; color: var(--lime); text-transform: uppercase; letter-spacing: 1px; }
+    .hdr-right { display: flex; align-items: center; gap: 6px; }
+    #active-user-badge {
+        font-size: 0.68rem; color: var(--dim);
+        background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+        padding: 4px 9px; border-radius: 7px;
+    }
+    .clock {
+        font-size: 0.72rem; font-weight: 800; color: var(--accent);
+        font-family: 'Courier New', monospace;
+        background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.18);
+        padding: 7px 10px; border-radius: 9px; text-align: center;
+        white-space: nowrap; flex-shrink: 0;
+    }
+    /* clock + selects on one row */
+    .hdr-middle { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: center; }
+    .hdr-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+
+    /* ─── GENERIC ELEMENTS ─── */
+    select, input[type=text], input[type=number], input[type=date] {
+        background: var(--input); border: 1px solid var(--border);
+        color: var(--text); padding: 11px 12px; border-radius: 10px;
+        font-size: 15px; outline: none; width: 100%;
+        -webkit-appearance: none; appearance: none;
+    }
+    select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%2394a3b8' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 11px center; padding-right: 30px;
+    }
+    .ibtn {
+        background: var(--input); border: 1px solid var(--border); color: var(--text);
+        border-radius: 10px; height: 42px; width: 100%;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 0.82rem; gap: 4px;
+    }
+    .ibtn.green { background: var(--green); color: #064e3b; border-color: var(--green); }
+    .ibtn.sav { flex-direction: column; gap: 1px; font-size: 0.75rem; }
+    .ibtn .lbl { font-size: 0.5rem; color: var(--dim); }
+
+    /* ─── STATS ─── */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+
+    .stat {
+        position: relative;
+        background: var(--card);
+        border-radius: var(--r);
+        padding: 14px 12px 12px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    /* glowing top accent bar */
+    .stat::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 2px;
+        background-size: 200% 100%;
+        animation: barSlide 2.5s linear infinite;
+        border-radius: var(--r) var(--r) 0 0;
+    }
+
+    /* soft colour glow behind the card */
+    .stat::after {
+        content: '';
+        position: absolute;
+        top: -30px; left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        height: 60px;
+        border-radius: 50%;
+        filter: blur(22px);
+        opacity: 0.18;
+        animation: glowPulse 3s ease-in-out infinite;
+    }
+
+    .stat.balance::before  { background-image: linear-gradient(90deg, #6366f1, #a78bfa, #38bdf8, #6366f1); }
+    .stat.income::before   { background-image: linear-gradient(90deg, #00ff88, #34d399, #06b6d4, #00ff88); }
+    .stat.expenses::before { background-image: linear-gradient(90deg, #ff4d4d, #fb923c, #f43f5e, #ff4d4d); }
+
+    .stat.balance::after  { background: #6366f1; }
+    .stat.income::after   { background: #00ff88; }
+    .stat.expenses::after { background: #ff4d4d; }
+
+    @keyframes barSlide {
+        0%   { background-position: 0% 0%; }
+        100% { background-position: 200% 0%; }
+    }
+
+    @keyframes glowPulse {
+        0%, 100% { opacity: 0.15; }
+        50%        { opacity: 0.28; }
+    }
+
+    .stat small {
+        font-size: 0.5rem; color: var(--dim); text-transform: uppercase;
+        letter-spacing: 0.8px; display: block; margin-bottom: 5px;
+        position: relative; z-index: 1;
+    }
+    .stat b {
+        font-size: 1.15rem; font-weight: 800; display: block;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        position: relative; z-index: 1;
+    }
+
+    /* ─── CARD ─── */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
+    .ctitle { font-size: 0.58rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px; }
+
+    /* ─── FORM ─── */
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .fgrid .full { grid-column: 1/-1; }
+    .btn-save {
+        background: var(--green); color: #064e3b; border: none;
+        padding: 15px; border-radius: 10px; font-weight: 800;
+        width: 100%; margin-top: 10px; cursor: pointer; font-size: 0.95rem;
+    }
+
+    /* ─── TABS ─── */
+    .tabs { display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab { background: rgba(255,255,255,0.05); border: none; color: var(--dim); padding: 8px 15px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .tab.active { background: var(--accent); color: #fff; }
+
+    /* ─── SEARCH ─── */
+    .sbox { position: relative; margin-bottom: 10px; }
+    .sbox i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--dim); font-size: 0.75rem; pointer-events: none; }
+    .sbox input { padding-left: 34px; }
+
+    /* ─── TABLE ─── */
+    .twrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; min-width: 380px; }
+    th { font-size: 0.65rem; color: var(--dim); padding: 7px 7px; border-bottom: 1px solid var(--border); font-weight: 600; text-align: left; }
+    td { padding: 9px 7px; border-bottom: 1px solid var(--border); font-size: 0.75rem; vertical-align: middle; }
+
+    /* ─── SIDEBAR ─── */
+    .chart-h { height: 170px; }
+    .converted { font-size: 1.5rem; font-weight: 900; color: var(--green); text-align: center; margin-top: 10px; }
+    .goal-row { display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; }
+    .gbar-bg { background: var(--border); height: 7px; border-radius: 10px; margin: 8px 0 12px; }
+    .gbar { background: var(--accent); height: 100%; border-radius: 10px; width: 0%; transition: width 0.4s; }
+
+    /* ─── USERS ─── */
+    #users-area { display: none; }
+
+    /* ─── WATERMARK ─── */
+    .wm {
+        position: fixed; bottom: 16px; right: 18px; z-index: 9999;
+        display: flex; align-items: center; gap: 7px; pointer-events: none;
+    }
+    .wm::before { content:''; width:14px; height:1px; background: rgba(255,255,255,0.15); display:block; }
+    .wm-text { font-size: 0.6rem; color: rgba(255,255,255,0.18); letter-spacing: 0.5px; }
+    .wm-name { font-family: 'Pacifico', cursive; font-size: 0.7rem; color: rgba(255,255,255,0.45); }
+    [data-theme="light"] .wm::before { background: rgba(0,0,0,0.1); }
+    [data-theme="light"] .wm-text { color: rgba(0,0,0,0.18); }
+    [data-theme="light"] .wm-name { color: rgba(0,0,0,0.35); }
+
+    /* ─── DESKTOP ─── */
+    @media (min-width: 768px) {
+        .wrap { max-width: 1200px; margin: 0 auto; padding: 16px 20px 60px; }
+
+        .hdr {
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: nowrap;
+            gap: 10px;
+            padding: 10px 16px;
+        }
+        .hdr-row1 { flex-shrink: 0; }
+
+        /* clock: compact, not full-width */
+        .clock {
+            width: auto;
+            min-width: 90px;
+            flex-shrink: 0;
+            font-size: 0.72rem;
+            padding: 7px 10px;
+        }
+
+        .hdr-selects { display: flex; gap: 8px; flex-shrink: 0; }
+        .hdr-selects select { width: auto; min-width: 128px; }
+        #main-currency { min-width: 72px; }
+
+        /* on desktop hdr-middle is just flex, not grid */
+        .hdr-middle {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .hdr-middle select { width: auto; min-width: 128px; }
+        #main-currency { min-width: 72px; }
+
+        .hdr-btns {
+            display: flex;
+            gap: 7px;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+        .hdr-btns .ibtn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .hdr-btns .ibtn.sav {
+            flex-direction: row;
+            gap: 5px;
+            width: auto;
+            padding: 0 13px;
+        }
+        .hdr-btns .ibtn.sav .lbl {
+            font-size: 0.72rem;
+            color: var(--text);
+        }
+
+        .main-cols { display: grid; grid-template-columns: 1fr 310px; gap: 14px; }
+        .stat b { font-size: 1.2rem; }
+    }
+    </style>
+</head>
+<body>
+<div id="parallax-bg"></div>
+
+<div class="wrap">
+
+    <div class="hdr">
+        <div class="hdr-row1">
+            <span class="logo">Finance Monitor</span>
+            <div class="hdr-right">
+                <span id="active-user-badge">Locked</span>
+                <button id="pin-edit-btn" onclick="changeUserPin()" style="display:none;background:none;border:none;color:var(--dim);cursor:pointer;padding:4px 6px;"><i class="fas fa-key"></i></button>
+                <button class="ibtn" onclick="logout()" style="width:36px;height:36px;border-radius:8px;flex-shrink:0;"><i class="fas fa-power-off"></i></button>
+            </div>
+        </div>
+
+        <div class="hdr-middle">
+            <div id="live-clock" class="clock">00:00:00</div>
+            <select id="month-filter" onchange="updateUI()" style="color:var(--accent);border-color:rgba(99,102,241,0.35);">
+                <option value="all">Full History</option>
+                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+                <option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option>
+                <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
+                <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
+            </select>
+            <select id="main-currency" onchange="updateUI()">
+                <option value="AED ">AED</option>
+                <option value="$">USD</option>
+                <option value="₹">INR</option>
+            </select>
+        </div>
+
+        <div class="hdr-btns">
+            <button class="ibtn sav" id="savings-toggle" onclick="toggleSavingsInclude()">
+                <i class="fas fa-piggy-bank"></i>
+                <span id="savings-status" class="lbl">ON</span>
+            </button>
+            <button class="ibtn" onclick="showUsersArea()"><i class="fas fa-cog"></i></button>
+            <button class="ibtn" onclick="toggleTheme()"><i class="fas fa-adjust"></i></button>
+            <button class="ibtn green" onclick="exportCSV()"><i class="fas fa-file-export"></i></button>
+            <button class="ibtn" style="font-size:0.6rem;color:var(--dim);cursor:default;" disabled>v1.0</button>
+        </div>
+    </div>
+
+    <div class="main-cols">
+
+        <div>
+            <div id="main-finance-area">
+
+                <div class="stats">
+                    <div class="stat balance"><small>Balance</small><b id="total-balance">0.00</b></div>
+                    <div class="stat income"><small>Income</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
+                    <div class="stat expenses"><small>Expenses</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
+                </div>
+
+                <div class="card">
+                    <div class="fgrid">
+                        <input type="text" id="desc" placeholder="What was this for?" class="full">
+                        <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
+                        <input type="date" id="txn-date">
+                        <select id="type">
+                            <option value="debit">Expense</option>
+                            <option value="credit">Income</option>
+                            <option value="saving">Saving</option>
+                        </select>
+                        <select id="cat" onchange="checkOther(this)">
+                            <option value="Food">Food</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Salary">Salary</option>
+                            <option value="Other">Other...</option>
+                        </select>
+                        <input type="text" id="other-cat" placeholder="Custom category..." class="full" style="display:none;">
+                    </div>
+                    <input type="hidden" id="edit-id">
+                    <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
+                </div>
+
+                <div class="card">
+                    <div class="tabs">
+                        <button class="tab active" onclick="filterData('all',this)">All</button>
+                        <button class="tab" onclick="filterData('credit',this)">Income</button>
+                        <button class="tab" onclick="filterData('debit',this)">Expenses</button>
+                        <button class="tab" onclick="filterData('saving',this)">Savings</button>
+                    </div>
+                    <div class="sbox">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-input" placeholder="Search..." oninput="updateUI()">
+                    </div>
+                    <div class="twrap">
+                        <table>
+                            <thead><tr><th>Date</th><th>Name</th><th>Category</th><th style="text-align:right">Amt</th><th style="width:55px"></th></tr></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="users-area">
+                <div class="card">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                        <span style="font-weight:800;font-size:0.95rem;">Manage Users</span>
+                        <button class="btn-save" onclick="addNewUser()" style="width:auto;margin-top:0;padding:9px 16px;font-size:0.78rem;">+ New User</button>
+                    </div>
+                    <div class="twrap"><table><tbody id="user-table-body"></tbody></table></div>
+                    <button class="tab" onclick="closeUsersArea()" style="margin-top:14px;"><i class="fas fa-arrow-left"></i> Back</button>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="ctitle">Expense Mix</div>
+                <div class="chart-h"><canvas id="expenseChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="ctitle">Live Converter</div>
+                <select id="convert-to" onchange="updateUI()">
+                    <option value="USD">Convert to USD ($)</option>
+                    <option value="INR">Convert to INR (₹)</option>
+                    <option value="EUR">Convert to EUR (€)</option>
+                </select>
+                <div class="converted" id="converted-val">$0.00</div>
+            </div>
+
+            <div class="card">
+                <div class="ctitle">Savings Goal</div>
+                <div class="goal-row"><span id="goal-name-display">Goal</span><span id="goal-percent">0%</span></div>
+                <div class="gbar-bg"><div class="gbar" id="goal-bar"></div></div>
+                <input type="text" id="goal-name-input" placeholder="Goal Name" style="margin-bottom:8px;">
+                <input type="number" id="goal-amt" placeholder="Target Amount">
+                <button class="btn-save" onclick="updateGoal()" style="padding:12px;margin-top:8px;font-size:0.8rem;">Set Goal</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="wm">
+    <span class="wm-text">designed by</span>
+    <span class="wm-name">Rahul</span>
+</div>
+
+<script>
+    let allTransactions=[], currentUser=null, currentFilter='all', includeSavingsInBalance=true, expenseChart, savingsGoal=5000;
+    let liveRates={"USD":0.2722,"INR":25.953,"EUR":0.2327};
+
+    async function fetchLiveRates(){
+        try{
+            const res=await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=INR,EUR');
+            const data=await res.json();
+            if(data.rates){liveRates.USD=0.272246;liveRates.INR=data.rates.INR*0.272246;liveRates.EUR=data.rates.EUR*0.272246;updateUI();}
+        }catch(e){console.warn("Live rates failed");}
+    }
+
+    function updateClock(){document.getElementById('live-clock').innerText=new Date().toLocaleTimeString([],{hour12:false});}
+    setInterval(updateClock,1000);updateClock();
+
+    document.addEventListener('mousemove',e=>{
+        document.getElementById('parallax-bg').style.setProperty('--x',(e.clientX/window.innerWidth*100)+'%');
+        document.getElementById('parallax-bg').style.setProperty('--y',(e.clientY/window.innerHeight*100)+'%');
+    });
+
+    const SUPABASE_URL='https://kfbtsoszcfnoovjvomir.supabase.co';
+    const SUPABASE_KEY='sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
+    const _supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+    async function fetchData(){
+        const{data}=await _supabase.from('transactions').select('*').order('created_at',{ascending:false});
+        allTransactions=data||[];
+        await fetchLiveRates();
+        updateUI();
+    }
+
+    function updateUI(){
+        const sym=document.getElementById('main-currency').value;
+        const mf=document.getElementById('month-filter').value;
+        const sq=document.getElementById('search-input').value.toLowerCase();
+        const tbody=document.getElementById('table-body');
+        tbody.innerHTML='';
+        if(!currentUser){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--dim);">Locked — tap ⚙ to login</td></tr>';return;}
+        let bal=0,cred=0,deb=0,saved=0;
+        let fil=allTransactions.filter(t=>t.user_name===currentUser);
+        if(mf!=='all')fil=fil.filter(t=>new Date(t.created_at).getMonth()===parseInt(mf));
+        fil.forEach(t=>{const a=parseFloat(t.amount);if(t.type==='credit'){cred+=a;bal+=a;}else if(t.type==='saving'){saved+=a;if(!includeSavingsInBalance)bal-=a;}else{deb+=a;bal-=a;}});
+        document.getElementById('total-balance').innerText=sym+bal.toLocaleString();
+        document.getElementById('total-credit').innerText=sym+cred.toLocaleString();
+        document.getElementById('total-debit').innerText=sym+deb.toLocaleString();
+        const tgt=document.getElementById('convert-to').value;
+        const cs={"USD":"$","INR":"₹","EUR":"€"};
+        document.getElementById('converted-val').innerText=cs[tgt]+(bal*liveRates[tgt]).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+        const prog=Math.min((saved/savingsGoal)*100,100);
+        document.getElementById('goal-bar').style.width=prog+'%';
+        document.getElementById('goal-percent').innerText=Math.floor(prog)+'%';
+        fil.filter(t=>(currentFilter==='all'||t.type===currentFilter)&&t.description.toLowerCase().includes(sq)).forEach(row=>{
+            const col=row.type==='credit'?'var(--lime)':row.type==='saving'?'var(--cyan)':'var(--red)';
+            tbody.innerHTML+=`<tr><td>${new Date(row.created_at).toLocaleDateString()}</td><td>${row.description}</td><td>${row.category}</td><td style="text-align:right;color:${col};font-weight:700;">${sym}${row.amount}</td><td style="text-align:right;white-space:nowrap;"><button onclick="editTransaction(${row.id})" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:4px;"><i class="fas fa-pencil-alt"></i></button><button onclick="deleteTransaction(${row.id})" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px;"><i class="fas fa-trash"></i></button></td></tr>`;
+        });
+        updateChart(fil);
+    }
+
+    async function showUsersArea(){
+        document.getElementById('main-finance-area').style.display='none';
+        document.getElementById('users-area').style.display='block';
+        const{data}=await _supabase.from('users_list').select('*');
+        const utbody=document.getElementById('user-table-body');
+        utbody.innerHTML='';
+        data.forEach(u=>utbody.innerHTML+=`<tr><td>${u.name}</td><td style="text-align:right"><button onclick="loginUser('${u.name}','${u.pin}')" style="background:var(--accent);border:none;color:#fff;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:0.78rem;">Login</button><button onclick="deleteUser(${u.id})" style="background:none;border:none;color:var(--red);cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button></td></tr>`);
+    }
+
+    async function loginUser(name,pin){
+        if(prompt(`PIN for ${name}:`)===pin){currentUser=name;document.getElementById('active-user-badge').innerText=name;document.getElementById('pin-edit-btn').style.display='inline-block';closeUsersArea();fetchData();}else alert("Wrong PIN!");
+    }
+
+    async function changeUserPin(){const p=prompt("New 4-digit PIN:");if(p&&p.length===4){await _supabase.from('users_list').update({pin:p}).eq('name',currentUser);alert("Updated!");}}
+    async function addNewUser(){const n=prompt("Name:"),p=prompt("PIN:");if(n&&p){await _supabase.from('users_list').insert([{name:n,pin:p}]);showUsersArea();}}
+    
+    async function deleteUser(id){
+        const adminPass = prompt("Enter Admin Password to delete this user:");
+        if(adminPass === "1234") { // Replace 1234 with your desired password
+            if(confirm("Are you sure you want to delete this user?")){
+                await _supabase.from('users_list').delete().eq('id',id);
+                showUsersArea();
+            }
+        } else {
+            alert("Incorrect Admin Password!");
+        }
+    }
+
+    async function saveTransaction(){
+        if(!currentUser)return;
+        const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value;
+        const manualDate = document.getElementById('txn-date').value;
+        const c=document.getElementById('cat').value==='Other'?document.getElementById('other-cat').value:document.getElementById('cat').value;
+        
+        let payload = {description:d,amount:parseFloat(a),type:t,category:c||'General'};
+        if(manualDate) payload.created_at = new Date(manualDate).toISOString();
+
+        if(eid)await _supabase.from('transactions').update(payload).eq('id',eid);
+        else await _supabase.from('transactions').insert([{...payload, user_name:currentUser}]);
+        
+        document.getElementById('desc').value='';document.getElementById('amt').value='';document.getElementById('txn-date').value='';document.getElementById('edit-id').value='';document.getElementById('save-btn').innerText='+ Save Transaction';
+        fetchData();
+    }
+
+    function editTransaction(id){
+        const t=allTransactions.find(x=>x.id===id);
+        document.getElementById('desc').value=t.description;
+        document.getElementById('amt').value=t.amount;
+        document.getElementById('type').value=t.type;
+        document.getElementById('edit-id').value=t.id;
+        document.getElementById('txn-date').value=new Date(t.created_at).toISOString().split('T')[0];
+        document.getElementById('save-btn').innerText='Update Entry';
+        window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    async function deleteTransaction(id){if(confirm("Delete?")){await _supabase.from('transactions').delete().eq('id',id);fetchData();}}
+    function closeUsersArea(){document.getElementById('users-area').style.display='none';document.getElementById('main-finance-area').style.display='block';}
+    function toggleSavingsInclude(){includeSavingsInBalance=!includeSavingsInBalance;document.getElementById('savings-status').innerText=includeSavingsInBalance?"ON":"OFF";updateUI();}
+    function logout(){currentUser=null;document.getElementById('active-user-badge').innerText="Locked";document.getElementById('pin-edit-btn').style.display='none';updateUI();}
+    function toggleTheme(){document.body.hasAttribute('data-theme')?document.body.removeAttribute('data-theme'):document.body.setAttribute('data-theme','light');}
+    function filterData(type,btn){currentFilter=type;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateUI();}
+    function checkOther(s){document.getElementById('other-cat').style.display=s.value==='Other'?'block':'none';}
+    function updateGoal(){savingsGoal=parseFloat(document.getElementById('goal-amt').value)||5000;document.getElementById('goal-name-display').innerText=document.getElementById('goal-name-input').value||'Goal';updateUI();}
+    function exportCSV(){let csv='Date,Desc,Amt\n';allTransactions.filter(t=>t.user_name===currentUser).forEach(t=>csv+=`${t.created_at},${t.description},${t.amount}\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='finance.csv';a.click();}
+
+    function updateChart(data){
+        const ctx=document.getElementById('expenseChart').getContext('2d');
+        const cats={};data.filter(t=>t.type==='debit').forEach(t=>cats[t.category]=(cats[t.category]||0)+parseFloat(t.amount));
+        if(expenseChart)expenseChart.destroy();
+        expenseChart=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#10b981','#ff4d4d','#00d4ff','#f59e0b'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}}});
+    }
+
+    fetchData();
+</script>
+</body>
+</html>

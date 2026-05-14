@@ -1,0 +1,16 @@
+name: Weekly Report Trigger
+on:
+  schedule:
+    # This runs at 00:00 every Sunday (UTC)
+    - cron: '0 0 * * 0'
+  workflow_dispatch: # This adds a "Run" button in GitHub so you can test it manually
+
+jobs:
+  trigger_supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase Edge Function
+        run: |
+          curl -i -X POST "https://kfbtsoszcfnoovjvomir.supabase.co/functions/v1/weekly-report" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Content-Type: application/json"

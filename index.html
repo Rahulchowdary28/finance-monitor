@@ -449,8 +449,8 @@
         <div>
             <div class="stats">
                 <div class="stat balance"><small>Net Balance</small><b id="total-balance">0.00</b></div>
-                <div class="stat income"><small>Total Influx</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
-                <div class="stat expenses"><small>Total Outflow</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
+                <div class="stat income"><small>Influx</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
+                <div class="stat expenses"><small>Outflow</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
             </div>
 
             <div class="card" id="section-form">
@@ -985,8 +985,8 @@
         
         // Append Summary Totals Rows
         csvContent += "\n";
-        csvContent += `,,,Total Influx,${totalCredit.toFixed(2)},\n`;
-        csvContent += `,,,Total Outflow,${totalDebit.toFixed(2)},\n`;
+        csvContent += `,,,Influx,${totalCredit.toFixed(2)},\n`;
+        csvContent += `,,,Outflow,${totalDebit.toFixed(2)},\n`;
         csvContent += `,,,Net Balance,${totalBalance.toFixed(2)},\n`;
 
         const encodedUri = encodeURI(csvContent);

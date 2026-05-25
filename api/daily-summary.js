@@ -21,23 +21,19 @@ export async function GET(request) {
 
     if (userError) throw userError;
 
-    // 1. Time Vector Formulations
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const dateString = yesterday.toISOString().split('T')[0];
 
-    // Formulate Boundary Ranges for Current Month
     const firstDayOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
     const startOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const currentMonthLabel = monthNames[yesterday.getMonth()];
 
-    // 2. Loop Process Core Logic
     for (const user of users) {
       if (!user.email) continue;
 
-      // Fetch DAILY Debits
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
         .select('description, amount, category')
@@ -48,7 +44,6 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
-      // Fetch MONTH-TO-DATE Debits
       const { data: monthlyTxns, error: mTxError } = await supabase
         .from('transactions')
         .select('amount, category')
@@ -59,11 +54,9 @@ export async function GET(request) {
 
       if (mTxError) throw mTxError;
 
-      // Accumulate Financial Summaries
       const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
       const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
 
-      // Group Monthly Categories for CSS Distribution Meter
       const categoriesMap = {};
       if (monthlyTxns) {
         monthlyTxns.forEach(t => {
@@ -72,55 +65,64 @@ export async function GET(request) {
         });
       }
 
-      // Sort categories to display top outflow types
       const sortedCategories = Object.entries(categoriesMap)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 3); // Top 3 tracking arrays
+        .slice(0, 3);
 
-      // Build Daily Rows HTML Markup
+      // REDESIGNED: Premium Itemized Transaction List (Table Layout for clean rendering)
       let breakdownHtml = "";
       if (dailyTxns && dailyTxns.length > 0) {
         breakdownHtml = dailyTxns.map(t => `
-          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); padding: 12px 14px; margin-bottom: 8px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="text-align: left;">
-              <div style="color: #f1f5f9; font-size: 13px; font-weight: 600;">${t.description}</div>
-              <span style="display: inline-block; background: rgba(99,102,241,0.15); color: #818cf8; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 500; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;">${t.category}</span>
-            </div>
-            <div style="color: #ef4444; font-size: 14px; font-weight: 700; font-family: monospace; text-align: right;">
-              - AED ${parseFloat(t.amount).toFixed(2)}
-            </div>
+          <div style="background: #111632; border: 1px solid rgba(255,255,255,0.06); padding: 14px; margin-bottom: 10px; border-radius: 12px;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td align="left" valign="middle">
+                  <div style="color: #ffffff; font-size: 14px; font-weight: 600; font-family: -apple-system, sans-serif;">${t.description}</div>
+                  <div style="margin-top: 6px;">
+                    <span style="background: rgba(99,102,241,0.15); color: #a5b4fc; font-size: 9px; padding: 3px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; font-family: -apple-system, sans-serif;">
+                      📂 ${t.category}
+                    </span>
+                  </div>
+                </td>
+                <td align="right" valign="middle" style="color: #ff4a4a; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
+                  -AED ${parseFloat(t.amount).toFixed(2)}
+                </td>
+              </tr>
+            </table>
           </div>
         `).join('');
       } else {
         breakdownHtml = `
-          <div style="text-align: center; color: #64748b; padding: 20px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 10px; font-size: 13px;">
-            No outflux events cataloged for this tracking window.
+          <div style="text-align: center; color: #4b5563; padding: 30px 20px; border: 2px dashed rgba(255,255,255,0.05); border-radius: 12px; font-size: 14px; font-family: -apple-system, sans-serif;">
+            ☕ No transactions logged for this tracking window.
           </div>
         `;
       }
 
-      // Build Monthly Dynamic Visual Analytics Section
+      // REDESIGNED: Enhanced Progress Bars with Glowing Indicators
       let metricsHtml = "";
       if (totalMonthlySpend > 0 && sortedCategories.length > 0) {
         metricsHtml = sortedCategories.map(([cat, amt]) => {
           const percentage = ((amt / totalMonthlySpend) * 100).toFixed(0);
           return `
-            <div style="margin-bottom: 12px; text-align: left;">
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 4px;">
-                <span style="color: #cbd5e1; font-weight: 500; text-transform: capitalize;">${cat}</span>
-                <span style="color: #94a3b8; font-family: monospace;">AED ${amt.toFixed(0)} (${percentage}%)</span>
-              </div>
-              <div style="width: 100%; background: #1e293b; height: 6px; border-radius: 3px; overflow: hidden;">
-                <div style="width: ${percentage}%; background: linear-gradient(90deg, #6366f1, #4f46e5); height: 100%; border-radius: 3px;"></div>
+            <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
+              <table width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size: 12px; margin-bottom: 6px;">
+                <tr>
+                  <td align="left" style="color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${cat}</td>
+                  <td align="right" style="color: #f3f4f6; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${amt.toFixed(2)} (${percentage}%)</td>
+                </tr>
+              </table>
+              <div style="width: 100%; background: #1f293d; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="width: ${percentage}%; background: linear-gradient(90deg, #6366f1, #818cf8); height: 100%; border-radius: 4px; box-shadow: 0 0 8px rgba(99,102,241,0.5);"></div>
               </div>
             </div>
           `;
         }).join('');
       } else {
-        metricsHtml = `<div style="color: #64748b; font-size: 12px; text-align: center;">No visual metrics map generation data available yet.</div>`;
+        metricsHtml = `<div style="color: #4b5563; font-size: 13px; text-align: center; padding: 10px; font-family: -apple-system, sans-serif;">No monthly trend vectors mapped.</div>`;
       }
 
-      // Complete Premium Theme Email Structure Layout Template Wrapper
+      // REDESIGNED: Absolute Top-Tier Email Layout Template
       const emailHtmlContent = `
         <!DOCTYPE html>
         <html>
@@ -128,47 +130,53 @@ export async function GET(request) {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
         </head>
-        <body style="margin: 0; padding: 20px; background-color: #040612; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;-webkit-font-smoothing: antialiased;">
-          <div style="max-width: 480px; margin: 0 auto; background: #0a0e23; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+        <body style="margin: 0; padding: 30px 10px; background-color: #03040b;">
+          <div style="max-width: 460px; margin: 0 auto; background: #070913; border: 1px solid rgba(255,255,255,0.08); border-top: 4px solid #6366f1; border-radius: 16px; padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.75);">
             
-            <div style="border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 14px; margin-bottom: 18px; text-align: left;">
-              <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                <span style="background: #6366f1; width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle;"></span>
-                <span style="color: #6366f1; font-weight: 800; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;">VAULT TELEMETRY SYSTEM</span>
-              </div>
-              <h2 style="color: #f8fafc; margin: 2px 0 0 0; font-size: 19px; font-weight: 700;">Financial Metrics Statement</h2>
-            </div>
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px;">
+              <tr>
+                <td align="left">
+                  <span style="color: #6366f1; font-weight: 800; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-family: -apple-system, sans-serif; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
+                  <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: -0.5px;">Daily Statement</h2>
+                </td>
+                <td align="right" valign="bottom" style="color: #4b5563; font-size: 12px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                  ${dateString}
+                </td>
+              </tr>
+            </table>
 
-            <p style="color: #94a3b8; font-size: 14px; margin-bottom: 18px; text-align: left; line-height: 1.5;">
-              Hello <strong style="color: #f8fafc;">${user.name}</strong>, processing finished for transaction loop cycle <strong style="color: #818cf8;">${dateString}</strong>:
+            <p style="color: #9ca3af; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
+              System sync complete for user <strong style="color: #ffffff; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>. Yesterday's itemized asset and expense flows have been processed:
             </p>
 
-            <div style="margin-bottom: 22px;">
-              <h3 style="color: #475569; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; text-align: left;">Daily Items Matrix</h3>
+            <div style="margin-bottom: 28px;">
+              <h3 style="color: #4b5563; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; text-align: left; font-family: -apple-system, sans-serif;">📅 Itemized Activity</h3>
               ${breakdownHtml}
             </div>
 
-            <div style="background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.04); padding: 16px; border-radius: 12px; margin-bottom: 22px;">
-              <h3 style="color: #6366f1; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; margin-bottom: 12px; text-align: left;">
-                ${currentMonthLabel} Distribution Mix
-              </h3>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); padding: 18px; border-radius: 14px; margin-bottom: 28px;">
+              <h3 style="color: #818cf8; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 0; margin-bottom: 16px; text-align: left; font-family: -apple-system, sans-serif;">📊 ${currentMonthLabel} Outflow Weight</h3>
               ${metricsHtml}
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 18px; width: 100%;">
-              <div style="flex: 1; min-width: 0; background: #0f172a; border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 10px; text-align: center;">
-                <span style="color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">Daily Outflow</span>
-                <span style="color: #f1f5f9; font-size: 15px; font-weight: 700; font-family: monospace;">AED ${totalDailySpend.toFixed(2)}</span>
-              </div>
-              
-              <div style="flex: 1; min-width: 0; background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%); border: 1px solid #4f46e5; padding: 12px; border-radius: 10px; text-align: center;">
-                <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 2px;">MTD Total Spend</span>
-                <span style="color: #10b981; font-size: 15px; font-weight: 700; font-family: monospace;">AED ${totalMonthlySpend.toFixed(2)}</span>
-              </div>
-            </div>
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
+              <tr>
+                <td width="48%" valign="top" style="background: #0d1127; border: 1px solid rgba(255,255,255,0.05); padding: 14px; border-radius: 12px; text-align: center;">
+                  <span style="color: #4b5563; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-family: -apple-system, sans-serif; font-weight: 700;">Daily Outflow</span>
+                  <span style="color: #ffffff; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${totalDailySpend.toFixed(2)}</span>
+                </td>
+                <td width="4%">&nbsp;</td>
+                <td width="48%" valign="top" style="background: linear-gradient(135deg, #1e1b4b 0%, #0a0c16 100%); border: 1px solid #4f46e5; padding: 14px; border-radius: 12px; text-align: center;">
+                  <span style="color: #a5b4fc; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-family: -apple-system, sans-serif; font-weight: 700;">MTD Total Spend</span>
+                  <span style="color: #10b981; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${totalMonthlySpend.toFixed(2)}</span>
+                </td>
+              </tr>
+            </table>
 
-            <div style="margin-top: 28px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 12px;">
-              <p style="color: #334155; font-size: 10px; margin: 0;">Automated account sync delivery. Authorized sender encryption sequence verified via alerts@drivehouse.ae.</p>
+            <div style="margin-top: 36px; text-align: center; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px;">
+              <p style="color: #374151; font-size: 11px; margin: 0; font-family: -apple-system, sans-serif; line-height: 1.4;">
+                This statement was auto-generated and safely dispatched via your production domain link structure (<span style="color: #4b5563;">alerts@drivehouse.ae</span>).
+              </p>
             </div>
 
           </div>
@@ -183,11 +191,10 @@ export async function GET(request) {
         html: emailHtmlContent,
       });
 
-      // Deliberate execution spacing pause protection
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'All telemetry visual statements sent successfully.' }), {
+    return new Response(JSON.stringify({ success: true, message: 'All luxury ledger dispatches sent successfully.' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });

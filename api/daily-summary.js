@@ -21,19 +21,20 @@ export async function GET(request) {
 
     if (userError) throw userError;
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateString = yesterday.toISOString().split('T')[0];
+    // Synchronize time calculations with your 23:00 UTC Cron Execution Target
+    const today = new Date();
+    const dateString = today.toISOString().split('T')[0];
 
-    const firstDayOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const startOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const currentMonthLabel = monthNames[yesterday.getMonth()];
+    const currentMonthLabel = monthNames[today.getMonth()];
 
     for (const user of users) {
       if (!user.email) continue;
 
+      // Query real-time data rows logged within today's window
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
         .select('description, amount, category')
@@ -44,6 +45,7 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
+      // Query Month-to-Date cumulative aggregates up to this exact minute
       const { data: monthlyTxns, error: mTxError } = await supabase
         .from('transactions')
         .select('amount, category')
@@ -142,12 +144,10 @@ export async function GET(request) {
                 <td align="left" valign="middle" width="65" style="width: 65px; padding-right: 12px;">
                   <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="55" height="55" style="width: 55px; height: 55px; border-radius: 28px; display: block; border: 1px solid #242b54;" alt="Vault Logo" />
                 </td>
-                
                 <td align="left" valign="middle">
                   <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-family: -apple-system, sans-serif; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
                   <h2 style="color: #ffffff !important; margin: 0; font-size: 20px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: -0.5px;">Daily Statement</h2>
                 </td>
-                
                 <td align="right" valign="middle" width="95" style="width: 95px; min-width: 95px; text-align: right; white-space: nowrap !important; color: #8696ad !important; font-size: 13px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
                   ${dateString}
                 </td>
@@ -155,7 +155,7 @@ export async function GET(request) {
             </table>
 
             <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
-              Yo! <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, Here is the itemized expense breakdown from Yesterday:
+              Yo! <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, Here is the itemized expense breakdown from today:
             </p>
 
             <div style="margin-bottom: 28px;">

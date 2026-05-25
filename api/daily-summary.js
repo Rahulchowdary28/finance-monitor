@@ -155,7 +155,7 @@ export async function GET(request) {
             </table>
 
             <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
-              System sync complete for user <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>. Yesterday's itemized asset and expense flows have been processed:
+              Hello <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>. Summary of Yesterday's itemized expense:
             </p>
 
             <div style="margin-bottom: 28px;">

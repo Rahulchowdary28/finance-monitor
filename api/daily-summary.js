@@ -155,7 +155,7 @@ export async function GET(request) {
             </table>
 
             <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
-              Hello <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, Here is the itemized expense breakdown from Yesterday:
+              Yo! <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, Here is the itemized expense breakdown from Yesterday:
             </p>
 
             <div style="margin-bottom: 28px;">

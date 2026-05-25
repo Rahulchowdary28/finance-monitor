@@ -132,9 +132,10 @@ export async function GET(request) {
             
             <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 24px;">
               <tr>
-                <td align="left">
-                  <img src="https://placehold.co/460x140/111632/ffffff?text=FINANCE+TRACKER" width="100%" style="max-width: 460px; height: auto; border-radius: 12px; margin-bottom: 18px; display: block;" alt="Platform Banner" />
-                  
+                <td align="left" valign="middle" style="width: 70px; padding-right: 14px;">
+                  <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="60" height="60" style="width: 60px; height: 60px; border-radius: 50%; display: block; border: 1px solid rgba(255,255,255,0.15);" alt="Vault Logo" />
+                </td>
+                <td align="left" valign="middle">
                   <span style="color: #6366f1; font-weight: 800; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-family: -apple-system, sans-serif; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
                   <h2 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: -0.5px;">Daily Statement</h2>
                 </td>
@@ -193,10 +194,11 @@ export async function GET(request) {
         html: emailHtmlContent,
       });
 
+      // Sequential delay protection
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'All telemetry visual statements sent successfully.' }), {
+    return new Response(JSON.stringify({ success: true, message: 'All luxury telemetry statements delivered.' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });

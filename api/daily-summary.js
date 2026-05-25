@@ -4,9 +4,10 @@ import { Resend } from 'resend';
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export default async function (req, res) {
-  // Security gate check
-  const authHeader = req.headers.authorization || req.headers.Authorization;
+// Vercel Serverless Cron triggers send a GET request, so we export a named GET function
+export async function GET(request) {
+  // Security gate check using the standard Web Request API
+  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized entry matrix.' }), {
       status: 401,

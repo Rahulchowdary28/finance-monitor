@@ -3,309 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Finance Tracker | Rahul Edition</title>
+    <title>Virtual Vault | Premium Finance Terminal</title>
     
     <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/584/584026.png" type="image/png">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Pacifico&family=Plus+Jakarta+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
     <style>
     :root {
-        --bg: #0b0e1a;
-        --card: #161b2c;
+        --bg: #040612;
+        --card: #0d1127;
         --text: #f8fafc;
         --dim: #94a3b8;
         --accent: #6366f1;
-        --green: #10b981;
+        --green: #00ff88;
         --red: #ff4d4d;
         --lime: #00ff88;
         --cyan: #00d4ff;
         --border: rgba(255,255,255,0.07);
-        --input: #0f172a;
-        --r: 14px;
+        --input: #070914;
+        --r: 16px;
+        
+        /* Neon Glow Variables */
+        --glow-accent: 0 0 15px rgba(99, 102, 241, 0.5);
+        --glow-green: 0 0 15px rgba(0, 255, 136, 0.6);
+        --glow-red: 0 0 15px rgba(255, 77, 77, 0.6);
+        --glow-cyan: 0 0 15px rgba(0, 212, 255, 0.6);
     }
     [data-theme="light"] {
         --bg: #f1f5f9; --card: #fff; --text: #0f172a;
         --dim: #64748b; --border: rgba(0,0,0,0.08); --input: #f8fafc;
+        --glow-accent: none; --glow-green: none; --glow-red: none; --glow-cyan: none;
     }
 
     *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
-    html { width: 100%; overflow-x: hidden; }
-
-    body {
-        width: 100%;
-        max-width: 100vw;
-        overflow-x: hidden;
-        background: var(--bg);
-        color: var(--text);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        font-size: 15px;
-        transition: background 0.3s;
-        -webkit-font-smoothing: antialiased;
-    }
+    html, body { width: 100%; min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; scroll-behavior: smooth; overflow-x: hidden; }
 
     #parallax-bg {
         position: fixed; inset: 0; z-index: 0;
-        background: radial-gradient(circle at var(--x,50%) var(--y,50%), rgba(99,102,241,0.1) 0%, transparent 55%);
+        background: 
+            radial-gradient(circle at var(--x, 30%) var(--y, 20%), rgba(0, 212, 255, 0.05) 0%, transparent 45%),
+            radial-gradient(circle at var(--y, 70%) var(--x, 80%), rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, #050714 0%, #010207 100%);
         pointer-events: none;
     }
 
     .wrap {
         width: 100%;
-        padding: 12px 14px 100px;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 20px 160px 20px;
         position: relative;
         z-index: 1;
     }
 
-    /* ─── HEADER ─── */
-    .hdr {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--r);
-        padding: 12px;
-        margin-bottom: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
+    /* ─── PORTAL LOGIN BACKDROP ANIMATION ─── */
+    #auth-portal {
+        position: fixed; inset: 0; z-index: 10000;
+        background: #02040a;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 20px;
+        overflow: hidden;
     }
-    .hdr-row1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .logo { font-weight: 900; font-size: 0.75rem; color: var(--lime); text-transform: uppercase; letter-spacing: 1px; }
-    .hdr-right { display: flex; align-items: center; gap: 6px; }
-    #active-user-badge {
-        font-size: 0.68rem; color: var(--dim);
-        background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-        padding: 4px 9px; border-radius: 7px;
+    #auth-canvas {
+        position: absolute; inset: 0; z-index: 1;
+        width: 100%; height: 100%; pointer-events: none;
     }
-    .clock {
-        font-size: 0.72rem; font-weight: 800; color: var(--accent);
-        font-family: 'Courier New', monospace;
-        background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.18);
-        padding: 7px 10px; border-radius: 9px; text-align: center;
-        white-space: nowrap; flex-shrink: 0;
+    .auth-container-card {
+        background: linear-gradient(135deg, rgba(13, 17, 39, 0.85) 0%, rgba(5, 6, 18, 0.98) 100%);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        border-radius: 32px;
+        padding: 40px 30px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: 0 0 40px rgba(0, 214, 255, 0.15), inset 0 1px 2px rgba(255,255,255,0.1);
+        text-align: center;
+        position: relative;
+        z-index: 5;
     }
-    /* clock + selects on one row */
-    .hdr-middle { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; align-items: center; }
-    .hdr-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    
+    .auth-brand {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900; font-size: 2.1rem; letter-spacing: 3px;
+        text-transform: uppercase; color: #fff; margin-bottom: 4px;
+        text-shadow: 0 0 20px rgba(255,255,255,0.3);
+    }
+    .auth-brand span { color: var(--cyan); text-shadow: var(--glow-cyan); }
+    
+    .profile-grid { 
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+        width: 100%; margin-top: 30px; 
+    }
+    .profile-item {
+        background: rgba(4, 6, 15, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px; padding: 20px 12px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+        cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative; overflow: hidden;
+    }
+    .profile-item:hover {
+        transform: translateY(-4px);
+        border-color: var(--cyan);
+        box-shadow: var(--glow-cyan);
+    }
+    .profile-item.user-on-hold {
+        border-color: rgba(255, 77, 77, 0.4);
+        opacity: 0.65;
+    }
+    .profile-item.user-on-hold:hover {
+        box-shadow: var(--glow-red);
+        border-color: var(--red);
+    }
+    
+    .security-node-display {
+        width: 46px; height: 46px; background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .security-node-display .orbit-dot {
+        width: 10px; height: 10px; background: var(--accent); border-radius: 50%;
+        box-shadow: 0 0 10px var(--accent);
+    }
+    .profile-item:hover .security-node-display .orbit-dot {
+        background: var(--cyan); box-shadow: var(--glow-cyan);
+    }
+    .profile-item.user-on-hold .security-node-display .orbit-dot {
+        background: var(--red); box-shadow: var(--glow-red);
+    }
+    
+    .profile-item span { font-weight: 700; font-size: 0.9rem; color: var(--text); letter-spacing: 0.5px; }
 
-    /* ─── GENERIC ELEMENTS ─── */
-    select, input[type=text], input[type=number], input[type=date] {
+    .pin-box-view { display: none; width: 100%; }
+    .pin-box-view input { 
+        text-align: center; font-family: 'Orbitron', sans-serif;
+        font-size: 2rem; letter-spacing: 12px; margin: 20px 0; padding: 12px;
+        background: rgba(5, 7, 15, 0.9); border: 1px solid var(--cyan);
+        color: var(--cyan); border-radius: 16px; outline: none;
+        box-shadow: var(--glow-cyan);
+    }
+
+    /* ─── ADMIN ROOT CONTROL PANEL ─── */
+    #admin-management-view { text-align: left; }
+    
+    /* ─── MINIMAL HEADER ─── */
+    .hdr {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+        padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .hdr-row1 { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .logo { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.1rem; color: var(--lime); text-transform: uppercase; letter-spacing: 2px; text-shadow: var(--glow-green); }
+    
+    #active-user-badge {
+        font-size: 0.75rem; color: var(--text); font-weight: 700;
+        background: rgba(99, 102, 241, 0.15); border: 1px solid var(--accent);
+        padding: 6px 12px; border-radius: 8px; text-transform: uppercase;
+        box-shadow: var(--glow-accent);
+    }
+
+    .clock {
+        font-size: 0.85rem; font-weight: 800; color: #a5b4fc; font-family: 'Orbitron', monospace;
+        background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.3);
+        padding: 0 14px; border-radius: 12px; text-align: center; white-space: nowrap;
+        height: 44px; display: flex; align-items: center; justify-content: center; width: 100%;
+    }
+    .hdr-middle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; width: 100%; }
+
+    select, input[type=text], input[type=number], input[type=date], input[type=password] {
         background: var(--input); border: 1px solid var(--border);
-        color: var(--text); padding: 11px 12px; border-radius: 10px;
-        font-size: 15px; outline: none; width: 100%;
-        -webkit-appearance: none; appearance: none;
+        color: var(--text); padding: 14px; border-radius: 12px;
+        font-size: 14px; outline: none; width: 100%; transition: border 0.3s, box-shadow 0.3s; height: 44px;
     }
-    select {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%2394a3b8' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat; background-position: right 11px center; padding-right: 30px;
-    }
+    select:focus, input:focus { border-color: var(--accent); box-shadow: var(--glow-accent); }
+    
     .ibtn {
         background: var(--input); border: 1px solid var(--border); color: var(--text);
-        border-radius: 10px; height: 42px; width: 100%;
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer; font-size: 0.82rem; gap: 4px;
+        border-radius: 12px; height: 44px; width: 44px;
+        display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.95rem;
     }
-    .ibtn.green { background: var(--green); color: #064e3b; border-color: var(--green); }
-    .ibtn.sav { flex-direction: column; gap: 1px; font-size: 0.75rem; }
-    .ibtn .lbl { font-size: 0.5rem; color: var(--dim); }
 
-    /* ─── STATS ─── */
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    /* ─── SYSTEM DROPDOWN PANELS ─── */
+    .utility-dropdown-container { position: relative; width: 100%; }
+    .utility-select-trigger {
+        background: var(--input); border: 1px solid var(--border); color: var(--dim);
+        border-radius: 12px; height: 44px; width: 100%; padding: 0 14px;
+        display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .utility-dropdown-menu {
+        display: none; position: absolute; top: calc(100% + 6px); right: 0; left: 0;
+        background: var(--card); border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 14px; padding: 8px; z-index: 100;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+        flex-direction: column; gap: 6px;
+    }
+    .utility-dropdown-menu.show { display: flex; }
+    .menu-action-row {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+        color: var(--text); padding: 10px 14px; border-radius: 10px;
+        font-size: 0.75rem; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; gap: 10px; width: 100%;
+    }
+    .menu-action-row:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--accent); }
 
+    /* ─── GLOWING STAT CARDS WITH PULSING ANIMATION ─── */
+    @keyframes pulseGlowAccent {
+        0% { border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+        50% { border-color: rgba(99, 102, 241, 0.8); box-shadow: 0 0 20px rgba(99, 102, 241, 0.6); }
+        100% { border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+    }
+    @keyframes pulseGlowGreen {
+        0% { border-color: rgba(0, 255, 136, 0.3); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+        50% { border-color: rgba(0, 255, 136, 0.8); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+        100% { border-color: rgba(0, 255, 136, 0.3); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+    }
+    @keyframes pulseGlowRed {
+        0% { border-color: rgba(255, 77, 77, 0.3); box-shadow: 0 0 10px rgba(255, 77, 77, 0.2); }
+        50% { border-color: rgba(255, 77, 77, 0.8); box-shadow: 0 0 20px rgba(255, 77, 77, 0.6); }
+        100% { border-color: rgba(255, 77, 77, 0.3); box-shadow: 0 0 10px rgba(255, 77, 77, 0.2); }
+    }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
     .stat {
-        position: relative;
-        background: var(--card);
-        border-radius: var(--r);
-        padding: 14px 12px 12px;
-        overflow: hidden;
-        border: 1px solid var(--border);
+        position: relative; background: var(--card); border-radius: var(--r); padding: 18px 16px; border: 1px solid var(--border);
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    
+    /* Apply Continuous Pulse Animations */
+    .stat.balance { animation: pulseGlowAccent 3s infinite ease-in-out; }
+    .stat.income { animation: pulseGlowGreen 3s infinite ease-in-out; animation-delay: 0.5s; }
+    .stat.expenses { animation: pulseGlowRed 3s infinite ease-in-out; animation-delay: 1s; }
+
+    /* Theme override fallbacks */
+    [data-theme="light"] .stat.balance, [data-theme="light"] .stat.income, [data-theme="light"] .stat.expenses {
+        animation: none !important;
+        box-shadow: none !important;
     }
 
-    /* glowing top accent bar */
-    .stat::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 2px;
-        background-size: 200% 100%;
-        animation: barSlide 2.5s linear infinite;
-        border-radius: var(--r) var(--r) 0 0;
-    }
+    .stat small { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; font-weight: 700; }
+    .stat b { font-size: 1.35rem; font-weight: 800; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* soft colour glow behind the card */
-    .stat::after {
-        content: '';
-        position: absolute;
-        top: -30px; left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        height: 60px;
-        border-radius: 50%;
-        filter: blur(22px);
-        opacity: 0.18;
-        animation: glowPulse 3s ease-in-out infinite;
-    }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+    .ctitle { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 14px; }
 
-    .stat.balance::before  { background-image: linear-gradient(90deg, #6366f1, #a78bfa, #38bdf8, #6366f1); }
-    .stat.income::before   { background-image: linear-gradient(90deg, #00ff88, #34d399, #06b6d4, #00ff88); }
-    .stat.expenses::before { background-image: linear-gradient(90deg, #ff4d4d, #fb923c, #f43f5e, #ff4d4d); }
-
-    .stat.balance::after  { background: #6366f1; }
-    .stat.income::after   { background: #00ff88; }
-    .stat.expenses::after { background: #ff4d4d; }
-
-    @keyframes barSlide {
-        0%   { background-position: 0% 0%; }
-        100% { background-position: 200% 0%; }
-    }
-
-    @keyframes glowPulse {
-        0%, 100% { opacity: 0.15; }
-        50%        { opacity: 0.28; }
-    }
-
-    .stat small {
-        font-size: 0.5rem; color: var(--dim); text-transform: uppercase;
-        letter-spacing: 0.8px; display: block; margin-bottom: 5px;
-        position: relative; z-index: 1;
-    }
-    .stat b {
-        font-size: 1.15rem; font-weight: 800; display: block;
-        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        position: relative; z-index: 1;
-    }
-
-    /* ─── CARD ─── */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 12px; }
-    .ctitle { font-size: 0.58rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 12px; }
-
-    /* ─── FORM ─── */
-    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .fgrid .full { grid-column: 1/-1; }
+    
     .btn-save {
-        background: var(--green); color: #064e3b; border: none;
-        padding: 15px; border-radius: 10px; font-weight: 800;
-        width: 100%; margin-top: 10px; cursor: pointer; font-size: 0.95rem;
+        background: var(--green); color: #003311; border: none;
+        padding: 16px; border-radius: 12px; font-weight: 800;
+        width: 100%; margin-top: 12px; cursor: pointer; font-size: 1rem; 
+        transition: opacity 0.2s, box-shadow 0.3s;
+        box-shadow: var(--glow-green);
+    }
+    .btn-save:hover { opacity: 0.95; box-shadow: 0 0 25px rgba(0,255,136,0.9); }
+
+    /* INLINE USER CATEGORY MANAGER DROPDOWN DRAWER */
+    .user-cat-manager-toggle {
+        font-size: 0.72rem; font-weight: 700; color: var(--cyan); text-transform: uppercase;
+        letter-spacing: 0.5px; background: none; border: none; cursor: pointer;
+        display: flex; align-items: center; gap: 6px; margin-top: 12px; width: fit-content;
+    }
+    .user-cat-drawer {
+        display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px;
+    }
+    .user-cat-drawer.open { display: block; }
+    .cat-badge-container {
+        display: flex; flex-wrap: wrap; gap: 6px; max-height: 110px; overflow-y: auto; margin-bottom: 12px; padding: 4px;
+    }
+    .cat-badge-item {
+        background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+        color: var(--text); padding: 6px 10px; border-radius: 8px; font-size: 0.75rem;
+        display: flex; align-items: center; gap: 8px; font-weight: 600;
+    }
+    .cat-badge-item button {
+        background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.75rem;
     }
 
-    /* ─── TABS ─── */
-    .tabs { display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab { background: rgba(255,255,255,0.05); border: none; color: var(--dim); padding: 8px 15px; border-radius: 8px; font-size: 0.75rem; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-    .tab.active { background: var(--accent); color: #fff; }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+    .tab { background: rgba(255,255,255,0.05); border: none; color: var(--dim); padding: 10px 16px; border-radius: 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; font-weight: 600; }
+    .tab.active { background: var(--accent); color: #fff; box-shadow: var(--glow-accent); }
+    
+    .view-limit-dropdown { width: 145px; height: 36px; padding: 0 10px; font-size: 0.75rem; border-radius: 8px; border-color: rgba(255,255,255,0.1); background: var(--input); color: var(--dim); font-weight: 700; cursor: pointer; }
 
-    /* ─── SEARCH ─── */
-    .sbox { position: relative; margin-bottom: 10px; }
-    .sbox i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--dim); font-size: 0.75rem; pointer-events: none; }
-    .sbox input { padding-left: 34px; }
-
-    /* ─── TABLE ─── */
     .twrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { width: 100%; border-collapse: collapse; min-width: 380px; }
-    th { font-size: 0.65rem; color: var(--dim); padding: 7px 7px; border-bottom: 1px solid var(--border); font-weight: 600; text-align: left; }
-    td { padding: 9px 7px; border-bottom: 1px solid var(--border); font-size: 0.75rem; vertical-align: middle; }
+    table { width: 100%; border-collapse: collapse; min-width: 450px; }
+    th { font-size: 0.7rem; color: var(--dim); padding: 10px; border-bottom: 1px solid var(--border); font-weight: 700; text-align: left; text-transform: uppercase; }
+    td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
 
-    /* ─── SIDEBAR ─── */
-    .chart-h { height: 170px; }
-    .converted { font-size: 1.5rem; font-weight: 900; color: var(--green); text-align: center; margin-top: 10px; }
-    .goal-row { display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; }
-    .gbar-bg { background: var(--border); height: 7px; border-radius: 10px; margin: 8px 0 12px; }
-    .gbar { background: var(--accent); height: 100%; border-radius: 10px; width: 0%; transition: width 0.4s; }
+    .converted { font-size: 1.6rem; font-weight: 900; color: var(--green); text-align: center; margin-top: 12px; text-shadow: var(--glow-green); }
+    
+    .gbar-bg { background: var(--border); height: 8px; border-radius: 10px; margin: 10px 0 16px; }
+    .gbar { background: var(--accent); height: 100%; border-radius: 10px; width: 0%; transition: width 0.4s; box-shadow: var(--glow-accent); }
 
-    /* ─── USERS ─── */
-    #users-area { display: none; }
+    /* ─── WATERMARK SIGNATURE STYLE SETUP ─── */
+    .wm { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+    .wm::before { content:''; width:16px; height:1px; background: rgba(255,255,255,0.15); }
+    .wm-text { font-size: 0.65rem; color: rgba(255,255,255,0.3); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 700; }
+    .wm-name { font-family: 'Pacifico', cursive; font-size: 0.8rem; color: rgba(0, 255, 136, 0.75); text-shadow: 0 0 8px rgba(0,255,136,0.3); }
 
-    /* ─── WATERMARK ─── */
-    .wm {
-        position: fixed; bottom: 16px; right: 18px; z-index: 9999;
-        display: flex; align-items: center; gap: 7px; pointer-events: none;
+    .main-cols { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ─── FIXED NAV MASK OVER MOBILE SYSTEM ─── */
+    .bottom-nav-mask-container {
+        position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
+        padding: 12px 20px 24px 20px; z-index: 9999; border-top: 1px solid rgba(255,255,255,0.03);
+        display: flex; flex-direction: column; gap: 12px; align-items: center;
+        box-shadow: 0 -15px 30px var(--bg);
     }
-    .wm::before { content:''; width:14px; height:1px; background: rgba(255,255,255,0.15); display:block; }
-    .wm-text { font-size: 0.6rem; color: rgba(255,255,255,0.18); letter-spacing: 0.5px; }
-    .wm-name { font-family: 'Pacifico', cursive; font-size: 0.7rem; color: rgba(255,255,255,0.45); }
-    [data-theme="light"] .wm::before { background: rgba(0,0,0,0.1); }
-    [data-theme="light"] .wm-text { color: rgba(0,0,0,0.18); }
-    [data-theme="light"] .wm-name { color: rgba(0,0,0,0.35); }
+    .bottom-nav-dock {
+        width: 100%; max-width: 440px; height: 64px; margin: 0 auto;
+        background: linear-gradient(135deg, rgba(17, 22, 47, 0.98) 0%, rgba(8, 10, 26, 0.99) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
+        display: flex; align-items: center; justify-content: space-around;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+    }
+    .bottom-nav-btn {
+        background: none; border: none; color: var(--dim);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 4px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; width: 64px; height: 100%;
+    }
+    .bottom-nav-btn i { font-size: 1.15rem; }
+    .bottom-nav-btn.active { color: var(--lime); text-shadow: var(--glow-green); }
 
-    /* ─── DESKTOP ─── */
+    /* Layout Scopes */
+    @media (max-width: 767px) {
+        .stats { gap: 8px; }
+        .stat { padding: 12px 8px; }
+        .stat b { font-size: 0.95rem; } 
+        .desktop-only-wm { display: none; }
+    }
     @media (min-width: 768px) {
-        .wrap { max-width: 1200px; margin: 0 auto; padding: 16px 20px 60px; }
-
-        .hdr {
-            flex-direction: row;
-            align-items: center;
-            flex-wrap: nowrap;
-            gap: 10px;
-            padding: 10px 16px;
-        }
-        .hdr-row1 { flex-shrink: 0; }
-
-        /* clock: compact, not full-width */
-        .clock {
-            width: auto;
-            min-width: 90px;
-            flex-shrink: 0;
-            font-size: 0.72rem;
-            padding: 7px 10px;
-        }
-
-        .hdr-selects { display: flex; gap: 8px; flex-shrink: 0; }
-        .hdr-selects select { width: auto; min-width: 128px; }
-        #main-currency { min-width: 72px; }
-
-        /* on desktop hdr-middle is just flex, not grid */
-        .hdr-middle {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-shrink: 0;
-        }
-        .hdr-middle select { width: auto; min-width: 128px; }
-        #main-currency { min-width: 72px; }
-
-        .hdr-btns {
-            display: flex;
-            gap: 7px;
-            margin-left: auto;
-            flex-shrink: 0;
-        }
-        .hdr-btns .ibtn {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            flex-shrink: 0;
-        }
-        .hdr-btns .ibtn.sav {
-            flex-direction: row;
-            gap: 5px;
-            width: auto;
-            padding: 0 13px;
-        }
-        .hdr-btns .ibtn.sav .lbl {
-            font-size: 0.72rem;
-            color: var(--text);
-        }
-
-        .main-cols { display: grid; grid-template-columns: 1fr 310px; gap: 14px; }
-        .stat b { font-size: 1.2rem; }
+        .hdr { flex-direction: row; align-items: center; justify-content: space-between; padding: 14px 20px; }
+        .hdr-middle { display: flex; gap: 10px; width: auto; flex-grow: 1; justify-content: flex-end; }
+        .hdr-middle select { width: 140px; }
+        .utility-dropdown-container { width: 180px; }
+        .main-cols { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+        .bottom-nav-mask-container { display: none; }
+        .wrap { padding-bottom: 20px; }
+        .desktop-only-wm { display: flex; justify-content: flex-end; margin-top: 24px; padding-right: 12px; }
     }
     </style>
 </head>
 <body>
 <div id="parallax-bg"></div>
 
-<div class="wrap">
+<div id="auth-portal">
+    <canvas id="auth-canvas"></canvas>
+    
+    <div class="auth-container-card">
+        <div id="profile-select-view">
+            <h2 class="auth-brand">Finance <span>Tracker</span></h2>
+            <p style="color:var(--dim); font-size:0.75rem; text-transform:uppercase; letter-spacing: 2px;"> Expense Ledger </p>
+            
+            <div class="profile-grid" id="profile-target-list"></div>
+            <button class="tab" onclick="verifyAdminCredentials()" style="margin: 32px auto 0; display:block; width:100%; padding:14px; border-radius: 14px; font-weight: 700;"><i class="fas fa-user-shield"></i> ADMIN PANEL </button>
+            
+            <div class="wm" style="margin-top: 28px;">
+                <span class="wm-text">designed by</span>
+                <span class="wm-name">Rahul</span>
+            </div>
+        </div>
 
+        <div id="pin-prompt-view" class="pin-box-view">
+            <h3 id="pin-view-title" style="font-family:'Orbitron', sans-serif; font-weight:800; letter-spacing: 1px;">SECURITY CLEARANCE</h3>
+            <p style="color:var(--dim); font-size:0.72rem; text-transform: uppercase;">Enter your PIN</p>
+            <input type="password" id="user-secure-pin" maxlength="4" inputmode="numeric" placeholder="••••" oninput="handlePinTyping(this)">
+            <button class="tab" onclick="backToProfiles()" style="margin: 0 auto; display:block;"><i class="fas fa-arrow-left"></i> Return</button>
+        </div>
+
+        <div id="admin-management-view" style="display:none; text-align:left;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; text-align:center; margin-bottom: 10px;">Root User Administration</h3>
+            <div style="background:var(--input); border:1px solid var(--border); padding:14px; border-radius:16px; margin-bottom:12px;">
+                <input type="text" id="admin-new-name" placeholder="User Profile Name" style="margin-bottom:8px;">
+                <input type="password" id="admin-new-pin" placeholder="Access PIN (4 Digits)" maxlength="4" inputmode="numeric" style="margin-bottom:8px;">
+                <button class="btn-save" onclick="adminProvisionUser()" style="margin-top:4px; padding:12px; font-size:0.8rem;">Deploy Core Space</button>
+            </div>
+            <div class="twrap" style="max-height:220px; border:1px solid var(--border); border-radius:12px; background: var(--input);">
+                <table style="min-width:100%;">
+                    <thead>
+                        <tr>
+                            <th style="padding:8px;">Profile</th>
+                            <th style="padding:8px; text-align:center;">Status</th>
+                            <th style="padding:8px; text-align:right;">Purge</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-users-tbody"></tbody>
+                </table>
+            </div>
+            <button class="tab" onclick="backToProfilesFromAdmin()" style="margin:15px auto 0; display:block; width:100%; padding: 12px; font-weight: 700;"><i class="fas fa-arrow-left"></i> Disconnect Terminal</button>
+        </div>
+    </div>
+</div>
+
+<div class="wrap" id="section-top">
     <div class="hdr">
         <div class="hdr-row1">
             <span class="logo">Finance Monitor</span>
-            <div class="hdr-right">
+            <div style="display:flex; align-items:center; gap:8px;">
                 <span id="active-user-badge">Locked</span>
-                <button id="pin-edit-btn" onclick="changeUserPin()" style="display:none;background:none;border:none;color:var(--dim);cursor:pointer;padding:4px 6px;"><i class="fas fa-key"></i></button>
-                <button class="ibtn" onclick="logout()" style="width:36px;height:36px;border-radius:8px;flex-shrink:0;"><i class="fas fa-power-off"></i></button>
+                <button id="pin-edit-btn" onclick="changeUserPin()" style="display:none;background:none;border:none;color:var(--dim);cursor:pointer;"><i class="fas fa-key"></i></button>
+                <button class="ibtn" onclick="logout()" style="width:36px;height:36px;border-radius:10px;"><i class="fas fa-power-off"></i></button>
             </div>
         </div>
 
@@ -318,99 +421,97 @@
                 <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
                 <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
             </select>
-            <select id="main-currency" onchange="updateUI()">
-                <option value="AED ">AED</option>
-                <option value="$">USD</option>
-                <option value="₹">INR</option>
-            </select>
         </div>
 
-        <div class="hdr-btns">
-            <button class="ibtn sav" id="savings-toggle" onclick="toggleSavingsInclude()">
-                <i class="fas fa-piggy-bank"></i>
-                <span id="savings-status" class="lbl">ON</span>
-            </button>
-            <button class="ibtn" onclick="showUsersArea()"><i class="fas fa-cog"></i></button>
-            <button class="ibtn" onclick="toggleTheme()"><i class="fas fa-adjust"></i></button>
-            <button class="ibtn green" onclick="exportCSV()"><i class="fas fa-file-export"></i></button>
-            <button class="ibtn" style="font-size:0.6rem;color:var(--dim);cursor:default;" disabled>v1.0</button>
+        <div class="utility-dropdown-container">
+            <div class="utility-select-trigger" onclick="toggleUtilityDropdown(event)">
+                <span>MORE SETTINGS</span>
+                <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+            </div>
+            <div class="utility-dropdown-menu" id="utilityMenu">
+                <div class="menu-action-row" onclick="toggleSavingsInclude(); event.stopPropagation();">
+                    <i class="fas fa-piggy-bank" style="color:var(--cyan)"></i>
+                    <span id="savings-status">Savings Tracker: ON</span>
+                </div>
+                <div class="menu-action-row" onclick="toggleTheme(); toggleUtilityDropdown(event);">
+                    <i class="fas fa-adjust" style="color:var(--accent)"></i>
+                    <span>Toggle Visual Theme</span>
+                </div>
+                <div class="menu-action-row" onclick="exportCSV(); toggleUtilityDropdown(event);" style="color:var(--lime);">
+                    <i class="fas fa-file-export" style="color:var(--lime);"></i>
+                    <span>Export Ledger (.CSV)</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="main-cols">
-
         <div>
-            <div id="main-finance-area">
-
-                <div class="stats">
-                    <div class="stat balance"><small>Balance</small><b id="total-balance">0.00</b></div>
-                    <div class="stat income"><small>Income</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
-                    <div class="stat expenses"><small>Expenses</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
-                </div>
-
-                <div class="card">
-                    <div class="fgrid">
-                        <input type="text" id="desc" placeholder="What was this for?" class="full">
-                        <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
-                        <input type="date" id="txn-date">
-                        <select id="type">
-                            <option value="debit">Expense</option>
-                            <option value="credit">Income</option>
-                            <option value="saving">Saving</option>
-                        </select>
-                        <select id="cat" onchange="checkOther(this)">
-                            <option value="Food">Food</option>
-                            <option value="Bills">Bills</option>
-                            <option value="Salary">Salary</option>
-                            <option value="Other">Other...</option>
-                        </select>
-                        <input type="text" id="other-cat" placeholder="Custom category..." class="full" style="display:none;">
-                    </div>
-                    <input type="hidden" id="edit-id">
-                    <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
-                </div>
-
-                <div class="card">
-                    <div class="tabs">
-                        <button class="tab active" onclick="filterData('all',this)">All</button>
-                        <button class="tab" onclick="filterData('credit',this)">Income</button>
-                        <button class="tab" onclick="filterData('debit',this)">Expenses</button>
-                        <button class="tab" onclick="filterData('saving',this)">Savings</button>
-                    </div>
-                    <div class="sbox">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="search-input" placeholder="Search..." oninput="updateUI()">
-                    </div>
-                    <div class="twrap">
-                        <table>
-                            <thead><tr><th>Date</th><th>Name</th><th>Category</th><th style="text-align:right">Amt</th><th style="width:55px"></th></tr></thead>
-                            <tbody id="table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-
+            <div class="stats">
+                <div class="stat balance"><small>Net Balance</small><b id="total-balance">0.00</b></div>
+                <div class="stat income"><small>Total Influx</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
+                <div class="stat expenses"><small>Total Outflow</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
             </div>
 
-            <div id="users-area">
-                <div class="card">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-                        <span style="font-weight:800;font-size:0.95rem;">Manage Users</span>
-                        <button class="btn-save" onclick="addNewUser()" style="width:auto;margin-top:0;padding:9px 16px;font-size:0.78rem;">+ New User</button>
+            <div class="card" id="section-form">
+                <div class="fgrid">
+                    <input type="text" id="desc" placeholder="What was this for?" class="full">
+                    <input type="number" id="amt" placeholder="Amount (AED)" inputmode="decimal">
+                    <input type="date" id="txn-date">
+                    <select id="type">
+                        <option value="debit">Expense</option>
+                        <option value="credit">Income</option>
+                        <option value="saving">Saving</option>
+                    </select>
+                    <select id="cat"></select>
+                </div>
+                <input type="hidden" id="edit-id">
+                <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
+                
+                <button class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()">
+                    <i class="fas fa-tags"></i> Edit Categories <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size: 0.6rem;"></i>
+                </button>
+                
+                <div id="user-cat-drawer" class="user-cat-drawer">
+                    <div class="cat-badge-container" id="user-cat-badges-grid"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="user-new-cat-input" placeholder="Create new category node..." style="height: 38px; padding: 0 12px; font-size: 0.8rem;">
+                        <button onclick="userAddNewCategory()" style="background: var(--cyan); color: #002b33; border: none; font-weight: 700; font-size: 0.75rem; padding: 0 16px; border-radius: 12px; cursor: pointer; box-shadow: var(--glow-cyan); white-space: nowrap;">Add Tag</button>
                     </div>
-                    <div class="twrap"><table><tbody id="user-table-body"></tbody></table></div>
-                    <button class="tab" onclick="closeUsersArea()" style="margin-top:14px;"><i class="fas fa-arrow-left"></i> Back</button>
+                </div>
+            </div>
+
+            <div class="card" id="section-history">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div class="tabs">
+                        <button class="tab active" id="tab-all" onclick="filterData('all',this)">All Logs</button>
+                        <button class="tab" id="tab-credit" onclick="filterData('credit',this)">Income</button>
+                        <button class="tab" id="tab-debit" onclick="filterData('debit',this)">Expenses</button>
+                        <button class="tab" id="tab-saving" onclick="filterData('saving',this)">Savings</button>
+                    </div>
+                    <select id="view-limit-select" class="view-limit-dropdown" onchange="updateUI()">
+                        <option value="5" selected>Recent Txns </option>
+                        <option value="all">Show All History</option>
+                    </select>
+                </div>
+
+                <div class="twrap">
+                    <table>
+                        <thead><tr><th>Date</th><th>Name</th><th style="text-align:right">Amt</th><th>Category</th><th style="width:55px"></th></tr></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <div>
+        <div id="section-metrics">
             <div class="card">
-                <div class="ctitle">Expense Mix</div>
-                <div class="chart-h"><canvas id="expenseChart"></canvas></div>
+                <div class="ctitle">Expense Allocation Mix</div>
+                <div style="height:180px; position:relative;"><canvas id="expenseChart"></canvas></div>
             </div>
 
             <div class="card">
-                <div class="ctitle">Live Converter</div>
+                <div class="ctitle">Global Converter </div>
                 <select id="convert-to" onchange="updateUI()">
                     <option value="USD">Convert to USD ($)</option>
                     <option value="INR">Convert to INR (₹)</option>
@@ -420,154 +521,504 @@
             </div>
 
             <div class="card">
-                <div class="ctitle">Savings Goal</div>
-                <div class="goal-row"><span id="goal-name-display">Goal</span><span id="goal-percent">0%</span></div>
+                <div class="ctitle">Goal Tracker</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700;"><span id="goal-name-display">Milestone Target</span><span id="goal-percent">0%</span></div>
                 <div class="gbar-bg"><div class="gbar" id="goal-bar"></div></div>
-                <input type="text" id="goal-name-input" placeholder="Goal Name" style="margin-bottom:8px;">
-                <input type="number" id="goal-amt" placeholder="Target Amount">
-                <button class="btn-save" onclick="updateGoal()" style="padding:12px;margin-top:8px;font-size:0.8rem;">Set Goal</button>
+                <input type="text" id="goal-name-input" placeholder="Goal Objective Name" style="margin-bottom:8px;">
+                <input type="number" id="goal-amt" placeholder="Target Threshold Amount (AED)">
+                <button class="btn-save" onclick="updateGoal()" style="padding:12px;margin-top:8px;font-size:0.8rem;">Initialize Objective Goal</button>
             </div>
         </div>
+    </div>
 
+    <div class="wm desktop-only-wm">
+        <span class="wm-text">designed by</span>
+        <span class="wm-name">Rahul</span>
     </div>
 </div>
 
-<div class="wm">
-    <span class="wm-text">designed by</span>
-    <span class="wm-name">Rahul</span>
+<div class="bottom-nav-mask-container">
+    <div class="wm">
+        <span class="wm-text">designed by</span>
+        <span class="wm-name">Rahul</span>
+    </div>
+    <div class="bottom-nav-dock">
+        <button class="bottom-nav-btn active" onclick="navigateToSection('top', this)"><i class="fas fa-home"></i><span>Home</span></button>
+        <button class="bottom-nav-btn" onclick="navigateToSection('section-form', this)"><i class="fas fa-plus-circle"></i><span>Add</span></button>
+        <button class="bottom-nav-btn" onclick="navigateToSection('section-history', this)"><i class="fas fa-list-alt"></i><span>Logs</span></button>
+        <button class="bottom-nav-btn" onclick="navigateToSection('section-metrics', this)"><i class="fas fa-chart-pie"></i><span>Analytics</span></button>
+    </div>
 </div>
 
 <script>
     let allTransactions=[], currentUser=null, currentFilter='all', includeSavingsInBalance=true, expenseChart, savingsGoal=5000;
-    let liveRates={"USD":0.2722,"INR":25.953,"EUR":0.2327};
-
-    async function fetchLiveRates(){
-        try{
-            const res=await fetch('https://api.frankfurter.dev/v1/latest?base=USD&symbols=INR,EUR');
-            const data=await res.json();
-            if(data.rates){liveRates.USD=0.272246;liveRates.INR=data.rates.INR*0.272246;liveRates.EUR=data.rates.EUR*0.272246;updateUI();}
-        }catch(e){console.warn("Live rates failed");}
-    }
-
-    function updateClock(){document.getElementById('live-clock').innerText=new Date().toLocaleTimeString([],{hour12:false});}
-    setInterval(updateClock,1000);updateClock();
-
-    document.addEventListener('mousemove',e=>{
-        document.getElementById('parallax-bg').style.setProperty('--x',(e.clientX/window.innerWidth*100)+'%');
-        document.getElementById('parallax-bg').style.setProperty('--y',(e.clientY/window.innerHeight*100)+'%');
-    });
+    let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25};
+    let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Entertainment', 'Other'];
+    let authenticatingUserObj = null;
 
     const SUPABASE_URL='https://kfbtsoszcfnoovjvomir.supabase.co';
     const SUPABASE_KEY='sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
     const _supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+    const canvas = document.getElementById('auth-canvas');
+    const ctx = canvas.getContext('2d');
+    let points = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for(let i=0; i<65; i++) {
+        points.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: (Math.random() - 0.5) * 0.8,
+            radius: Math.random() * 2 + 1
+        });
+    }
+
+    function animateAuthBackground() {
+        if (document.getElementById('auth-portal').style.display === 'none') {
+            requestAnimationFrame(animateAuthBackground);
+            return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#02040a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'rgba(0, 212, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for(let i=0; i<points.length; i++) {
+            for(let j=i+1; j<points.length; j++) {
+                let dist = Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y);
+                if(dist < 130) {
+                    ctx.beginPath();
+                    ctx.moveTo(points[i].x, points[i].y);
+                    ctx.lineTo(points[j].x, points[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        points.forEach(p => {
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.4)';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00d4ff';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        });
+
+        requestAnimationFrame(animateAuthBackground);
+    }
+    animateAuthBackground();
+
+    function updateClock(){document.getElementById('live-clock').innerText=new Date().toLocaleTimeString([],{hour12:false});}
+    setInterval(updateClock,1000);updateClock();
+
+    function toggleUtilityDropdown(event) {
+        event.stopPropagation();
+        document.getElementById('utilityMenu').classList.toggle('show');
+    }
+    document.addEventListener('click', () => { document.getElementById('utilityMenu').classList.remove('show'); });
+
+    async function initializeSystemFlow(){
+        if(localStorage.getItem('vault_global_categories')) {
+            globalCategories = JSON.parse(localStorage.getItem('vault_global_categories'));
+        }
+        await fetchUserProfiles();
+    }
+
+    function navigateToSection(targetId, element) {
+        document.querySelectorAll('.bottom-nav-btn').forEach(btn => btn.classList.remove('active'));
+        if(element) element.classList.add('active');
+        if (targetId === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+        else document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function fetchUserProfiles(){
+        const {data} = await _supabase.from('users_list').select('*').order('name', {ascending: true});
+        const grid = document.getElementById('profile-target-list');
+        grid.innerHTML = '';
+        (data || []).forEach(u => {
+            const holdClass = u.is_hold ? 'user-on-hold' : '';
+            grid.innerHTML += `
+                <div class="profile-item ${holdClass}" onclick="initiatePinVerification('${u.name}', '${u.pin}', ${u.is_hold})">
+                    <div class="security-node-display"><div class="orbit-dot"></div></div>
+                    <span>${u.name} ${u.is_hold ? '🛑' : ''}</span>
+                </div>
+            `;
+        });
+    }
+
+    function verifyAdminCredentials() {
+        const adminPin = prompt("Enter Admin Access Code:");
+        if (adminPin === "6969") {
+            document.getElementById('profile-select-view').style.display = 'none';
+            document.getElementById('admin-management-view').style.display = 'block';
+            fetchAdminUsersTable();
+        }
+    }
+
+    async function fetchAdminUsersTable() {
+        const {data} = await _supabase.from('users_list').select('*').order('name', {ascending: true});
+        const tbody = document.getElementById('admin-users-tbody');
+        tbody.innerHTML = '';
+        (data || []).forEach(u => {
+            const statusLabel = u.is_hold ? "Suspended" : "Active";
+            const statusColor = u.is_hold ? "var(--red)" : "var(--green)";
+            const toggleIcon = u.is_hold ? "fa-play" : "fa-pause";
+            
+            tbody.innerHTML += `<tr>
+                <td style="padding:8px; font-size:0.8rem; font-weight:700;">${u.name}</td>
+                <td style="padding:8px; font-size:0.8rem; text-align:center;">
+                    <button onclick="adminToggleHoldStatus('${u.name}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
+                        <i class="fas ${toggleIcon}" style="margin-right:4px;"></i> ${statusLabel}
+                    </button>
+                </td>
+                <td style="padding:8px; font-size:0.8rem; text-align:right;">
+                    <button onclick="adminDeleteUser('${u.name}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    async function adminToggleHoldStatus(name, currentHoldStatus) {
+        const newHoldStatus = !currentHoldStatus;
+        await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('name', name);
+        fetchAdminUsersTable();
+    }
+
+    async function adminProvisionUser() {
+        const name = document.getElementById('admin-new-name').value.trim();
+        const pin = document.getElementById('admin-new-pin').value.trim();
+        if(!name || pin.length !== 4) { alert("Invalid input configurations."); return; }
+        await _supabase.from('users_list').insert([{name, pin, is_hold:false}]);
+        document.getElementById('admin-new-name').value = '';
+        document.getElementById('admin-new-pin').value = '';
+        fetchAdminUsersTable();
+    }
+
+    async function adminDeleteUser(name) {
+        if(confirm(`Purge profile space for ${name}?`)) {
+            await _supabase.from('transactions').delete().eq('user_name', name);
+            await _supabase.from('users_list').delete().eq('name', name);
+            fetchAdminUsersTable();
+        }
+    }
+
+    function backToProfilesFromAdmin() {
+        document.getElementById('admin-management-view').style.display = 'none';
+        document.getElementById('profile-select-view').style.display = 'block';
+        fetchUserProfiles();
+    }
+
+    function initiatePinVerification(name, pin, isHold) {
+        if(isHold) { 
+            alert("Access Revoked: This deployment space environment has been placed on an administrative hold."); 
+            return; 
+        }
+        authenticatingUserObj = { name, pin };
+        document.getElementById('profile-select-view').style.display = 'none';
+        document.getElementById('pin-prompt-view').style.display = 'block';
+        document.getElementById('pin-view-title').innerText = `Welcome ${name}`;
+        document.getElementById('user-secure-pin').value = '';
+        document.getElementById('user-secure-pin').focus();
+    }
+
+    function handlePinTyping(element) {
+        if(element.value.length === 4) {
+            if(element.value === authenticatingUserObj.pin) {
+                currentUser = authenticatingUserObj.name;
+                document.getElementById('active-user-badge').innerText = currentUser;
+                document.getElementById('pin-edit-btn').style.display = 'inline-block';
+                document.getElementById('auth-portal').style.display = 'none';
+                populateCategoryDropdown();
+                renderUserCatBadges();
+                fetchData();
+            } else {
+                alert("Incorrect Pin Matrix.");
+                element.value = '';
+            }
+        }
+    }
+
+    function backToProfiles(){
+        document.getElementById('pin-prompt-view').style.display = 'none';
+        document.getElementById('profile-select-view').style.display = 'block';
+    }
+
+    /* ─── USER MAIN PAGE CATEGORIES MANAGER LOGIC ─── */
+    function toggleUserCatDrawer() {
+        const drawer = document.getElementById('user-cat-drawer');
+        const arrow = document.getElementById('cat-drawer-arrow');
+        drawer.classList.toggle('open');
+        if (drawer.classList.contains('open')) {
+            arrow.className = "fas fa-chevron-up";
+        } else {
+            arrow.className = "fas fa-chevron-down";
+        }
+    }
+
+    function renderUserCatBadges() {
+        const container = document.getElementById('user-cat-badges-grid');
+        container.innerHTML = '';
+        globalCategories.forEach((cat, idx) => {
+            container.innerHTML += `
+                <div class="cat-badge-item">
+                    <span>${cat}</span>
+                    <button onclick="userDeleteCategory(${idx})"><i class="fas fa-times-circle"></i></button>
+                </div>
+            `;
+        });
+    }
+
+    function userAddNewCategory() {
+        const input = document.getElementById('user-new-cat-input');
+        const val = input.value.trim();
+        if(!val) return;
+        if(globalCategories.map(c => c.toLowerCase()).includes(val.toLowerCase())) {
+            alert("This label configuration node already exists.");
+            return;
+        }
+        
+        // Insert newly built category nodes onto the top of the stack
+        globalCategories.unshift(val);
+        
+        localStorage.setItem('vault_global_categories', JSON.stringify(globalCategories));
+        input.value = '';
+        populateCategoryDropdown();
+        renderUserCatBadges();
+        updateUI();
+    }
+
+    function userDeleteCategory(index) {
+        if(confirm(`Drop category context tag "${globalCategories[index]}" from terminal selection arrays?`)) {
+            globalCategories.splice(index, 1);
+            localStorage.setItem('vault_global_categories', JSON.stringify(globalCategories));
+            populateCategoryDropdown();
+            renderUserCatBadges();
+            updateUI();
+        }
+    }
+
+    function populateCategoryDropdown(){
+        const catSelect = document.getElementById('cat');
+        catSelect.innerHTML = '';
+        globalCategories.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+    }
+
     async function fetchData(){
         const{data}=await _supabase.from('transactions').select('*').order('created_at',{ascending:false});
         allTransactions=data||[];
-        await fetchLiveRates();
         updateUI();
     }
 
     function updateUI(){
-        const sym=document.getElementById('main-currency').value;
+        const sym = window.innerWidth <= 480 ? "Ð " : "AED ";
         const mf=document.getElementById('month-filter').value;
-        const sq=document.getElementById('search-input').value.toLowerCase();
+        const limitView=document.getElementById('view-limit-select').value;
         const tbody=document.getElementById('table-body');
         tbody.innerHTML='';
-        if(!currentUser){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--dim);">Locked — tap ⚙ to login</td></tr>';return;}
+        
+        if(!currentUser) return;
+        
         let bal=0,cred=0,deb=0,saved=0;
-        let fil=allTransactions.filter(t=>t.user_name===currentUser);
-        if(mf!=='all')fil=fil.filter(t=>new Date(t.created_at).getMonth()===parseInt(mf));
-        fil.forEach(t=>{const a=parseFloat(t.amount);if(t.type==='credit'){cred+=a;bal+=a;}else if(t.type==='saving'){saved+=a;if(!includeSavingsInBalance)bal-=a;}else{deb+=a;bal-=a;}});
-        document.getElementById('total-balance').innerText=sym+bal.toLocaleString();
-        document.getElementById('total-credit').innerText=sym+cred.toLocaleString();
-        document.getElementById('total-debit').innerText=sym+deb.toLocaleString();
-        const tgt=document.getElementById('convert-to').value;
-        const cs={"USD":"$","INR":"₹","EUR":"€"};
-        document.getElementById('converted-val').innerText=cs[tgt]+(bal*liveRates[tgt]).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-        const prog=Math.min((saved/savingsGoal)*100,100);
-        document.getElementById('goal-bar').style.width=prog+'%';
-        document.getElementById('goal-percent').innerText=Math.floor(prog)+'%';
-        fil.filter(t=>(currentFilter==='all'||t.type===currentFilter)&&t.description.toLowerCase().includes(sq)).forEach(row=>{
-            const col=row.type==='credit'?'var(--lime)':row.type==='saving'?'var(--cyan)':'var(--red)';
-            tbody.innerHTML+=`<tr><td>${new Date(row.created_at).toLocaleDateString()}</td><td>${row.description}</td><td>${row.category}</td><td style="text-align:right;color:${col};font-weight:700;">${sym}${row.amount}</td><td style="text-align:right;white-space:nowrap;"><button onclick="editTransaction(${row.id})" style="background:none;border:none;color:var(--accent);cursor:pointer;padding:4px;"><i class="fas fa-pencil-alt"></i></button><button onclick="deleteTransaction(${row.id})" style="background:none;border:none;color:var(--red);cursor:pointer;padding:4px;"><i class="fas fa-trash"></i></button></td></tr>`;
+        let fil = allTransactions.filter(t=>t.user_name===currentUser);
+        if(mf!=='all') fil=fil.filter(t=>new Date(t.created_at).getMonth()===parseInt(mf));
+        
+        fil.forEach(t=>{
+            const a=parseFloat(t.amount);
+            if(t.type==='credit'){cred+=a;bal+=a;}
+            else if(t.type==='saving'){saved+=a;if(!includeSavingsInBalance)bal-=a;}
+            else{deb+=a;bal-=a;}
         });
+        
+        document.getElementById('total-balance').innerText=sym+bal.toLocaleString(undefined,{minimumFractionDigits:2});
+        document.getElementById('total-credit').innerText=sym+cred.toLocaleString(undefined,{minimumFractionDigits:2});
+        document.getElementById('total-debit').innerText=sym+deb.toLocaleString(undefined,{minimumFractionDigits:2});
+        
+        let filteredRows = fil.filter(t=>(currentFilter==='all' || t.type===currentFilter));
+        if(limitView === '5') filteredRows = filteredRows.slice(0, 5);
+
+        filteredRows.forEach(row=>{
+            const col=row.type==='credit'?'var(--lime)':row.type==='saving'?'var(--cyan)':'var(--red)';
+            const txtGlow=row.type==='credit'?'text-shadow:var(--glow-green)':row.type==='saving'?'text-shadow:var(--glow-cyan)':'text-shadow:var(--glow-red)';
+            
+            tbody.innerHTML+=`<tr>
+                <td>${new Date(row.created_at).toLocaleDateString()}</td>
+                <td style="font-weight:700;">${row.description}</td>
+                <td style="text-align:right;color:${col};font-weight:700;${txtGlow}">${sym}${row.amount}</td>
+                <td><span style="background:rgba(255,255,255,0.04); padding:4px 8px; border-radius:6px;">${row.category}</span></td>
+                <td style="text-align:right;">
+                    <button onclick="editTransaction('${row.id}')" style="background:none;border:none;color:var(--accent);margin-right:6px;cursor:pointer;"><i class="fas fa-pencil-alt"></i></button>
+                    <button onclick="deleteTransaction('${row.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+
+        const convTo = document.getElementById('convert-to').value;
+        const rate = liveRates[convTo] || 1;
+        const symbols = {"USD":"$","INR":"₹","EUR":"€"};
+        document.getElementById('converted-val').innerText = (symbols[convTo]||'') + (bal * rate).toLocaleString(undefined,{minimumFractionDigits:2});
+
+        const progress = Math.min(100, Math.max(0, (saved / savingsGoal) * 100));
+        document.getElementById('goal-percent').innerText = Math.round(progress) + "%";
+        document.getElementById('goal-bar').style.width = progress + "%";
+
         updateChart(fil);
     }
 
-    async function showUsersArea(){
-        document.getElementById('main-finance-area').style.display='none';
-        document.getElementById('users-area').style.display='block';
-        const{data}=await _supabase.from('users_list').select('*');
-        const utbody=document.getElementById('user-table-body');
-        utbody.innerHTML='';
-        data.forEach(u=>utbody.innerHTML+=`<tr><td>${u.name}</td><td style="text-align:right"><button onclick="loginUser('${u.name}','${u.pin}')" style="background:var(--accent);border:none;color:#fff;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:0.78rem;">Login</button><button onclick="deleteUser(${u.id})" style="background:none;border:none;color:var(--red);cursor:pointer;margin-left:8px;"><i class="fas fa-trash"></i></button></td></tr>`);
-    }
-
-    async function loginUser(name,pin){
-        if(prompt(`PIN for ${name}:`)===pin){currentUser=name;document.getElementById('active-user-badge').innerText=name;document.getElementById('pin-edit-btn').style.display='inline-block';closeUsersArea();fetchData();}else alert("Wrong PIN!");
-    }
-
-    async function changeUserPin(){const p=prompt("New 4-digit PIN:");if(p&&p.length===4){await _supabase.from('users_list').update({pin:p}).eq('name',currentUser);alert("Updated!");}}
-    async function addNewUser(){const n=prompt("Name:"),p=prompt("PIN:");if(n&&p){await _supabase.from('users_list').insert([{name:n,pin:p}]);showUsersArea();}}
-    
-    async function deleteUser(id){
-        const adminPass = prompt("Enter Admin Password to delete this user:");
-        if(adminPass === "1234") { // Replace 1234 with your desired password
-            if(confirm("Are you sure you want to delete this user?")){
-                await _supabase.from('users_list').delete().eq('id',id);
-                showUsersArea();
-            }
-        } else {
-            alert("Incorrect Admin Password!");
-        }
-    }
-
     async function saveTransaction(){
-        if(!currentUser)return;
-        const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value;
-        const manualDate = document.getElementById('txn-date').value;
-        const c=document.getElementById('cat').value==='Other'?document.getElementById('other-cat').value:document.getElementById('cat').value;
-        
-        let payload = {description:d,amount:parseFloat(a),type:t,category:c||'General'};
-        if(manualDate) payload.created_at = new Date(manualDate).toISOString();
-
-        if(eid)await _supabase.from('transactions').update(payload).eq('id',eid);
+        const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value,c=document.getElementById('cat').value;
+        if(!d || !a) return;
+        let payload = {description:d,amount:parseFloat(a),type:t,category:c||'Other'};
+        if(eid) {
+            await _supabase.from('transactions').update(payload).eq('id',eid);
+            document.getElementById('edit-id').value='';
+            document.getElementById('save-btn').innerText = "+ Save Transaction";
+        }
         else await _supabase.from('transactions').insert([{...payload, user_name:currentUser}]);
-        
-        document.getElementById('desc').value='';document.getElementById('amt').value='';document.getElementById('txn-date').value='';document.getElementById('edit-id').value='';document.getElementById('save-btn').innerText='+ Save Transaction';
+        document.getElementById('desc').value='';document.getElementById('amt').value='';
         fetchData();
     }
 
-    function editTransaction(id){
-        const t=allTransactions.find(x=>x.id===id);
-        document.getElementById('desc').value=t.description;
-        document.getElementById('amt').value=t.amount;
-        document.getElementById('type').value=t.type;
-        document.getElementById('edit-id').value=t.id;
-        document.getElementById('txn-date').value=new Date(t.created_at).toISOString().split('T')[0];
-        document.getElementById('save-btn').innerText='Update Entry';
-        window.scrollTo({top:0,behavior:'smooth'});
+    function editTransaction(id) {
+        const t = allTransactions.find(x => String(x.id) === String(id));
+        if(!t) return;
+        document.getElementById('desc').value = t.description;
+        document.getElementById('amt').value = t.amount;
+        document.getElementById('type').value = t.type;
+        document.getElementById('cat').value = t.category;
+        document.getElementById('edit-id').value = t.id;
+        document.getElementById('save-btn').innerText = "Update Transaction Link";
+        navigateToSection('section-form', document.querySelector('.bottom-nav-dock .bottom-nav-btn:nth-child(2)'));
     }
 
-    async function deleteTransaction(id){if(confirm("Delete?")){await _supabase.from('transactions').delete().eq('id',id);fetchData();}}
-    function closeUsersArea(){document.getElementById('users-area').style.display='none';document.getElementById('main-finance-area').style.display='block';}
-    function toggleSavingsInclude(){includeSavingsInBalance=!includeSavingsInBalance;document.getElementById('savings-status').innerText=includeSavingsInBalance?"ON":"OFF";updateUI();}
-    function logout(){currentUser=null;document.getElementById('active-user-badge').innerText="Locked";document.getElementById('pin-edit-btn').style.display='none';updateUI();}
-    function toggleTheme(){document.body.hasAttribute('data-theme')?document.body.removeAttribute('data-theme'):document.body.setAttribute('data-theme','light');}
-    function filterData(type,btn){currentFilter=type;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');updateUI();}
-    function checkOther(s){document.getElementById('other-cat').style.display=s.value==='Other'?'block':'none';}
-    function updateGoal(){savingsGoal=parseFloat(document.getElementById('goal-amt').value)||5000;document.getElementById('goal-name-display').innerText=document.getElementById('goal-name-input').value||'Goal';updateUI();}
-    function exportCSV(){let csv='Date,Desc,Amt\n';allTransactions.filter(t=>t.user_name===currentUser).forEach(t=>csv+=`${t.created_at},${t.description},${t.amount}\n`);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='finance.csv';a.click();}
+    async function deleteTransaction(id) {
+        if(confirm("Permanently purge this ledger log transaction entry?")) {
+            await _supabase.from('transactions').delete().eq('id', id);
+            fetchData();
+        }
+    }
+
+    function updateGoal() {
+        const name = document.getElementById('goal-name-input').value.trim();
+        const amt = parseFloat(document.getElementById('goal-amt').value);
+        if(name) document.getElementById('goal-name-display').innerText = name;
+        if(!isNaN(amt) && amt > 0) savingsGoal = amt;
+        updateUI();
+    }
+
+    async function changeUserPin() {
+        if(!currentUser) return;
+        const newPin = prompt("Enter a new 4-digit security PIN access key matrix:");
+        if(newPin === null) return;
+        if(newPin.length !== 4 || isNaN(newPin)) {
+            alert("Security error: PIN structure must contain exactly 4 numeric characters.");
+            return;
+        }
+        const { error } = await _supabase.from('users_list').update({ pin: newPin }).eq('name', currentUser);
+        if(error) {
+            alert("Database synchronized transmission error updating security PIN code.");
+        } else {
+            alert("Security Matrix authorization modified successfully! Please re-authenticate space.");
+            logout();
+        }
+    }
+
+    function exportCSV() {
+        if(!currentUser) return;
+        
+        const mf = document.getElementById('month-filter').value;
+        let userRecords = allTransactions.filter(t => t.user_name === currentUser);
+        if(mf !== 'all') {
+            userRecords = userRecords.filter(t => new Date(t.created_at).getMonth() === parseInt(mf));
+        }
+        
+        if(userRecords.length === 0) {
+            alert("Empty structural instance: No active ledger entries found to export.");
+            return;
+        }
+        
+        let totalCredit = 0;
+        let totalDebit = 0;
+        let totalBalance = 0;
+
+        let csvContent = "data:text/csv;charset=utf-8,ID,Date,Description,Amount,Type,Category\n";
+        
+        userRecords.forEach(t => {
+            const a = parseFloat(t.amount);
+            if(t.type === 'credit') {
+                totalCredit += a;
+                totalBalance += a;
+            } else if(t.type === 'saving') {
+                if(!includeSavingsInBalance) {
+                    totalBalance -= a;
+                }
+            } else {
+                totalDebit += a;
+                totalBalance -= a;
+            }
+
+            let row = [
+                t.id, 
+                new Date(t.created_at).toLocaleDateString(), 
+                `"${t.description.replace(/"/g, '""')}"`, 
+                t.amount, 
+                t.type, 
+                t.category
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+        
+        // Append Summary Totals Rows
+        csvContent += "\n";
+        csvContent += `,,,Total Influx,${totalCredit.toFixed(2)},\n`;
+        csvContent += `,,,Total Outflow,${totalDebit.toFixed(2)},\n`;
+        csvContent += `,,,Net Balance,${totalBalance.toFixed(2)},\n`;
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Ledger_${currentUser}_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function toggleSavingsInclude(){
+        includeSavingsInBalance=!includeSavingsInBalance;
+        document.getElementById('savings-status').innerText=includeSavingsInBalance?"Savings Tracker: ON":"Savings Tracker: OFF";
+        updateUI();
+    }
+    function logout(){ location.reload(); }
+    function toggleTheme(){ document.body.hasAttribute('data-theme')?document.body.removeAttribute('data-theme'):document.body.setAttribute('data-theme','light'); updateUI(); }
+    
+    function filterData(type,btn){
+        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active'); currentFilter=type; updateUI();
+    }
 
     function updateChart(data){
         const ctx=document.getElementById('expenseChart').getContext('2d');
         const cats={};data.filter(t=>t.type==='debit').forEach(t=>cats[t.category]=(cats[t.category]||0)+parseFloat(t.amount));
         if(expenseChart)expenseChart.destroy();
-        expenseChart=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#10b981','#ff4d4d','#00d4ff','#f59e0b'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}}});
+        expenseChart=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#00ff88','#ff4d4d','#00d4ff','#f59e0b','#a855f7'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}}});
     }
 
-    fetchData();
+    initializeSystemFlow();
 </script>
 </body>
 </html>

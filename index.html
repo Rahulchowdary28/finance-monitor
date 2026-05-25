@@ -556,7 +556,7 @@
 <script>
     let allTransactions=[], currentUser=null, currentFilter='all', includeSavingsInBalance=true, expenseChart, savingsGoal=5000;
     let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25};
-    let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Entertainment', 'Other'];
+    let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Electronics', 'Entertainment', 'Other'];
     let authenticatingUserObj = null;
 
     const SUPABASE_URL='https://kfbtsoszcfnoovjvomir.supabase.co';
@@ -749,7 +749,9 @@
                 document.getElementById('auth-portal').style.display = 'none';
                 populateCategoryDropdown();
                 renderUserCatBadges();
-                fetchData();
+                fetchData().then(() => {
+                    checkAndPopulateMultifoodTransaction();
+                });
             } else {
                 alert("Incorrect Pin Matrix.");
                 element.value = '';
@@ -828,6 +830,35 @@
         updateUI();
     }
 
+    async function checkAndPopulateMultifoodTransaction() {
+        if (currentUser !== "Rahul") return;
+        
+        // Formulate parsing date verification rules
+        const targetDateString = "2026-05-24";
+        const hasMultifood = allTransactions.some(t => 
+            t.user_name === "Rahul" && 
+            t.description.toLowerCase().includes("multifood") && 
+            new Date(t.created_at).toISOString().slice(0, 10) === targetDateString
+        );
+
+        if (!hasMultifood) {
+            let targetTimestamp = new Date(targetDateString);
+            targetTimestamp.setHours(12, 0, 0, 0); 
+
+            let payload = {
+                description: "Multifood",
+                amount: 26.00,
+                type: "debit",
+                category: "Food",
+                user_name: "Rahul",
+                created_at: targetTimestamp.toISOString()
+            };
+            
+            await _supabase.from('transactions').insert([payload]);
+            await fetchData();
+        }
+    }
+
     function updateUI(){
         const sym = window.innerWidth <= 480 ? "Ð " : "AED ";
         const mf=document.getElementById('month-filter').value;
@@ -884,16 +915,23 @@
     }
 
     async function saveTransaction(){
-        const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value,c=document.getElementById('cat').value;
+        const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value,c=document.getElementById('cat').value,dateVal=document.getElementById('txn-date').value;
         if(!d || !a) return;
         let payload = {description:d,amount:parseFloat(a),type:t,category:c||'Other'};
+        
+        if(dateVal) {
+            let customDate = new Date(dateVal);
+            customDate.setHours(12, 0, 0, 0);
+            payload.created_at = customDate.toISOString();
+        }
+
         if(eid) {
             await _supabase.from('transactions').update(payload).eq('id',eid);
             document.getElementById('edit-id').value='';
             document.getElementById('save-btn').innerText = "+ Save Transaction";
         }
         else await _supabase.from('transactions').insert([{...payload, user_name:currentUser}]);
-        document.getElementById('desc').value='';document.getElementById('amt').value='';
+        document.getElementById('desc').value='';document.getElementById('amt').value='';document.getElementById('txn-date').value='';
         fetchData();
     }
 
@@ -904,6 +942,9 @@
         document.getElementById('amt').value = t.amount;
         document.getElementById('type').value = t.type;
         document.getElementById('cat').value = t.category;
+        if(t.created_at) {
+            document.getElementById('txn-date').value = new Date(t.created_at).toISOString().slice(0,10);
+        }
         document.getElementById('edit-id').value = t.id;
         document.getElementById('save-btn').innerText = "Update Transaction Link";
         navigateToSection('section-form', document.querySelector('.bottom-nav-dock .bottom-nav-btn:nth-child(2)'));

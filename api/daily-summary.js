@@ -21,7 +21,6 @@ export async function GET(request) {
 
     if (userError) throw userError;
 
-    // Synchronize time calculations with your 23:00 UTC Cron Execution Target
     const today = new Date();
     const dateString = today.toISOString().split('T')[0];
 
@@ -34,7 +33,6 @@ export async function GET(request) {
     for (const user of users) {
       if (!user.email) continue;
 
-      // Query real-time data rows logged within today's window
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
         .select('description, amount, category')
@@ -45,7 +43,6 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
-      // Query Month-to-Date cumulative aggregates up to this exact minute
       const { data: monthlyTxns, error: mTxError } = await supabase
         .from('transactions')
         .select('amount, category')

@@ -106,7 +106,9 @@ export async function GET(request) {
               <table width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size: 12px; margin-bottom: 6px;">
                 <tr>
                   <td align="left" style="color: #9ca3af !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${cat}</td>
-                  <td align="right" style="color: #ffffff !important; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${amt.toFixed(2)} (${percentage}%)</td>
+                  <td align="right" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
+                    AED ${amt.toFixed(2)} <span style="color: #a5b4fc !important; -webkit-text-fill-color: #a5b4fc !important; font-weight: 500;">(${percentage}%)</span>
+                  </td>
                 </tr>
               </table>
               <div style="width: 100%; background: linear-gradient(#1e293d, #1e293d); height: 8px; border-radius: 4px; overflow: hidden;">
@@ -129,7 +131,8 @@ export async function GET(request) {
           <meta name="supported-color-schemes" content="dark">
           <style>
             body, .bg-wrapper { background: linear-gradient(#070913, #070913) !important; color: #ffffff !important; }
-            div, p, td, h2, h3, span { -webkit-text-fill-color: initial !important; }
+            /* Fixed: removed global 'initial' webkit reset which ruins dark mode templates */
+            div, p, td, h2, h3, span { font-smoothing: antialiased; -webkit-font-smoothing: antialiased; }
           </style>
         </head>
         <body style="margin: 0; padding: 30px 10px; background: linear-gradient(#070913, #070913); color: #ffffff;">

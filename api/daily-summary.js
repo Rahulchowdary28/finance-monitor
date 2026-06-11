@@ -43,6 +43,11 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
+      // 💡 CHANGE HERE: If no transactions were made during this day, skip this user entirely
+      if (!dailyTxns || dailyTxns.length === 0) {
+        continue; 
+      }
+
       const { data: monthlyTxns, error: mTxError } = await supabase
         .from('transactions')
         .select('amount, category')
@@ -89,12 +94,6 @@ export async function GET(request) {
             </table>
           </div>
         `).join('');
-      } else {
-        breakdownHtml = `
-          <div style="text-align: center; color: #8696ad !important; padding: 30px 20px; border: 2px dashed #242b54; border-radius: 12px; font-size: 14px; font-family: -apple-system, sans-serif;">
-            ☕ No transactions logged for this tracking window.
-          </div>
-        `;
       }
 
       let metricsHtml = "";
@@ -131,14 +130,11 @@ export async function GET(request) {
           <meta name="supported-color-schemes" content="dark">
           <style>
             body, .bg-wrapper { background: linear-gradient(#070913, #070913) !important; color: #ffffff !important; }
-            /* Fixed: removed global 'initial' webkit reset which ruins dark mode templates */
             div, p, td, h2, h3, span { font-smoothing: antialiased; -webkit-font-smoothing: antialiased; }
           </style>
         </head>
         <body style="margin: 0; padding: 30px 10px; background: linear-gradient(#070913, #070913); color: #ffffff;">
-          
           <div class="bg-wrapper" style="max-width: 460px; margin: 0 auto; background: linear-gradient(#070913, #070913); border: 1px solid #242b54; border-top: 4px solid #6366f1; border-radius: 16px; padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.75);">
-            
             <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid #242b54; padding-bottom: 16px; margin-bottom: 24px; table-layout: fixed;">
               <tr>
                 <td align="left" valign="middle" width="65" style="width: 65px; padding-right: 12px;">
@@ -190,7 +186,6 @@ export async function GET(request) {
                 Designed by Rahul
               </p>
             </div>
-
           </div>
         </body>
         </html>

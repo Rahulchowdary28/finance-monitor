@@ -1,216 +1,1129 @@
-import { createClient } from '@supabase/supabase-js';
-import { Resend } from 'resend';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Virtual Vault | Premium Finance Terminal</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="#040612">
+    
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/584/584026.png" type="image/png">
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-export async function GET(request) {
-  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized security perimeter breach.' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-
-  try {
-    const { data: users, error: userError } = await supabase
-      .from('users_list')
-      .select('name, email')
-      .eq('is_hold', false);
-
-    if (userError) throw userError;
-
-    const today = new Date();
-    const dateString = today.toISOString().split('T')[0];
-
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const startOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
-
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const currentMonthLabel = monthNames[today.getMonth()];
-
-    for (const user of users) {
-      if (!user.email) continue;
-
-      const { data: dailyTxns, error: txError } = await supabase
-        .from('transactions')
-        .select('description, amount, category')
-        .eq('user_name', user.name)
-        .eq('type', 'debit')
-        .gte('created_at', `${dateString}T00:00:00.000Z`)
-        .lte('created_at', `${dateString}T23:59:59.999Z`);
-
-      if (txError) throw txError;
-
-      // 💡 CHANGE HERE: If no transactions were made during this day, skip this user entirely
-      if (!dailyTxns || dailyTxns.length === 0) {
-        continue; 
-      }
-
-      const { data: monthlyTxns, error: mTxError } = await supabase
-        .from('transactions')
-        .select('amount, category')
-        .eq('user_name', user.name)
-        .eq('type', 'debit')
-        .gte('created_at', `${startOfMonthStr}T00:00:00.000Z`)
-        .lte('created_at', `${dateString}T23:59:59.999Z`);
-
-      if (mTxError) throw mTxError;
-
-      const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
-      const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
-
-      const categoriesMap = {};
-      if (monthlyTxns) {
-        monthlyTxns.forEach(t => {
-          const amt = parseFloat(t.amount);
-          categoriesMap[t.category] = (categoriesMap[t.category] || 0) + amt;
-        });
-      }
-
-      const sortedCategories = Object.entries(categoriesMap)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3);
-
-      let breakdownHtml = "";
-      if (dailyTxns && dailyTxns.length > 0) {
-        breakdownHtml = dailyTxns.map(t => `
-          <div style="background: linear-gradient(#161b33, #161b33); border: 1px solid #242b54; padding: 14px; margin-bottom: 10px; border-radius: 12px;">
-            <table width="100%" border="0" cellpadding="0" cellspacing="0">
-              <tr>
-                <td align="left" valign="middle">
-                  <div style="color: #ffffff !important; font-size: 14px; font-weight: 600; font-family: -apple-system, sans-serif;">${t.description}</div>
-                  <div style="margin-top: 6px;">
-                    <span style="background: linear-gradient(#23225c, #23225c); color: #c7d2fe !important; font-size: 9px; padding: 3px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; font-family: -apple-system, sans-serif;">
-                      📂 ${t.category}
-                    </span>
-                  </div>
-                </td>
-                <td align="right" valign="middle" style="color: #ff5252 !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                  -AED ${parseFloat(t.amount).toFixed(2)}
-                </td>
-              </tr>
-            </table>
-          </div>
-        `).join('');
-      }
-
-      let metricsHtml = "";
-      if (totalMonthlySpend > 0 && sortedCategories.length > 0) {
-        metricsHtml = sortedCategories.map(([cat, amt]) => {
-          const percentage = ((amt / totalMonthlySpend) * 100).toFixed(0);
-          return `
-            <div style="margin-bottom: 16px; font-family: -apple-system, sans-serif;">
-              <table width="100%" border="0" cellpadding="0" cellspacing="0" style="font-size: 12px; margin-bottom: 6px;">
-                <tr>
-                  <td align="left" style="color: #9ca3af !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${cat}</td>
-                  <td align="right" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                    AED ${amt.toFixed(2)} <span style="color: #a5b4fc !important; -webkit-text-fill-color: #a5b4fc !important; font-weight: 500;">(${percentage}%)</span>
-                  </td>
-                </tr>
-              </table>
-              <div style="width: 100%; background: linear-gradient(#1e293d, #1e293d); height: 8px; border-radius: 4px; overflow: hidden;">
-                <div style="width: ${percentage}%; background: linear-gradient(#6366f1, #6366f1); height: 100%; border-radius: 4px;"></div>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } else {
-        metricsHtml = `<div style="color: #8696ad !important; font-size: 13px; text-align: center; padding: 10px; font-family: -apple-system, sans-serif;">No monthly trend vectors mapped.</div>`;
-      }
-
-      const emailHtmlContent = `
-        <!DOCTYPE html>
-        <html lang="en" style="color-scheme: dark; supported-color-schemes: dark;">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <meta name="color-scheme" content="dark">
-          <meta name="supported-color-schemes" content="dark">
-          <style>
-            body, .bg-wrapper { background: linear-gradient(#070913, #070913) !important; color: #ffffff !important; }
-            div, p, td, h2, h3, span { font-smoothing: antialiased; -webkit-font-smoothing: antialiased; }
-          </style>
-        </head>
-        <body style="margin: 0; padding: 30px 10px; background: linear-gradient(#070913, #070913); color: #ffffff;">
-          <div class="bg-wrapper" style="max-width: 460px; margin: 0 auto; background: linear-gradient(#070913, #070913); border: 1px solid #242b54; border-top: 4px solid #6366f1; border-radius: 16px; padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.75);">
-            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid #242b54; padding-bottom: 16px; margin-bottom: 24px; table-layout: fixed;">
-              <tr>
-                <td align="left" valign="middle" width="65" style="width: 65px; padding-right: 12px;">
-                  <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="55" height="55" style="width: 55px; height: 55px; border-radius: 28px; display: block; border: 1px solid #242b54;" alt="Vault Logo" />
-                </td>
-                <td align="left" valign="middle">
-                  <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-family: -apple-system, sans-serif; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
-                  <h2 style="color: #ffffff !important; margin: 0; font-size: 20px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: -0.5px;">Daily Statement</h2>
-                </td>
-                <td align="right" valign="middle" width="95" style="width: 95px; min-width: 95px; text-align: right; white-space: nowrap !important; color: #8696ad !important; font-size: 13px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
-                  ${dateString}
-                </td>
-              </tr>
-            </table>
-
-            <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
-              Yo! <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, Here is the itemized expense breakdown from today:
-            </p>
-
-            <div style="margin-bottom: 28px;">
-              <h3 style="color: #8696ad !important; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; text-align: left; font-family: -apple-system, sans-serif;">📅 Itemized Activity</h3>
-              ${breakdownHtml}
-            </div>
-
-            <div style="background: linear-gradient(#0d1127, #0d1127); border: 1px solid #242b54; padding: 18px; border-radius: 14px; margin-bottom: 28px;">
-              <h3 style="color: #818cf8 !important; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 0; margin-bottom: 16px; text-align: left; font-family: -apple-system, sans-serif;">📊 ${currentMonthLabel} Outflow Weight</h3>
-              ${metricsHtml}
-            </div>
-
-            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-top: 20px;">
-              <tr>
-                <td width="48%" valign="top" style="background: linear-gradient(#0d1127, #0d1127); border: 1px solid #242b54; padding: 14px; border-radius: 12px; text-align: center;">
-                  <span style="color: #8696ad !important; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-family: -apple-system, sans-serif; font-weight: 700;">Daily Outflow</span>
-                  <span style="color: #ffffff !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${totalDailySpend.toFixed(2)}</span>
-                </td>
-                <td width="4%">&nbsp;</td>
-                <td width="48%" valign="top" style="background: linear-gradient(#1e1b4b, #1e1b4b); border: 1px solid #4f46e5; padding: 14px; border-radius: 12px; text-align: center;">
-                  <span style="color: #c7d2fe !important; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-family: -apple-system, sans-serif; font-weight: 700;">MTD Total Spend</span>
-                  <span style="color: #10b981 !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${totalMonthlySpend.toFixed(2)}</span>
-                </td>
-              </tr>
-            </table>
-
-            <div style="margin-top: 36px; text-align: center; border-top: 1px solid #242b54; padding-top: 16px;">
-              <p style="color: #8696ad !important; font-size: 11px; margin: 0; font-family: -apple-system, sans-serif; line-height: 1.5; font-weight: 500;">
-                This statement is auto-generated by finance tracker.
-              </p>
-              <p style="color: #6366f1 !important; font-size: 10px; margin: 6px 0 0 0; font-family: -apple-system, sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
-                Designed by Rahul
-              </p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      await resend.emails.send({
-        from: 'Vault Terminal <alerts@drivehouse.ae>', 
-        to: user.email,
-        subject: `Daily Expense Statement - ${dateString}`,
-        html: emailHtmlContent,
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 200));
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Pacifico&family=Plus+Jakarta+Sans:wght@300;500;700;800&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        --bg: #040612;
+        --card: #0d1127;
+        --text: #f8fafc;
+        --dim: #94a3b8;
+        --accent: #6366f1;
+        --green: #00ff88;
+        --red: #ff4d4d;
+        --lime: #00ff88;
+        --cyan: #00d4ff;
+        --border: rgba(255,255,255,0.07);
+        --input: #070914;
+        --r: 16px;
+        
+        /* Neon Glow Variables */
+        --glow-accent: 0 0 15px rgba(99, 102, 241, 0.5);
+        --glow-green: 0 0 15px rgba(0, 255, 136, 0.6);
+        --glow-red: 0 0 15px rgba(255, 77, 77, 0.6);
+        --glow-cyan: 0 0 15px rgba(0, 212, 255, 0.6);
+    }
+    [data-theme="light"] {
+        --bg: #f1f5f9; --card: #fff; --text: #0f172a;
+        --dim: #64748b; --border: rgba(0,0,0,0.08); --input: #f8fafc;
+        --glow-accent: none; --glow-green: none; --glow-red: none; --glow-cyan: none;
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'All luxury telemetry statements delivered.' }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
 
-  } catch (err) {
-    console.error("CRASH ERROR DETECTED:", err.message || err);
-    return new Response(JSON.stringify({ error: err.message || err }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
+    html, body { width: 100%; min-height: 100vh; background: var(--bg); color: var(--text); font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; scroll-behavior: smooth; overflow-x: hidden; }
+
+    #parallax-bg {
+        position: fixed; inset: 0; z-index: 0;
+        background: 
+            radial-gradient(circle at var(--x, 30%) var(--y, 20%), rgba(0, 212, 255, 0.05) 0%, transparent 45%),
+            radial-gradient(circle at var(--y, 70%) var(--x, 80%), rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, #050714 0%, #010207 100%);
+        pointer-events: none;
+    }
+
+    .wrap {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px 20px 160px 20px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ─── PORTAL LOGIN BACKDROP ANIMATION ─── */
+    #auth-portal {
+        position: fixed; inset: 0; z-index: 10000;
+        background: #02040a;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 20px;
+        overflow: hidden;
+    }
+    #auth-canvas {
+        position: absolute; inset: 0; z-index: 1;
+        width: 100%; height: 100%; pointer-events: none;
+    }
+    .auth-container-card {
+        background: linear-gradient(135deg, rgba(13, 17, 39, 0.85) 0%, rgba(5, 6, 18, 0.98) 100%);
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        border: 1px solid rgba(0, 212, 255, 0.25);
+        border-radius: 32px;
+        padding: 40px 30px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: 0 0 40px rgba(0, 214, 255, 0.15), inset 0 1px 2px rgba(255,255,255,0.1);
+        text-align: center;
+        position: relative;
+        z-index: 5;
+    }
+    
+    .auth-brand {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900; font-size: 2.1rem; letter-spacing: 3px;
+        text-transform: uppercase; color: #fff; margin-bottom: 4px;
+        text-shadow: 0 0 20px rgba(255,255,255,0.3);
+    }
+    .auth-brand span { color: var(--cyan); text-shadow: var(--glow-cyan); }
+    
+    .profile-grid { 
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+        width: 100%; margin-top: 30px; 
+    }
+    .profile-item {
+        background: rgba(4, 6, 15, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 20px; padding: 20px 12px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+        cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative; overflow: hidden;
+    }
+    .profile-item:hover {
+        transform: translateY(-4px);
+        border-color: var(--cyan);
+        box-shadow: var(--glow-cyan);
+    }
+    .profile-item.user-on-hold {
+        border-color: rgba(255, 77, 77, 0.4);
+        opacity: 0.65;
+    }
+    .profile-item.user-on-hold:hover {
+        box-shadow: var(--glow-red);
+        border-color: var(--red);
+    }
+    
+    .security-node-display {
+        width: 46px; height: 46px; background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; position: relative;
+    }
+    .security-node-display .orbit-dot {
+        width: 10px; height: 10px; background: var(--accent); border-radius: 50%;
+        box-shadow: 0 0 10px var(--accent);
+    }
+    .profile-item:hover .security-node-display .orbit-dot {
+        background: var(--cyan); box-shadow: var(--glow-cyan);
+    }
+    .profile-item.user-on-hold .security-node-display .orbit-dot {
+        background: var(--red); box-shadow: var(--glow-red);
+    }
+    
+    .profile-item span { font-weight: 700; font-size: 0.9rem; color: var(--text); letter-spacing: 0.5px; }
+
+    .pin-box-view { display: none; width: 100%; }
+    .pin-box-view input { 
+        text-align: center; font-family: 'Orbitron', sans-serif;
+        font-size: 2rem; letter-spacing: 12px; margin: 20px 0; padding: 12px;
+        background: rgba(5, 7, 15, 0.9); border: 1px solid var(--cyan);
+        color: var(--cyan); border-radius: 16px; outline: none;
+        box-shadow: var(--glow-cyan);
+    }
+
+    /* ─── ADMIN ROOT CONTROL PANEL ─── */
+    #admin-management-view { text-align: left; }
+    
+    /* ─── MINIMAL HEADER ─── */
+    .hdr {
+        background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+        padding: 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px;
+    }
+    .hdr-row1 { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+    .logo { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 1.1rem; color: var(--lime); text-transform: uppercase; letter-spacing: 2px; text-shadow: var(--glow-green); }
+    
+    #active-user-badge {
+        font-size: 0.75rem; color: var(--text); font-weight: 700;
+        background: rgba(99, 102, 241, 0.15); border: 1px solid var(--accent);
+        padding: 6px 12px; border-radius: 8px; text-transform: uppercase;
+        box-shadow: var(--glow-accent);
+    }
+
+    .clock {
+        font-size: 0.85rem; font-weight: 800; color: #a5b4fc; font-family: 'Orbitron', monospace;
+        background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.3);
+        padding: 0 14px; border-radius: 12px; text-align: center; white-space: nowrap;
+        height: 44px; display: flex; align-items: center; justify-content: center; width: 100%;
+    }
+    .hdr-middle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; width: 100%; }
+
+    select, input[type=text], input[type=number], input[type=date], input[type=password] {
+        background: var(--input); border: 1px solid var(--border);
+        color: var(--text); padding: 14px; border-radius: 12px;
+        font-size: 14px; outline: none; width: 100%; transition: border 0.3s, box-shadow 0.3s; height: 44px;
+    }
+    select:focus, input:focus { border-color: var(--accent); box-shadow: var(--glow-accent); }
+    
+    .ibtn {
+        background: var(--input); border: 1px solid var(--border); color: var(--text);
+        border-radius: 12px; height: 44px; width: 44px;
+        display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.95rem;
+    }
+
+    /* ─── SYSTEM DROPDOWN PANELS ─── */
+    .utility-dropdown-container { position: relative; width: 100%; }
+    .utility-select-trigger {
+        background: var(--input); border: 1px solid var(--border); color: var(--dim);
+        border-radius: 12px; height: 44px; width: 100%; padding: 0 14px;
+        display: flex; align-items: center; justify-content: space-between;
+        cursor: pointer; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .utility-dropdown-menu {
+        display: none; position: absolute; top: calc(100% + 6px); right: 0; left: 0;
+        background: var(--card); border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 14px; padding: 8px; z-index: 100;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+        flex-direction: column; gap: 6px;
+    }
+    .utility-dropdown-menu.show { display: flex; }
+    .menu-action-row {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+        color: var(--text); padding: 10px 14px; border-radius: 10px;
+        font-size: 0.75rem; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; gap: 10px; width: 100%;
+    }
+    .menu-action-row:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--accent); }
+    .menu-action-row select { height: 28px; padding: 2px 6px; font-size: 0.7rem; font-weight: 700; width: auto; border-radius: 6px; }
+
+    /* ─── GLOWING STAT CARDS WITH PULSING ANIMATION ─── */
+    @keyframes pulseGlowAccent {
+        0% { border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+        50% { border-color: rgba(99, 102, 241, 0.8); box-shadow: 0 0 20px rgba(99, 102, 241, 0.6); }
+        100% { border-color: rgba(99, 102, 241, 0.3); box-shadow: 0 0 10px rgba(99, 102, 241, 0.2); }
+    }
+    @keyframes pulseGlowGreen {
+        0% { border-color: rgba(0, 255, 136, 0.3); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+        50% { border-color: rgba(0, 255, 136, 0.8); box-shadow: 0 0 20px rgba(0, 255, 136, 0.6); }
+        100% { border-color: rgba(0, 255, 136, 0.3); box-shadow: 0 0 10px rgba(0, 255, 136, 0.2); }
+    }
+    @keyframes pulseGlowRed {
+        0% { border-color: rgba(255, 77, 77, 0.3); box-shadow: 0 0 10px rgba(255, 77, 77, 0.2); }
+        50% { border-color: rgba(255, 77, 77, 0.8); box-shadow: 0 0 20px rgba(255, 77, 77, 0.6); }
+        100% { border-color: rgba(255, 77, 77, 0.3); box-shadow: 0 0 10px rgba(255, 77, 77, 0.2); }
+    }
+
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stat {
+        position: relative; background: var(--card); border-radius: var(--r); padding: 18px 16px; border: 1px solid var(--border);
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    
+    /* Apply Continuous Pulse Animations */
+    .stat.balance { animation: pulseGlowAccent 3s infinite ease-in-out; }
+    .stat.income { animation: pulseGlowGreen 3s infinite ease-in-out; animation-delay: 0.5s; }
+    .stat.expenses { animation: pulseGlowRed 3s infinite ease-in-out; animation-delay: 1s; }
+
+    /* Theme override fallbacks */
+    [data-theme="light"] .stat.balance, [data-theme="light"] .stat.income, [data-theme="light"] .stat.expenses {
+        animation: none !important;
+        box-shadow: none !important;
+    }
+
+    .stat small { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; font-weight: 700; }
+    .stat b { font-size: 1.35rem; font-weight: 800; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+    .ctitle { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 14px; }
+
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .fgrid .full { grid-column: 1/-1; }
+    
+    .btn-save {
+        background: var(--green); color: #003311; border: none;
+        padding: 16px; border-radius: 12px; font-weight: 800;
+        width: 100%; margin-top: 12px; cursor: pointer; font-size: 1rem; 
+        transition: opacity 0.2s, box-shadow 0.3s;
+        box-shadow: var(--glow-green);
+    }
+    .btn-save:hover { opacity: 0.95; box-shadow: 0 0 25px rgba(0,255,136,0.9); }
+
+    /* INLINE USER CATEGORY MANAGER DROPDOWN DRAWER */
+    .user-cat-manager-toggle {
+        font-size: 0.72rem; font-weight: 700; color: var(--cyan); text-transform: uppercase;
+        letter-spacing: 0.5px; background: none; border: none; cursor: pointer;
+        display: flex; align-items: center; gap: 6px; margin-top: 12px; width: fit-content;
+    }
+    .user-cat-drawer {
+        display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px;
+    }
+    .user-cat-drawer.open { display: block; }
+    .cat-badge-container {
+        display: flex; flex-wrap: wrap; gap: 6px; max-height: 110px; overflow-y: auto; margin-bottom: 12px; padding: 4px;
+    }
+    .cat-badge-item {
+        background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+        color: var(--text); padding: 6px 10px; border-radius: 8px; font-size: 0.75rem;
+        display: flex; align-items: center; gap: 8px; font-weight: 600;
+    }
+    .cat-badge-item button {
+        background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.75rem;
+    }
+
+    .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+    .tab { background: rgba(255,255,255,0.05); border: none; color: var(--dim); padding: 10px 16px; border-radius: 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; font-weight: 600; }
+    .tab.active { background: var(--accent); color: #fff; box-shadow: var(--glow-accent); }
+    
+    .view-limit-dropdown { width: 145px; height: 36px; padding: 0 10px; font-size: 0.75rem; border-radius: 8px; border-color: rgba(255,255,255,0.1); background: var(--input); color: var(--dim); font-weight: 700; cursor: pointer; }
+
+    .twrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; min-width: 450px; }
+    th { font-size: 0.7rem; color: var(--dim); padding: 10px; border-bottom: 1px solid var(--border); font-weight: 700; text-align: left; text-transform: uppercase; }
+    td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+
+    .converted { font-size: 1.6rem; font-weight: 900; color: var(--green); text-align: center; margin-top: 12px; text-shadow: var(--glow-green); }
+    
+    .gbar-bg { background: var(--border); height: 8px; border-radius: 10px; margin: 10px 0 16px; }
+    .gbar { background: var(--accent); height: 100%; border-radius: 10px; width: 0%; transition: width 0.4s; box-shadow: var(--glow-accent); }
+
+    /* ─── WATERMARK SIGNATURE STYLE SETUP ─── */
+    .wm { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+    .wm::before { content:''; width:16px; height:1px; background: rgba(255,255,255,0.15); }
+    .wm-text { font-size: 0.65rem; color: rgba(255,255,255,0.3); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 700; }
+    .wm-name { font-family: 'Pacifico', cursive; font-size: 0.8rem; color: rgba(0, 255, 136, 0.75); text-shadow: 0 0 8px rgba(0,255,136,0.3); }
+
+    .main-cols { display: flex; flex-direction: column; gap: 16px; }
+
+    /* ─── FIXED NAV MASK OVER MOBILE SYSTEM ─── */
+    .bottom-nav-mask-container {
+        position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
+        padding: 12px 20px 24px 20px; z-index: 9999; border-top: 1px solid rgba(255,255,255,0.03);
+        display: flex; flex-direction: column; gap: 12px; align-items: center;
+        box-shadow: 0 -15px 30px var(--bg);
+    }
+    .bottom-nav-dock {
+        width: 100%; max-width: 440px; height: 64px; margin: 0 auto;
+        background: linear-gradient(135deg, rgba(17, 22, 47, 0.98) 0%, rgba(8, 10, 26, 0.99) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px;
+        display: flex; align-items: center; justify-content: space-around;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+    }
+    .bottom-nav-btn {
+        background: none; border: none; color: var(--dim);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 4px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; cursor: pointer; width: 64px; height: 100%;
+    }
+    .bottom-nav-btn i { font-size: 1.15rem; }
+    .bottom-nav-btn.active { color: var(--lime); text-shadow: var(--glow-green); }
+
+    /* Layout Scopes */
+    @media (max-width: 767px) {
+        .stats { gap: 8px; }
+        .stat { padding: 12px 8px; }
+        .stat b { font-size: 0.95rem; } 
+        .desktop-only-wm { display: none; }
+    }
+    @media (min-width: 768px) {
+        .hdr { flex-direction: row; align-items: center; justify-content: space-between; padding: 14px 20px; }
+        .hdr-middle { display: flex; gap: 10px; width: auto; flex-grow: 1; justify-content: flex-end; }
+        .hdr-middle select { width: 140px; }
+        .utility-dropdown-container { width: 180px; }
+        .main-cols { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+        .bottom-nav-mask-container { display: none; }
+        .wrap { padding-bottom: 20px; }
+        .desktop-only-wm { display: flex; justify-content: flex-end; margin-top: 24px; padding-right: 12px; }
+    }
+    </style>
+</head>
+<body>
+<div id="parallax-bg"></div>
+
+<div id="auth-portal">
+    <canvas id="auth-canvas"></canvas>
+    
+    <div class="auth-container-card">
+        <div id="profile-select-view">
+            <h2 class="auth-brand">Finance <span>Tracker</span></h2>
+            <p style="color:var(--dim); font-size:0.75rem; text-transform:uppercase; letter-spacing: 2px;"> Expense Ledger </p>
+            
+            <div class="profile-grid" id="profile-target-list"></div>
+            <button class="tab" onclick="verifyAdminCredentials()" style="margin: 32px auto 0; display:block; width:100%; padding:14px; border-radius: 14px; font-weight: 700;"><i class="fas fa-user-shield"></i> ADMIN PANEL </button>
+            
+            <div class="wm" style="margin-top: 28px;">
+                <span class="wm-text">designed by</span>
+                <span class="wm-name">Rahul</span>
+            </div>
+        </div>
+
+        <div id="pin-prompt-view" class="pin-box-view">
+            <h3 id="pin-view-title" style="font-family:'Orbitron', sans-serif; font-weight:800; letter-spacing: 1px;">SECURITY CLEARANCE</h3>
+            <p style="color:var(--dim); font-size:0.72rem; text-transform: uppercase;">Enter your PIN</p>
+            <input type="password" id="user-secure-pin" maxlength="4" inputmode="numeric" placeholder="••••" oninput="handlePinTyping(this)">
+            <button class="tab" onclick="backToProfiles()" style="margin: 0 auto; display:block;"><i class="fas fa-arrow-left"></i> Return</button>
+        </div>
+
+        <div id="admin-management-view" style="display:none; text-align:left;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; text-align:center; margin-bottom: 10px;">Root User Administration</h3>
+            <div style="background:var(--input); border:1px solid var(--border); padding:14px; border-radius:16px; margin-bottom:12px;">
+                <input type="text" id="admin-new-name" placeholder="User Profile Name" style="margin-bottom:8px;">
+                <input type="password" id="admin-new-pin" placeholder="Access PIN (4 Digits)" maxlength="4" inputmode="numeric" style="margin-bottom:8px;">
+                <button class="btn-save" onclick="adminProvisionUser()" style="margin-top:4px; padding:12px; font-size:0.8rem;">Deploy Core Space</button>
+            </div>
+            <div class="twrap" style="max-height:220px; border:1px solid var(--border); border-radius:12px; background: var(--input);">
+                <table style="min-width:100%;">
+                    <thead>
+                        <tr>
+                            <th style="padding:8px;">Profile</th>
+                            <th style="padding:8px; text-align:center;">Status</th>
+                            <th style="padding:8px; text-align:right;">Purge</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-users-tbody"></tbody>
+                </table>
+            </div>
+            <button class="tab" onclick="backToProfilesFromAdmin()" style="margin:15px auto 0; display:block; width:100%; padding: 12px; font-weight: 700;"><i class="fas fa-arrow-left"></i> Disconnect Terminal</button>
+        </div>
+    </div>
+</div>
+
+<div class="wrap" id="section-top">
+    <div class="hdr">
+        <div class="hdr-row1">
+            <span class="logo">Finance Monitor</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span id="active-user-badge">Locked</span>
+                <button id="pin-edit-btn" onclick="changeUserPin()" style="display:none;background:none;border:none;color:var(--dim);cursor:pointer;"><i class="fas fa-key"></i></button>
+                <button class="ibtn" onclick="logout()" style="width:36px;height:36px;border-radius:10px;"><i class="fas fa-power-off"></i></button>
+            </div>
+        </div>
+
+        <div class="hdr-middle">
+            <div id="live-clock" class="clock">00:00:00</div>
+            <select id="month-filter" onchange="updateUI()" style="color:var(--accent);border-color:rgba(99,102,241,0.35);">
+                <option value="all">Full History</option>
+                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+                <option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option>
+                <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
+                <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
+            </select>
+        </div>
+
+        <div class="utility-dropdown-container">
+            <div class="utility-select-trigger" onclick="toggleUtilityDropdown(event)">
+                <span>MORE SETTINGS</span>
+                <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i>
+            </div>
+            <div class="utility-dropdown-menu" id="utilityMenu">
+                <div class="menu-action-row" onclick="toggleSavingsInclude(); event.stopPropagation();">
+                    <i class="fas fa-piggy-bank" style="color:var(--cyan)"></i>
+                    <span id="savings-status">Savings Tracker: ON</span>
+                </div>
+                <div class="menu-action-row" onclick="event.stopPropagation();">
+                    <i class="fas fa-coins" style="color:var(--lime)"></i>
+                    <span style="margin-right:auto;">Base Currency:</span>
+                    <select id="base-currency-select" onchange="changeBaseCurrency(this.value)" style="color:var(--lime); border-color:rgba(0,255,136,0.25);">
+                        <option value="AED">AED (AED)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
+                <div class="menu-action-row" onclick="toggleTheme(); toggleUtilityDropdown(event);">
+                    <i class="fas fa-adjust" style="color:var(--accent)"></i>
+                    <span>Toggle Visual Theme</span>
+                </div>
+                <div class="menu-action-row" onclick="exportCSV(); toggleUtilityDropdown(event);" style="color:var(--lime);">
+                    <i class="fas fa-file-export" style="color:var(--lime);"></i>
+                    <span>Export Ledger (.CSV)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-cols">
+        <div>
+            <div class="stats">
+                <div class="stat balance"><small>Net Balance</small><b id="total-balance">0.00</b></div>
+                <div class="stat income"><small>Influx</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
+                <div class="stat expenses"><small>Outflow</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
+            </div>
+
+            <div class="card" id="section-form">
+                <div class="fgrid">
+                    <input type="text" id="desc" placeholder="What was this for?" class="full">
+                    <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
+                    <input type="date" id="txn-date">
+                    <select id="type">
+                        <option value="debit">Expense</option>
+                        <option value="credit">Income</option>
+                        <option value="saving">Saving</option>
+                    </select>
+                    <select id="cat"></select>
+                </div>
+                <input type="hidden" id="edit-id">
+                <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
+                
+                <button class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()">
+                    <i class="fas fa-tags"></i> Edit Categories <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size: 0.6rem;"></i>
+                </button>
+                
+                <div id="user-cat-drawer" class="user-cat-drawer">
+                    <div class="cat-badge-container" id="user-cat-badges-grid"></div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="user-new-cat-input" placeholder="Create new category node..." style="height: 38px; padding: 0 12px; font-size: 0.8rem;">
+                        <button onclick="userAddNewCategory()" style="background: var(--cyan); color: #002b33; border: none; font-weight: 700; font-size: 0.75rem; padding: 0 16px; border-radius: 12px; cursor: pointer; box-shadow: var(--glow-cyan); white-space: nowrap;">Add Tag</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" id="section-history">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                    <div class="tabs">
+                        <button class="tab active" id="tab-all" onclick="filterData('all',this)">All Logs</button>
+                        <button class="tab" id="tab-credit" onclick="filterData('credit',this)">Income</button>
+                        <button class="tab" id="tab-debit" onclick="filterData('debit',this)">Expenses</button>
+                        <button class="tab" id="tab-saving" onclick="filterData('saving',this)">Savings</button>
+                    </div>
+                    <select id="view-limit-select" class="view-limit-dropdown" onchange="updateUI()">
+                        <option value="5" selected>Recent Txns </option>
+                        <option value="all">Show All History</option>
+                    </select>
+                </div>
+
+                <div class="twrap">
+                    <table>
+                        <thead><tr><th>Date</th><th>Name</th><th style="text-align:right">Amt</th><th>Category</th><th style="width:55px"></th></tr></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="section-metrics">
+            <div class="card">
+                <div class="ctitle">Expense Allocation Mix</div>
+                <div style="height:180px; position:relative;"><canvas id="expenseChart"></canvas></div>
+            </div>
+
+            <div class="card">
+                <div class="ctitle">Global Converter </div>
+                <select id="convert-to" onchange="updateUI()">
+                    <option value="USD">Convert to USD ($)</option>
+                    <option value="INR">Convert to INR (₹)</option>
+                    <option value="EUR">Convert to EUR (€)</option>
+                    <option value="AED">Convert to AED (AED)</option>
+                </select>
+                <div class="converted" id="converted-val">$0.00</div>
+            </div>
+
+            <div class="card">
+                <div class="ctitle">Goal Tracker</div>
+                <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700;"><span id="goal-name-display">Milestone Target</span><span id="goal-percent">0%</span></div>
+                <div class="gbar-bg"><div class="gbar" id="goal-bar"></div></div>
+                <input type="text" id="goal-name-input" placeholder="Goal Objective Name" style="margin-bottom:8px;">
+                <input type="number" id="goal-amt" placeholder="Target Threshold Amount">
+                <button class="btn-save" onclick="updateGoal()" style="padding:12px;margin-top:8px;font-size:0.8rem;">Initialize Objective Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="wm desktop-only-wm">
+        <span class="wm-text">designed by</span>
+        <span class="wm-name">Rahul</span>
+    </div>
+</div>
+
+<div class="bottom-nav-mask-container">
+    <div class="wm">
+        <span class="wm-text">designed by</span>
+        <span class="wm-name">Rahul</span>
+    </div>
+    <div class="bottom-nav-dock">
+        <button class="bottom-nav-btn active" onclick="navigateToSection('top', this)"><i class="fas fa-home"></i><span>Home</span></button>
+        <button class="bottom-nav-btn" onclick="navigateToSection('section-form', this)"><i class="fas fa-plus-circle"></i><span>Add</span></button>
+        <button class="bottom-nav-btn" onclick="navigateToSection('section-history', this)"><i class="fas fa-list-alt"></i><span>Logs</span></button>
+        <button class="bottom-nav-btn" onclick="navigateToSection('section-metrics', this)"><i class="fas fa-chart-pie"></i><span>Analytics</span></button>
+    </div>
+</div>
+
+<script>
+    let allTransactions=[], currentUser=null, currentFilter='all', includeSavingsInBalance=true, expenseChart, savingsGoal=5000;
+    let currentBaseCurrency='AED';
+    let currencySymbols={"AED":"AED ","USD":"$","INR":"₹","EUR":"€"};
+    
+    // Cross currency conversion framework (Relative to standard AED baseline indexes)
+    let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25,"AED":1.0};
+    let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Electronics', 'Entertainment', 'Other'];
+    let authenticatingUserObj = null;
+
+    const SUPABASE_URL='https://kfbtsoszcfnoovjvomir.supabase.co';
+    const SUPABASE_KEY='sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
+    const _supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+    const canvas = document.getElementById('auth-canvas');
+    const ctx = canvas.getContext('2d');
+    let points = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    for(let i=0; i<65; i++) {
+        points.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: (Math.random() - 0.5) * 0.8,
+            radius: Math.random() * 2 + 1
+        });
+    }
+
+    function animateAuthBackground() {
+        if (document.getElementById('auth-portal').style.display === 'none') {
+            requestAnimationFrame(animateAuthBackground);
+            return;
+        }
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#02040a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'rgba(0, 212, 255, 0.04)';
+        ctx.lineWidth = 1;
+        for(let i=0; i<points.length; i++) {
+            for(let j=i+1; j<points.length; j++) {
+                let dist = Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y);
+                if(dist < 130) {
+                    ctx.beginPath();
+                    ctx.moveTo(points[i].x, points[i].y);
+                    ctx.lineTo(points[j].x, points[j].y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        points.forEach(p => {
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.4)';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00d4ff';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            p.x += p.vx;
+            p.y += p.vy;
+
+            if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
+            if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        });
+
+        requestAnimationFrame(animateAuthBackground);
+    }
+    animateAuthBackground();
+
+    function updateClock(){document.getElementById('live-clock').innerText=new Date().toLocaleTimeString([],{hour12:false});}
+    setInterval(updateClock,1000);updateClock();
+
+    function toggleUtilityDropdown(event) {
+        event.stopPropagation();
+        document.getElementById('utilityMenu').classList.toggle('show');
+    }
+    document.addEventListener('click', () => { document.getElementById('utilityMenu').classList.remove('show'); });
+
+    async function initializeSystemFlow(){
+        if(localStorage.getItem('vault_global_categories')) {
+            globalCategories = JSON.parse(localStorage.getItem('vault_global_categories'));
+        }
+        if(localStorage.getItem('vault_base_currency')) {
+            currentBaseCurrency = localStorage.getItem('vault_base_currency');
+            document.getElementById('base-currency-select').value = currentBaseCurrency;
+        }
+        await fetchUserProfiles();
+    }
+
+    // 📂 UPDATE: Write the base currency selection back to Supabase automatically
+    async function changeBaseCurrency(val) {
+        currentBaseCurrency = val;
+        localStorage.setItem('vault_base_currency', val);
+        updateUI();
+        
+        if (currentUser) {
+            await _supabase
+                .from('users_list')
+                .update({ selected_currency: val })
+                .eq('name', currentUser);
+        }
+    }
+
+    function navigateToSection(targetId, element) {
+        document.querySelectorAll('.bottom-nav-btn').forEach(btn => btn.classList.remove('active'));
+        if(element) element.classList.add('active');
+        if (targetId === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+        else document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function fetchUserProfiles(){
+        const {data} = await _supabase.from('users_list').select('*').order('name', {ascending: true});
+        const grid = document.getElementById('profile-target-list');
+        grid.innerHTML = '';
+        (data || []).forEach(u => {
+            const holdClass = u.is_hold ? 'user-on-hold' : '';
+            grid.innerHTML += `
+                <div class="profile-item ${holdClass}" onclick="initiatePinVerification('${u.name}', '${u.pin}', ${u.is_hold})">
+                    <div class="security-node-display"><div class="orbit-dot"></div></div>
+                    <span>${u.name} ${u.is_hold ? '🛑' : ''}</span>
+                </div>
+            `;
+        });
+    }
+
+    function verifyAdminCredentials() {
+        const adminPin = prompt("Enter Admin Access Code:");
+        if (adminPin === "6969") {
+            document.getElementById('profile-select-view').style.display = 'none';
+            document.getElementById('admin-management-view').style.display = 'block';
+            fetchAdminUsersTable();
+        }
+    }
+
+    async function fetchAdminUsersTable() {
+        const {data} = await _supabase.from('users_list').select('*').order('name', {ascending: true});
+        const tbody = document.getElementById('admin-users-tbody');
+        tbody.innerHTML = '';
+        (data || []).forEach(u => {
+            const statusLabel = u.is_hold ? "Suspended" : "Active";
+            const statusColor = u.is_hold ? "var(--red)" : "var(--green)";
+            const toggleIcon = u.is_hold ? "fa-play" : "fa-pause";
+            
+            tbody.innerHTML += `<tr>
+                <td style="padding:8px; font-size:0.8rem; font-weight:700;">${u.name}</td>
+                <td style="padding:8px; font-size:0.8rem; text-align:center;">
+                    <button onclick="adminToggleHoldStatus('${u.name}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
+                        <i class="fas ${toggleIcon}" style="margin-right:4px;"></i> ${statusLabel}
+                    </button>
+                </td>
+                <td style="padding:8px; font-size:0.8rem; text-align:right;">
+                    <button onclick="adminDeleteUser('${u.name}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+    }
+
+    async function adminToggleHoldStatus(name, currentHoldStatus) {
+        const newHoldStatus = !currentHoldStatus;
+        await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('name', name);
+        fetchAdminUsersTable();
+    }
+
+    async function adminProvisionUser() {
+        const name = document.getElementById('admin-new-name').value.trim();
+        const pin = document.getElementById('admin-new-pin').value.trim();
+        if(!name || pin.length !== 4) { alert("Invalid input configurations."); return; }
+        // 📂 UPDATE: Add fallback default parameter field context during raw user insert flows
+        await _supabase.from('users_list').insert([{name, pin, is_hold:false, selected_currency:'AED'}]);
+        document.getElementById('admin-new-name').value = '';
+        document.getElementById('admin-new-pin').value = '';
+        fetchAdminUsersTable();
+    }
+
+    async function adminDeleteUser(name) {
+        if(confirm(`Purge profile space for ${name}?`)) {
+            await _supabase.from('transactions').delete().eq('user_name', name);
+            await _supabase.from('users_list').delete().eq('name', name);
+            fetchAdminUsersTable();
+        }
+    }
+
+    function backToProfilesFromAdmin() {
+        document.getElementById('admin-management-view').style.display = 'none';
+        document.getElementById('profile-select-view').style.display = 'block';
+        fetchUserProfiles();
+    }
+
+    function initiatePinVerification(name, pin, isHold) {
+        if(isHold) { 
+            alert("Access Revoked: This deployment space environment has been placed on an administrative hold."); 
+            return; 
+        }
+        authenticatingUserObj = { name, pin };
+        document.getElementById('profile-select-view').style.display = 'none';
+        document.getElementById('pin-prompt-view').style.display = 'block';
+        document.getElementById('pin-view-title').innerText = `Welcome ${name}`;
+        document.getElementById('user-secure-pin').value = '';
+        document.getElementById('user-secure-pin').focus();
+    }
+
+    // 📂 UPDATE: Fetch preferred currency preference immediately when a profile signs in
+    function handlePinTyping(element) {
+        if(element.value.length === 4) {
+            if(element.value === authenticatingUserObj.pin) {
+                currentUser = authenticatingUserObj.name;
+                document.getElementById('active-user-badge').innerText = currentUser;
+                document.getElementById('pin-edit-btn').style.display = 'inline-block';
+                document.getElementById('auth-portal').style.display = 'none';
+                populateCategoryDropdown();
+                renderUserCatBadges();
+                
+                // Read configuration matrix choice directly from profile space entry inside database
+                _supabase.from('users_list').select('selected_currency').eq('name', currentUser).single().then(({data}) => {
+                    if(data && data.selected_currency) {
+                        currentBaseCurrency = data.selected_currency;
+                        localStorage.setItem('vault_base_currency', currentBaseCurrency);
+                        document.getElementById('base-currency-select').value = currentBaseCurrency;
+                    }
+                    fetchData().then(() => {
+                        checkAndPopulateMultifoodTransaction();
+                    });
+                });
+            } else {
+                alert("Incorrect Pin Matrix.");
+                element.value = '';
+            }
+        }
+    }
+
+    function backToProfiles(){
+        document.getElementById('pin-prompt-view').style.display = 'none';
+        document.getElementById('profile-select-view').style.display = 'block';
+    }
+
+    /* ─── USER MAIN PAGE CATEGORIES MANAGER LOGIC ─── */
+    function toggleUserCatDrawer() {
+        const drawer = document.getElementById('user-cat-drawer');
+        const arrow = document.getElementById('cat-drawer-arrow');
+        drawer.classList.toggle('open');
+        if (drawer.classList.contains('open')) {
+            arrow.className = "fas fa-chevron-up";
+        } else {
+            arrow.className = "fas fa-chevron-down";
+        }
+    }
+
+    function renderUserCatBadges() {
+        const container = document.getElementById('user-cat-badges-grid');
+        container.innerHTML = '';
+        globalCategories.forEach((cat, idx) => {
+            container.innerHTML += `
+                <div class="cat-badge-item">
+                    <span>${cat}</span>
+                    <button onclick="userDeleteCategory(${idx})"><i class="fas fa-times-circle"></i></button>
+                </div>
+            `;
+        });
+    }
+
+    function userAddNewCategory() {
+        const input = document.getElementById('user-new-cat-input');
+        const val = input.value.trim();
+        if(!val) return;
+        if(globalCategories.map(c => c.toLowerCase()).includes(val.toLowerCase())) {
+            alert("This label configuration node already exists.");
+            return;
+        }
+        
+        // Insert newly built category nodes onto the top of the stack
+        globalCategories.unshift(val);
+        
+        localStorage.setItem('vault_global_categories', JSON.stringify(globalCategories));
+        input.value = '';
+        populateCategoryDropdown();
+        renderUserCatBadges();
+        updateUI();
+    }
+
+    function userDeleteCategory(index) {
+        if(confirm(`Drop category context tag "${globalCategories[index]}" from terminal selection arrays?`)) {
+            globalCategories.splice(index, 1);
+            localStorage.setItem('vault_global_categories', JSON.stringify(globalCategories));
+            populateCategoryDropdown();
+            renderUserCatBadges();
+            updateUI();
+        }
+    }
+
+    function populateCategoryDropdown(){
+        const catSelect = document.getElementById('cat');
+        catSelect.innerHTML = '';
+        globalCategories.forEach(c => { catSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+    }
+
+    async function fetchData(){
+        const{data}=await _supabase.from('transactions').select('*').order('created_at',{ascending:false});
+        allTransactions=data||[];
+        updateUI();
+    }
+
+    async function checkAndPopulateMultifoodTransaction() {
+        if (currentUser !== "Rahul") return;
+        
+        // Formulate parsing date verification rules
+        const targetDateString = "2026-05-24";
+        const hasMultifood = allTransactions.some(t => 
+            t.user_name === "Rahul" && 
+            t.description.toLowerCase().includes("multifood") && 
+            new Date(t.created_at).toISOString().slice(0, 10) === targetDateString
+        );
+
+        if (!hasMultifood) {
+            let targetTimestamp = new Date(targetDateString);
+            targetTimestamp.setHours(12, 0, 0, 0); 
+
+            let payload = {
+                description: "Multifood",
+                amount: 26.00,
+                type: "debit",
+                category: "Food",
+                user_name: "Rahul",
+                created_at: targetTimestamp.toISOString()
+            };
+            
+            await _supabase.from('transactions').insert([payload]);
+            await fetchData();
+        }
+    }
+
+    function updateUI(){
+        const sym = (window.innerWidth <= 480 && currentBaseCurrency === 'AED') ? "Ð " : currencySymbols[currentBaseCurrency];
+        const mf=document.getElementById('month-filter').value;
+        const limitView=document.getElementById('view-limit-select').value;
+        const tbody=document.getElementById('table-body');
+        tbody.innerHTML='';
+        
+        if(!currentUser) return;
+        
+        let bal=0,cred=0,deb=0,saved=0;
+        let fil = allTransactions.filter(t=>t.user_name===currentUser);
+        if(mf!=='all') fil=fil.filter(t=>new Date(t.created_at).getMonth()===parseInt(mf));
+        
+        // Compute base rate factor based on AED storage standard values
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        
+        fil.forEach(t=>{
+            // Adapt core value matrices tracking current base calculations
+            const a=parseFloat(t.amount) * toBaseFactor;
+            if(t.type==='credit'){cred+=a;bal+=a;}
+            else if(t.type==='saving'){saved+=a;if(!includeSavingsInBalance)bal-=a;}
+            else{deb+=a;bal-=a;}
+        });
+        
+        document.getElementById('total-balance').innerText=sym+bal.toLocaleString(undefined,{minimumFractionDigits:2});
+        document.getElementById('total-credit').innerText=sym+cred.toLocaleString(undefined,{minimumFractionDigits:2});
+        document.getElementById('total-debit').innerText=sym+deb.toLocaleString(undefined,{minimumFractionDigits:2});
+        
+        let filteredRows = fil.filter(t=>(currentFilter==='all' || t.type===currentFilter));
+        if(limitView === '5') filteredRows = filteredRows.slice(0, 5);
+
+        filteredRows.forEach(row=>{
+            const col=row.type==='credit'?'var(--lime)':row.type==='saving'?'var(--cyan)':'var(--red)';
+            const txtGlow=row.type==='credit'?'text-shadow:var(--glow-green)':row.type==='saving'?'text-shadow:var(--glow-cyan)':'text-shadow:var(--glow-red)';
+            const dispAmt = (parseFloat(row.amount) * toBaseFactor).toFixed(2);
+            
+            tbody.innerHTML+=`<tr>
+                <td>${new Date(row.created_at).toLocaleDateString()}</td>
+                <td style="font-weight:700;">${row.description}</td>
+                <td style="text-align:right;color:${col};font-weight:700;${txtGlow}">${sym}${dispAmt}</td>
+                <td><span style="background:rgba(255,255,255,0.04); padding:4px 8px; border-radius:6px;">${row.category}</span></td>
+                <td style="text-align:right;">
+                    <button onclick="editTransaction('${row.id}')" style="background:none;border:none;color:var(--accent);margin-right:6px;cursor:pointer;"><i class="fas fa-pencil-alt"></i></button>
+                    <button onclick="deleteTransaction('${row.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+        });
+
+        const convTo = document.getElementById('convert-to').value;
+        // Compute cross converter relative parameters mapped on updated base definitions
+        const rate = liveRates[convTo] / liveRates[currentBaseCurrency];
+        const symbols = {"USD":"$","INR":"₹","EUR":"€","AED":"AED "};
+        document.getElementById('converted-val').innerText = (symbols[convTo]||'') + (bal * rate).toLocaleString(undefined,{minimumFractionDigits:2});
+
+        const progress = Math.min(100, Math.max(0, (saved / savingsGoal) * 100));
+        document.getElementById('goal-percent').innerText = Math.round(progress) + "%";
+        document.getElementById('goal-bar').style.width = progress + "%";
+
+        updateChart(fil);
+    }
+
+    async function saveTransaction(){
+        const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value,c=document.getElementById('cat').value,dateVal=document.getElementById('txn-date').value;
+        if(!d || !a) return;
+        
+        // Reverse base currency parsing to secure records under baseline AED structure
+        const rawAEDAmount = parseFloat(a) / (liveRates[currentBaseCurrency] / liveRates['AED']);
+        let payload = {description:d,amount:parseFloat(rawAEDAmount.toFixed(4)),type:t,category:c||'Other'};
+        
+        if(dateVal) {
+            let customDate = new Date(dateVal);
+            customDate.setHours(12, 0, 0, 0);
+            payload.created_at = customDate.toISOString();
+        }
+
+        if(eid) {
+            await _supabase.from('transactions').update(payload).eq('id',eid);
+            document.getElementById('edit-id').value='';
+            document.getElementById('save-btn').innerText = "+ Save Transaction";
+        }
+        else await _supabase.from('transactions').insert([{...payload, user_name:currentUser}]);
+        document.getElementById('desc').value='';document.getElementById('amt').value='';document.getElementById('txn-date').value='';
+        fetchData();
+    }
+
+    function editTransaction(id) {
+        const t = allTransactions.find(x => String(x.id) === String(id));
+        if(!t) return;
+        
+        // Present correct editable values mapping base configuration rates
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        const basePresentableAmt = (parseFloat(t.amount) * toBaseFactor).toFixed(2);
+        
+        document.getElementById('desc').value = t.description;
+        document.getElementById('amt').value = basePresentableAmt;
+        document.getElementById('type').value = t.type;
+        document.getElementById('cat').value = t.category;
+        if(t.created_at) {
+            document.getElementById('txn-date').value = new Date(t.created_at).toISOString().slice(0,10);
+        }
+        document.getElementById('edit-id').value = t.id;
+        document.getElementById('save-btn').innerText = "Update Transaction Link";
+        navigateToSection('section-form', document.querySelector('.bottom-nav-dock .bottom-nav-btn:nth-child(2)'));
+    }
+
+    async function deleteTransaction(id) {
+        if(confirm("Permanently purge this ledger log transaction entry?")) {
+            await _supabase.from('transactions').delete().eq('id', id);
+            fetchData();
+        }
+    }
+
+    function updateGoal() {
+        const name = document.getElementById('goal-name-input').value.trim();
+        const amt = parseFloat(document.getElementById('goal-amt').value);
+        if(name) document.getElementById('goal-name-display').innerText = name;
+        if(!isNaN(amt) && amt > 0) savingsGoal = amt;
+        updateUI();
+    }
+
+    async function changeUserPin() {
+        if(!currentUser) return;
+        const newPin = prompt("Enter a new 4-digit security PIN access key matrix:");
+        if(newPin === null) return;
+        if(newPin.length !== 4 || isNaN(newPin)) {
+            alert("Security error: PIN structure must contain exactly 4 numeric characters.");
+            return;
+        }
+        const { error } = await _supabase.from('users_list').update({ pin: newPin }).eq('name', currentUser);
+        if(error) {
+            alert("Database synchronized transmission error updating security PIN code.");
+        } else {
+            alert("Security Matrix authorization modified successfully! Please re-authenticate space.");
+            logout();
+        }
+    }
+
+    function exportCSV() {
+        if(!currentUser) return;
+        
+        const mf = document.getElementById('month-filter').value;
+        let userRecords = allTransactions.filter(t => t.user_name === currentUser);
+        if(mf !== 'all') {
+            userRecords = userRecords.filter(t => new Date(t.created_at).getMonth() === parseInt(mf));
+        }
+        
+        if(userRecords.length === 0) {
+            alert("Empty structural instance: No active ledger entries found to export.");
+            return;
+        }
+        
+        let totalCredit = 0;
+        let totalDebit = 0;
+        let totalBalance = 0;
+
+        let csvContent = "data:text/csv;charset=utf-8,ID,Date,Description,Amount,Type,Category\n";
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        
+        userRecords.forEach(t => {
+            const a = parseFloat(t.amount) * toBaseFactor;
+            if(t.type === 'credit') {
+                totalCredit += a;
+                totalBalance += a;
+            } else if(t.type === 'saving') {
+                if(!includeSavingsInBalance) {
+                    totalBalance -= a;
+                }
+            } else {
+                totalDebit += a;
+                totalBalance -= a;
+            }
+
+            let row = [
+                t.id, 
+                new Date(t.created_at).toLocaleDateString(), 
+                `"${t.description.replace(/"/g, '""')}"`, 
+                a.toFixed(2), 
+                t.type, 
+                t.category
+            ];
+            csvContent += row.join(",") + "\n";
+        });
+        
+        // Append Summary Totals Rows
+        csvContent += "\n";
+        csvContent += `,,,Influx (${currentBaseCurrency}),${totalCredit.toFixed(2)},\n`;
+        csvContent += `,,,Outflow (${currentBaseCurrency}),${totalDebit.toFixed(2)},\n`;
+        csvContent += `,,,Net Balance (${currentBaseCurrency}),${totalBalance.toFixed(2)},\n`;
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Ledger_${currentUser}_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function toggleSavingsInclude(){
+        includeSavingsInBalance=!includeSavingsInBalance;
+        document.getElementById('savings-status').innerText=includeSavingsInBalance?"Savings Tracker: ON":"Savings Tracker: OFF";
+        updateUI();
+    }
+    function logout(){ location.reload(); }
+    function toggleTheme(){ document.body.hasAttribute('data-theme')?document.body.removeAttribute('data-theme'):document.body.setAttribute('data-theme','light'); updateUI(); }
+    
+    function filterData(type,btn){
+        document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active'); currentFilter=type; updateUI();
+    }
+
+    function updateChart(data){
+        const ctx=document.getElementById('expenseChart').getContext('2d');
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        const cats={};data.filter(t=>t.type==='debit').forEach(t=>cats[t.category]=(cats[t.category]||0)+(parseFloat(t.amount)*toBaseFactor));
+        if(expenseChart)expenseChart.destroy();
+        expenseChart=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#00ff88','#ff4d4d','#00d4ff','#f59e0b','#a855f7'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}}});
+    }
+
+    initializeSystemFlow();
+</script>
+</body>
+</html>

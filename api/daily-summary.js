@@ -1,4 +1,4 @@
- import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -41,7 +41,9 @@ export async function GET(request) {
       // Establish target currency configuration settings with safety fallbacks
       const userCurrency = user.selected_currency || 'AED';
       const userSymbol = currencySymbols[userCurrency] || 'AED ';
-      const conversionRate = liveRates[userCurrency] || 1.0;
+      
+      // Compute core multiplier relative to baseline AED database records to match dashboard view logic perfectly
+      const toBaseFactor = liveRates[userCurrency] / liveRates['AED'];
 
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
@@ -68,14 +70,14 @@ export async function GET(request) {
 
       if (mTxError) throw mTxError;
 
-      // Transform transaction parameters to selected target currency
-      const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * conversionRate), 0) : 0;
-      const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * conversionRate), 0) : 0;
+      // Transform transaction parameters to selected target currency using the calculated factor
+      const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * toBaseFactor), 0) : 0;
+      const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * toBaseFactor), 0) : 0;
 
       const categoriesMap = {};
       if (monthlyTxns) {
         monthlyTxns.forEach(t => {
-          const amt = parseFloat(t.amount) * conversionRate;
+          const amt = parseFloat(t.amount) * toBaseFactor;
           categoriesMap[t.category] = (categoriesMap[t.category] || 0) + amt;
         });
       }
@@ -87,7 +89,7 @@ export async function GET(request) {
       let breakdownHtml = "";
       if (dailyTxns && dailyTxns.length > 0) {
         breakdownHtml = dailyTxns.map(t => {
-          const itemConvertedAmount = parseFloat(t.amount) * conversionRate;
+          const itemConvertedAmount = parseFloat(t.amount) * toBaseFactor;
           return `
             <div style="background: linear-gradient(#161b33, #161b33); border: 1px solid #242b54; padding: 14px; margin-bottom: 10px; border-radius: 12px;">
               <table width="100%" border="0" cellpadding="0" cellspacing="0">

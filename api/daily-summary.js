@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -14,9 +14,10 @@ export async function GET(request) {
   }
 
   try {
+    // 💡 Fetching selected_currency column from your user metadata profiles table
     const { data: users, error: userError } = await supabase
       .from('users_list')
-      .select('name, email')
+      .select('name, email, selected_currency')
       .eq('is_hold', false);
 
     if (userError) throw userError;
@@ -30,8 +31,17 @@ export async function GET(request) {
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const currentMonthLabel = monthNames[today.getMonth()];
 
+    // Core currency definition variables mapped to standard conversion ratios matching your application frontend
+    const currencySymbols = { "AED": "AED ", "USD": "$", "INR": "₹", "EUR": "€" };
+    const liveRates = { "USD": 0.2722, "INR": 22.65, "EUR": 0.25, "AED": 1.0 };
+
     for (const user of users) {
       if (!user.email) continue;
+
+      // Establish target currency configuration settings with safety fallbacks
+      const userCurrency = user.selected_currency || 'AED';
+      const userSymbol = currencySymbols[userCurrency] || 'AED ';
+      const conversionRate = liveRates[userCurrency] || 1.0;
 
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
@@ -43,7 +53,7 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
-      // 💡 CHANGE HERE: If no transactions were made during this day, skip this user entirely
+      // If no transactions were made during this day, skip this user entirely
       if (!dailyTxns || dailyTxns.length === 0) {
         continue; 
       }
@@ -58,13 +68,14 @@ export async function GET(request) {
 
       if (mTxError) throw mTxError;
 
-      const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
-      const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0) : 0;
+      // Transform transaction parameters to selected target currency
+      const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * conversionRate), 0) : 0;
+      const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * conversionRate), 0) : 0;
 
       const categoriesMap = {};
       if (monthlyTxns) {
         monthlyTxns.forEach(t => {
-          const amt = parseFloat(t.amount);
+          const amt = parseFloat(t.amount) * conversionRate;
           categoriesMap[t.category] = (categoriesMap[t.category] || 0) + amt;
         });
       }
@@ -75,25 +86,28 @@ export async function GET(request) {
 
       let breakdownHtml = "";
       if (dailyTxns && dailyTxns.length > 0) {
-        breakdownHtml = dailyTxns.map(t => `
-          <div style="background: linear-gradient(#161b33, #161b33); border: 1px solid #242b54; padding: 14px; margin-bottom: 10px; border-radius: 12px;">
-            <table width="100%" border="0" cellpadding="0" cellspacing="0">
-              <tr>
-                <td align="left" valign="middle">
-                  <div style="color: #ffffff !important; font-size: 14px; font-weight: 600; font-family: -apple-system, sans-serif;">${t.description}</div>
-                  <div style="margin-top: 6px;">
-                    <span style="background: linear-gradient(#23225c, #23225c); color: #c7d2fe !important; font-size: 9px; padding: 3px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; font-family: -apple-system, sans-serif;">
-                      📂 ${t.category}
-                    </span>
-                  </div>
-                </td>
-                <td align="right" valign="middle" style="color: #ff5252 !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                  -AED ${parseFloat(t.amount).toFixed(2)}
-                </td>
-              </tr>
-            </table>
-          </div>
-        `).join('');
+        breakdownHtml = dailyTxns.map(t => {
+          const itemConvertedAmount = parseFloat(t.amount) * conversionRate;
+          return `
+            <div style="background: linear-gradient(#161b33, #161b33); border: 1px solid #242b54; padding: 14px; margin-bottom: 10px; border-radius: 12px;">
+              <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="left" valign="middle">
+                    <div style="color: #ffffff !important; font-size: 14px; font-weight: 600; font-family: -apple-system, sans-serif;">${t.description}</div>
+                    <div style="margin-top: 6px;">
+                      <span style="background: linear-gradient(#23225c, #23225c); color: #c7d2fe !important; font-size: 9px; padding: 3px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; font-family: -apple-system, sans-serif;">
+                        📂 ${t.category}
+                      </span>
+                    </div>
+                  </td>
+                  <td align="right" valign="middle" style="color: #ff5252 !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
+                    -${userSymbol}${itemConvertedAmount.toFixed(2)}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          `;
+        }).join('');
       }
 
       let metricsHtml = "";
@@ -106,7 +120,7 @@ export async function GET(request) {
                 <tr>
                   <td align="left" style="color: #9ca3af !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${cat}</td>
                   <td align="right" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                    AED ${amt.toFixed(2)} <span style="color: #a5b4fc !important; -webkit-text-fill-color: #a5b4fc !important; font-weight: 500;">(${percentage}%)</span>
+                    ${userSymbol}${amt.toFixed(2)} <span style="color: #a5b4fc !important; -webkit-text-fill-color: #a5b4fc !important; font-weight: 500;">(${percentage}%)</span>
                   </td>
                 </tr>
               </table>
@@ -168,12 +182,12 @@ export async function GET(request) {
               <tr>
                 <td width="48%" valign="top" style="background: linear-gradient(#0d1127, #0d1127); border: 1px solid #242b54; padding: 14px; border-radius: 12px; text-align: center;">
                   <span style="color: #8696ad !important; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-family: -apple-system, sans-serif; font-weight: 700;">Daily Outflow</span>
-                  <span style="color: #ffffff !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${totalDailySpend.toFixed(2)}</span>
+                  <span style="color: #ffffff !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">${userSymbol}${totalDailySpend.toFixed(2)}</span>
                 </td>
                 <td width="4%">&nbsp;</td>
                 <td width="48%" valign="top" style="background: linear-gradient(#1e1b4b, #1e1b4b); border: 1px solid #4f46e5; padding: 14px; border-radius: 12px; text-align: center;">
                   <span style="color: #c7d2fe !important; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-family: -apple-system, sans-serif; font-weight: 700;">MTD Total Spend</span>
-                  <span style="color: #10b981 !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">AED ${totalMonthlySpend.toFixed(2)}</span>
+                  <span style="color: #10b981 !important; font-size: 16px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">${userSymbol}${totalMonthlySpend.toFixed(2)}</span>
                 </td>
               </tr>
             </table>

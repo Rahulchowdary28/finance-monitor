@@ -213,6 +213,7 @@
         display: flex; align-items: center; gap: 10px; width: 100%;
     }
     .menu-action-row:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--accent); }
+    .menu-action-row select { height: 28px; padding: 2px 6px; font-size: 0.7rem; font-weight: 700; width: auto; border-radius: 6px; }
 
     /* ─── GLOWING STAT CARDS WITH PULSING ANIMATION ─── */
     @keyframes pulseGlowAccent {
@@ -436,6 +437,16 @@
                     <i class="fas fa-piggy-bank" style="color:var(--cyan)"></i>
                     <span id="savings-status">Savings Tracker: ON</span>
                 </div>
+                <div class="menu-action-row" onclick="event.stopPropagation();">
+                    <i class="fas fa-coins" style="color:var(--lime)"></i>
+                    <span style="margin-right:auto;">Base Currency:</span>
+                    <select id="base-currency-select" onchange="changeBaseCurrency(this.value)" style="color:var(--lime); border-color:rgba(0,255,136,0.25);">
+                        <option value="AED">AED (AED)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="INR">INR (₹)</option>
+                        <option value="EUR">EUR (€)</option>
+                    </select>
+                </div>
                 <div class="menu-action-row" onclick="toggleTheme(); toggleUtilityDropdown(event);">
                     <i class="fas fa-adjust" style="color:var(--accent)"></i>
                     <span>Toggle Visual Theme</span>
@@ -459,7 +470,7 @@
             <div class="card" id="section-form">
                 <div class="fgrid">
                     <input type="text" id="desc" placeholder="What was this for?" class="full">
-                    <input type="number" id="amt" placeholder="Amount (AED)" inputmode="decimal">
+                    <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
                     <input type="date" id="txn-date">
                     <select id="type">
                         <option value="debit">Expense</option>
@@ -519,6 +530,7 @@
                     <option value="USD">Convert to USD ($)</option>
                     <option value="INR">Convert to INR (₹)</option>
                     <option value="EUR">Convert to EUR (€)</option>
+                    <option value="AED">Convert to AED (AED)</option>
                 </select>
                 <div class="converted" id="converted-val">$0.00</div>
             </div>
@@ -528,7 +540,7 @@
                 <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700;"><span id="goal-name-display">Milestone Target</span><span id="goal-percent">0%</span></div>
                 <div class="gbar-bg"><div class="gbar" id="goal-bar"></div></div>
                 <input type="text" id="goal-name-input" placeholder="Goal Objective Name" style="margin-bottom:8px;">
-                <input type="number" id="goal-amt" placeholder="Target Threshold Amount (AED)">
+                <input type="number" id="goal-amt" placeholder="Target Threshold Amount">
                 <button class="btn-save" onclick="updateGoal()" style="padding:12px;margin-top:8px;font-size:0.8rem;">Initialize Objective Goal</button>
             </div>
         </div>
@@ -555,7 +567,11 @@
 
 <script>
     let allTransactions=[], currentUser=null, currentFilter='all', includeSavingsInBalance=true, expenseChart, savingsGoal=5000;
-    let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25};
+    let currentBaseCurrency='AED';
+    let currencySymbols={"AED":"AED ","USD":"$","INR":"₹","EUR":"€"};
+    
+    // Cross currency conversion framework (Relative to standard AED baseline indexes)
+    let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25,"AED":1.0};
     let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Electronics', 'Entertainment', 'Other'];
     let authenticatingUserObj = null;
 
@@ -640,7 +656,17 @@
         if(localStorage.getItem('vault_global_categories')) {
             globalCategories = JSON.parse(localStorage.getItem('vault_global_categories'));
         }
+        if(localStorage.getItem('vault_base_currency')) {
+            currentBaseCurrency = localStorage.getItem('vault_base_currency');
+            document.getElementById('base-currency-select').value = currentBaseCurrency;
+        }
         await fetchUserProfiles();
+    }
+
+    function changeBaseCurrency(val) {
+        currentBaseCurrency = val;
+        localStorage.setItem('vault_base_currency', val);
+        updateUI();
     }
 
     function navigateToSection(targetId, element) {
@@ -860,7 +886,7 @@
     }
 
     function updateUI(){
-        const sym = window.innerWidth <= 480 ? "Ð " : "AED ";
+        const sym = (window.innerWidth <= 480 && currentBaseCurrency === 'AED') ? "Ð " : currencySymbols[currentBaseCurrency];
         const mf=document.getElementById('month-filter').value;
         const limitView=document.getElementById('view-limit-select').value;
         const tbody=document.getElementById('table-body');
@@ -872,8 +898,12 @@
         let fil = allTransactions.filter(t=>t.user_name===currentUser);
         if(mf!=='all') fil=fil.filter(t=>new Date(t.created_at).getMonth()===parseInt(mf));
         
+        // Compute base rate factor based on AED storage standard values
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        
         fil.forEach(t=>{
-            const a=parseFloat(t.amount);
+            // Adapt core value matrices tracking current base calculations
+            const a=parseFloat(t.amount) * toBaseFactor;
             if(t.type==='credit'){cred+=a;bal+=a;}
             else if(t.type==='saving'){saved+=a;if(!includeSavingsInBalance)bal-=a;}
             else{deb+=a;bal-=a;}
@@ -889,11 +919,12 @@
         filteredRows.forEach(row=>{
             const col=row.type==='credit'?'var(--lime)':row.type==='saving'?'var(--cyan)':'var(--red)';
             const txtGlow=row.type==='credit'?'text-shadow:var(--glow-green)':row.type==='saving'?'text-shadow:var(--glow-cyan)':'text-shadow:var(--glow-red)';
+            const dispAmt = (parseFloat(row.amount) * toBaseFactor).toFixed(2);
             
             tbody.innerHTML+=`<tr>
                 <td>${new Date(row.created_at).toLocaleDateString()}</td>
                 <td style="font-weight:700;">${row.description}</td>
-                <td style="text-align:right;color:${col};font-weight:700;${txtGlow}">${sym}${row.amount}</td>
+                <td style="text-align:right;color:${col};font-weight:700;${txtGlow}">${sym}${dispAmt}</td>
                 <td><span style="background:rgba(255,255,255,0.04); padding:4px 8px; border-radius:6px;">${row.category}</span></td>
                 <td style="text-align:right;">
                     <button onclick="editTransaction('${row.id}')" style="background:none;border:none;color:var(--accent);margin-right:6px;cursor:pointer;"><i class="fas fa-pencil-alt"></i></button>
@@ -903,8 +934,9 @@
         });
 
         const convTo = document.getElementById('convert-to').value;
-        const rate = liveRates[convTo] || 1;
-        const symbols = {"USD":"$","INR":"₹","EUR":"€"};
+        // Compute cross converter relative parameters mapped on updated base definitions
+        const rate = liveRates[convTo] / liveRates[currentBaseCurrency];
+        const symbols = {"USD":"$","INR":"₹","EUR":"€","AED":"AED "};
         document.getElementById('converted-val').innerText = (symbols[convTo]||'') + (bal * rate).toLocaleString(undefined,{minimumFractionDigits:2});
 
         const progress = Math.min(100, Math.max(0, (saved / savingsGoal) * 100));
@@ -917,7 +949,10 @@
     async function saveTransaction(){
         const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value,c=document.getElementById('cat').value,dateVal=document.getElementById('txn-date').value;
         if(!d || !a) return;
-        let payload = {description:d,amount:parseFloat(a),type:t,category:c||'Other'};
+        
+        // Reverse base currency parsing to secure records under baseline AED structure
+        const rawAEDAmount = parseFloat(a) / (liveRates[currentBaseCurrency] / liveRates['AED']);
+        let payload = {description:d,amount:parseFloat(rawAEDAmount.toFixed(4)),type:t,category:c||'Other'};
         
         if(dateVal) {
             let customDate = new Date(dateVal);
@@ -938,8 +973,13 @@
     function editTransaction(id) {
         const t = allTransactions.find(x => String(x.id) === String(id));
         if(!t) return;
+        
+        // Present correct editable values mapping base configuration rates
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        const basePresentableAmt = (parseFloat(t.amount) * toBaseFactor).toFixed(2);
+        
         document.getElementById('desc').value = t.description;
-        document.getElementById('amt').value = t.amount;
+        document.getElementById('amt').value = basePresentableAmt;
         document.getElementById('type').value = t.type;
         document.getElementById('cat').value = t.category;
         if(t.created_at) {
@@ -1001,9 +1041,10 @@
         let totalBalance = 0;
 
         let csvContent = "data:text/csv;charset=utf-8,ID,Date,Description,Amount,Type,Category\n";
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
         
         userRecords.forEach(t => {
-            const a = parseFloat(t.amount);
+            const a = parseFloat(t.amount) * toBaseFactor;
             if(t.type === 'credit') {
                 totalCredit += a;
                 totalBalance += a;
@@ -1020,7 +1061,7 @@
                 t.id, 
                 new Date(t.created_at).toLocaleDateString(), 
                 `"${t.description.replace(/"/g, '""')}"`, 
-                t.amount, 
+                a.toFixed(2), 
                 t.type, 
                 t.category
             ];
@@ -1029,9 +1070,9 @@
         
         // Append Summary Totals Rows
         csvContent += "\n";
-        csvContent += `,,,Influx,${totalCredit.toFixed(2)},\n`;
-        csvContent += `,,,Outflow,${totalDebit.toFixed(2)},\n`;
-        csvContent += `,,,Net Balance,${totalBalance.toFixed(2)},\n`;
+        csvContent += `,,,Influx (${currentBaseCurrency}),${totalCredit.toFixed(2)},\n`;
+        csvContent += `,,,Outflow (${currentBaseCurrency}),${totalDebit.toFixed(2)},\n`;
+        csvContent += `,,,Net Balance (${currentBaseCurrency}),${totalBalance.toFixed(2)},\n`;
 
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
@@ -1057,7 +1098,8 @@
 
     function updateChart(data){
         const ctx=document.getElementById('expenseChart').getContext('2d');
-        const cats={};data.filter(t=>t.type==='debit').forEach(t=>cats[t.category]=(cats[t.category]||0)+parseFloat(t.amount));
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        const cats={};data.filter(t=>t.type==='debit').forEach(t=>cats[t.category]=(cats[t.category]||0)+(parseFloat(t.amount)*toBaseFactor));
         if(expenseChart)expenseChart.destroy();
         expenseChart=new Chart(ctx,{type:'doughnut',data:{labels:Object.keys(cats),datasets:[{data:Object.values(cats),backgroundColor:['#6366f1','#00ff88','#ff4d4d','#00d4ff','#f59e0b','#a855f7'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}}}}});
     }

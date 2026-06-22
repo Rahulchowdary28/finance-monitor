@@ -468,6 +468,9 @@
             </div>
 
             <div class="card" id="section-form">
+                <div style="margin-bottom: 14px; position: relative;">
+                    <input type="text" id="ai-msg-parser" placeholder="⚡ Paste transaction SMS / message alert here to auto-fill..." oninput="parseIncomingMessage(this.value)" style="border-color: var(--accent); box-shadow: rgba(99, 102, 241, 0.1) 0px 0px 8px;">
+                </div>
                 <div class="fgrid">
                     <input type="text" id="desc" placeholder="What was this for?" class="full">
                     <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
@@ -668,7 +671,6 @@
         await fetchUserProfiles();
     }
 
-    // 📂 UPDATE: Write the base currency selection back to Supabase automatically
     async function changeBaseCurrency(val) {
         currentBaseCurrency = val;
         localStorage.setItem('vault_base_currency', val);
@@ -746,7 +748,6 @@
         const name = document.getElementById('admin-new-name').value.trim();
         const pin = document.getElementById('admin-new-pin').value.trim();
         if(!name || pin.length !== 4) { alert("Invalid input configurations."); return; }
-        // 📂 UPDATE: Add fallback default parameter field context during raw user insert flows
         await _supabase.from('users_list').insert([{name, pin, is_hold:false, selected_currency:'AED'}]);
         document.getElementById('admin-new-name').value = '';
         document.getElementById('admin-new-pin').value = '';
@@ -780,7 +781,6 @@
         document.getElementById('user-secure-pin').focus();
     }
 
-    // 📂 UPDATE: Fetch preferred currency preference immediately when a profile signs in
     function handlePinTyping(element) {
         if(element.value.length === 4) {
             if(element.value === authenticatingUserObj.pin) {
@@ -791,7 +791,6 @@
                 populateCategoryDropdown();
                 renderUserCatBadges();
                 
-                // Read configuration matrix choice directly from profile space entry inside database
                 _supabase.from('users_list').select('selected_currency').eq('name', currentUser).single().then(({data}) => {
                     if(data && data.selected_currency) {
                         currentBaseCurrency = data.selected_currency;
@@ -814,7 +813,6 @@
         document.getElementById('profile-select-view').style.display = 'block';
     }
 
-    /* ─── USER MAIN PAGE CATEGORIES MANAGER LOGIC ─── */
     function toggleUserCatDrawer() {
         const drawer = document.getElementById('user-cat-drawer');
         const arrow = document.getElementById('cat-drawer-arrow');
@@ -848,9 +846,7 @@
             return;
         }
         
-        // Insert newly built category nodes onto the top of the stack
         globalCategories.unshift(val);
-        
         localStorage.setItem('vault_global_categories', JSON.stringify(globalCategories));
         input.value = '';
         populateCategoryDropdown();
@@ -883,7 +879,6 @@
     async function checkAndPopulateMultifoodTransaction() {
         if (currentUser !== "Rahul") return;
         
-        // Formulate parsing date verification rules
         const targetDateString = "2026-05-24";
         const hasMultifood = allTransactions.some(t => 
             t.user_name === "Rahul" && 
@@ -909,6 +904,66 @@
         }
     }
 
+    // ⚡ TEXT MESSAGE PARSER FUNCTION
+    function parseIncomingMessage(text) {
+        if(!text) return;
+        
+        let lowered = text.toLowerCase();
+        
+        // 1. Detect Transaction Type
+        if(lowered.includes("credit") || lowered.includes("received") || lowered.includes("deposited") || lowered.includes("refund")) {
+            document.getElementById('type').value = 'credit';
+        } else if(lowered.includes("saving") || lowered.includes("piggy")) {
+            document.getElementById('type').value = 'saving';
+        } else if(lowered.includes("debit") || lowered.includes("spent") || lowered.includes("paid") || lowered.includes("charged")) {
+            document.getElementById('type').value = 'debit';
+        }
+
+        // 2. Extract Amount Matrix (Matches currencies like AED, USD, INR, ₹, $, etc followed by digits)
+        let amtMatch = text.match(/(?:aed|usd|inr|eur|rs\.?|[\$₹€])\s*([0-9,]+\.?[0-9]*)/i);
+        if(!amtMatch) {
+            // Fallback match for standalone decimal/number fields
+            amtMatch = text.match(/\b([0-9]+\.[0-9]{2})\b/) || text.match(/\b([0-9]{2,5})\b/);
+        }
+        if(amtMatch && amtMatch[1]) {
+            document.getElementById('amt').value = amtMatch[1].replace(/,/g, '');
+        }
+
+        // 3. Extract Merchant / Vendor (Description Context)
+        let desc = "";
+        if(lowered.includes("at ")) {
+            let parts = text.split(/at /i);
+            if(parts[1]) desc = parts[1].split(/[.,\s]/)[0] + " " + (parts[1].split(/[.,\s]/)[1] || "");
+        } else if(lowered.includes("to ")) {
+            let parts = text.split(/to /i);
+            if(parts[1]) desc = parts[1].split(/[.,\s]/)[0];
+        } else {
+            // General backup fallback using first 4 terms
+            desc = text.split(" ").slice(0, 4).join(" ");
+        }
+        if(desc) document.getElementById('desc').value = desc.trim();
+
+        // 4. Smart Category Allocation Guessing Matrix
+        for(let catNode of globalCategories) {
+            if(lowered.includes(catNode.toLowerCase())) {
+                document.getElementById('cat').value = catNode;
+                break;
+            }
+        }
+        // Specific semantic backups
+        if(lowered.includes("restaurant") || lowered.includes("swiggy") || lowered.includes("zomato") || lowered.includes("cafe")) {
+            if(globalCategories.includes("Food")) document.getElementById('cat').value = "Food";
+        } else if(lowered.includes("electricity") || lowered.includes("water") || lowered.includes("recharge")) {
+            if(globalCategories.includes("Bills")) document.getElementById('cat').value = "Bills";
+        }
+
+        // 5. Default current Date
+        document.getElementById('txn-date').value = new Date().toISOString().slice(0, 10);
+        
+        // Auto-wiping input bar buffer clear after calculation completes
+        setTimeout(() => { document.getElementById('ai-msg-parser').value = ''; }, 1200);
+    }
+
     function updateUI(){
         const sym = (window.innerWidth <= 480 && currentBaseCurrency === 'AED') ? "Ð " : currencySymbols[currentBaseCurrency];
         const mf=document.getElementById('month-filter').value;
@@ -923,11 +978,9 @@
         let fil = allTransactions.filter(t=>t.user_name===currentUser);
         if(mf!=='all') fil=fil.filter(t=>new Date(t.created_at).getMonth()===parseInt(mf));
         
-        // Compute base rate factor based on AED storage standard values
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
         
         fil.forEach(t=>{
-            // Adapt core value matrices tracking current base calculations
             const a=parseFloat(t.amount) * toBaseFactor;
             if(t.type==='credit'){cred+=a;bal+=a;}
             else if(t.type==='saving'){saved+=a;if(!includeSavingsInBalance)bal-=a;}
@@ -940,7 +993,6 @@
         
         let filteredRows = fil.filter(t=>(currentFilter==='all' || t.type===currentFilter));
         
-        // Apply text-based multi-column filtration query logic matches
         if(searchQuery) {
             filteredRows = filteredRows.filter(t => {
                 const rowDate = new Date(t.created_at).toLocaleDateString().toLowerCase();
@@ -975,7 +1027,6 @@
         });
 
         const convTo = document.getElementById('convert-to').value;
-        // Compute cross converter relative parameters mapped on updated base definitions
         const rate = liveRates[convTo] / liveRates[currentBaseCurrency];
         const symbols = {"USD":"$","INR":"₹","EUR":"€","AED":"AED "};
         document.getElementById('converted-val').innerText = (symbols[convTo]||'') + (bal * rate).toLocaleString(undefined,{minimumFractionDigits:2});
@@ -991,7 +1042,6 @@
         const d=document.getElementById('desc').value,a=document.getElementById('amt').value,t=document.getElementById('type').value,eid=document.getElementById('edit-id').value,c=document.getElementById('cat').value,dateVal=document.getElementById('txn-date').value;
         if(!d || !a) return;
         
-        // Reverse base currency parsing to secure records under baseline AED structure
         const rawAEDAmount = parseFloat(a) / (liveRates[currentBaseCurrency] / liveRates['AED']);
         let payload = {description:d,amount:parseFloat(rawAEDAmount.toFixed(4)),type:t,category:c||'Other'};
         
@@ -1015,7 +1065,6 @@
         const t = allTransactions.find(x => String(x.id) === String(id));
         if(!t) return;
         
-        // Present correct editable values mapping base configuration rates
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
         const basePresentableAmt = (parseFloat(t.amount) * toBaseFactor).toFixed(2);
         
@@ -1109,7 +1158,6 @@
             csvContent += row.join(",") + "\n";
         });
         
-        // Append Summary Totals Rows
         csvContent += "\n";
         csvContent += `,,,Influx (${currentBaseCurrency}),${totalCredit.toFixed(2)},\n`;
         csvContent += `,,,Outflow (${currentBaseCurrency}),${totalDebit.toFixed(2)},\n`;

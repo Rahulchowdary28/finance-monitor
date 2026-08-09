@@ -50,63 +50,96 @@ export async function GET(request) {
       emailLog.push({ name: user.name, email: user.email, currency: userCurrency });
 
       if (!isDryRun) {
-        const emailHtmlContent = `
-          <!DOCTYPE html>
-          <html lang="en" style="color-scheme: dark; supported-color-schemes: dark;">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="color-scheme" content="dark">
-            <meta name="supported-color-schemes" content="dark">
-            <style>
-              body, .bg-wrapper { background: linear-gradient(#070913, #070913) !important; color: #ffffff !important; }
-              div, p, td, h2, h3, span { font-smoothing: antialiased; -webkit-font-smoothing: antialiased; }
-            </style>
-          </head>
-          <body style="margin: 0; padding: 30px 10px; background: linear-gradient(#070913, #070913); color: #ffffff;">
-            <div class="bg-wrapper" style="max-width: 460px; margin: 0 auto; background: linear-gradient(#070913, #070913); border: 1px solid #242b54; border-top: 4px solid #6366f1; border-radius: 16px; padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.75);">
+     const emailHtmlContent = `
+  <!DOCTYPE html>
+  <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" style="color-scheme: dark; supported-color-schemes: dark;">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="supported-color-schemes" content="dark">
+    <title>Expense Reminder</title>
+    <style>
+      :root { color-scheme: dark; supported-color-schemes: dark; }
+      body, html { margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #030712 !important; color: #ffffff !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      * { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; box-sizing: border-box; }
+      
+      @media screen and (max-width: 520px) {
+        .container { width: 100% !important; padding: 20px 16px !important; }
+        .content-card { padding: 20px 16px !important; border-radius: 16px !important; }
+        .header-title { font-size: 18px !important; }
+        .date-badge { font-size: 11px !important; }
+        .cta-button { display: block !important; width: 100% !important; padding: 14px 16px !important; font-size: 14px !important; }
+      }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 24px 8px; background-color: #030712; color: #ffffff;">
+    <!-- Outer Wrapper -->
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" style="background-color: #030712; table-layout: fixed;">
+      <tr>
+        <td align="center" valign="top">
+          
+          <!-- Card Container (Max 480px) -->
+          <div class="container" style="max-width: 480px; width: 100%; margin: 0 auto;">
+            <div class="content-card" style="background: #090d16; border: 1px solid #1e293b; border-top: 3px solid #6366f1; border-radius: 20px; padding: 28px 24px; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.8);">
               
-              <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid #242b54; padding-bottom: 16px; margin-bottom: 24px; table-layout: fixed;">
+              <!-- Header Section -->
+              <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-bottom: 1px solid #1e293b; padding-bottom: 18px; margin-bottom: 22px;">
                 <tr>
-                  <td align="left" valign="middle" width="65" style="width: 65px; padding-right: 12px;">
-                    <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="55" height="55" style="width: 55px; height: 55px; border-radius: 28px; display: block; border: 1px solid #242b54;" alt="Vault Logo" />
+                  <!-- Logo Icon -->
+                  <td align="left" valign="middle" width="52" style="width: 52px; padding-right: 12px;">
+                    <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="46" height="46" style="width: 46px; height: 46px; border-radius: 12px; display: block; border: 1px solid #1e293b;" alt="Vault Logo" />
                   </td>
+                  
+                  <!-- Title & Terminal Indicator -->
                   <td align="left" valign="middle">
-                    <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-family: -apple-system, sans-serif; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
-                    <h2 style="color: #ffffff !important; margin: 0; font-size: 20px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: -0.5px;">Expense Reminder</h2>
+                    <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 2px;">⚡ VAULT TERMINAL</span>
+                    <h2 class="header-title" style="color: #ffffff !important; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Expense Reminder</h2>
                   </td>
-                  <td align="right" valign="middle" width="95" style="width: 95px; min-width: 95px; text-align: right; white-space: nowrap !important; color: #8696ad !important; font-size: 13px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                  
+                  <!-- Date Badge -->
+                  <td align="right" valign="middle" class="date-badge" style="color: #64748b !important; font-size: 12px; font-family: 'Courier New', Courier, monospace; font-weight: 700; whitespace: nowrap;">
                     ${uaeDateStr}
                   </td>
                 </tr>
               </table>
 
-              <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
-                Yo! <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, you haven't logged any expenses for today yet.
+              <!-- Body Message -->
+              <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; margin: 0 0 22px 0; text-align: left;">
+                Yo <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 1px;">${user.name}</strong>, you haven't logged any expenses for today yet.
               </p>
 
-              <div style="background: linear-gradient(#0d1127, #0d1127); border: 1px dashed #4f46e5; padding: 22px; border-radius: 14px; text-align: center; margin-bottom: 28px;">
-                <p style="color: #9ca3af !important; font-size: 13px; margin: 0 0 16px 0; font-family: -apple-system, sans-serif; line-height: 1.5;">
+              <!-- Interactive Call-To-Action Box -->
+              <div style="background: #0d1322; border: 1px dashed #312e81; padding: 20px 16px; border-radius: 14px; text-align: center; margin-bottom: 24px;">
+                <p style="color: #94a3b8 !important; font-size: 13px; margin: 0 0 16px 0; line-height: 1.5;">
                   Log your daily activity to maintain your spending metrics in <strong>${userSymbol}</strong> (${userCurrency}).
                 </p>
-                <a href="https://finance-monitor-sigma.vercel.app" style="background: #6366f1; color: #ffffff !important; text-decoration: none; padding: 11px 22px; font-size: 13px; font-weight: 700; border-radius: 8px; display: inline-block; font-family: -apple-system, sans-serif; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                
+                <!-- Touch-friendly Button -->
+                <a href="https://finance-monitor-sigma.vercel.app" class="cta-button" style="background: #6366f1; color: #ffffff !important; text-decoration: none; padding: 12px 24px; font-size: 13px; font-weight: 700; border-radius: 10px; display: inline-block; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35); text-align: center;">
                   + Log Today's Expense
                 </a>
               </div>
 
-              <div style="margin-top: 36px; text-align: center; border-top: 1px solid #242b54; padding-top: 16px;">
-                <p style="color: #8696ad !important; font-size: 11px; margin: 0; font-family: -apple-system, sans-serif; line-height: 1.5; font-weight: 500;">
+              <!-- Footer -->
+              <div style="border-top: 1px solid #1e293b; padding-top: 18px; text-align: center;">
+                <p style="color: #64748b !important; font-size: 11px; margin: 0; font-weight: 500;">
                   This reminder is auto-generated by finance tracker.
                 </p>
-                <p style="color: #6366f1 !important; font-size: 10px; margin: 6px 0 0 0; font-family: -apple-system, sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
-                  Designed by Rahul
+                <p style="color: #818cf8 !important; font-size: 10px; margin: 6px 0 0 0; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800;">
+                  DESIGNED BY RAHUL
                 </p>
               </div>
 
             </div>
-          </body>
-          </html>
-        `;
+          </div>
+          
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+`;
 
         await resend.emails.send({
           from: 'Vault Terminal <alerts@drivehouse.ae>',

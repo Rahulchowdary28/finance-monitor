@@ -74,7 +74,7 @@ export async function GET(request) {
     // Run smart broadcast that filters for users without today's expenses
     return await handleBroadcast(
       '💸 Expense Tracker Reminder',
-      'You haven\'t logged any expenses for today yet! Open the vault to update your daily ledger.',
+      'You haven\'t logged any expenses for today yet! Click here to update your daily ledger.',
       true // Enable check for missing daily transactions
     );
   } catch (err) {

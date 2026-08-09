@@ -1,7 +1,11 @@
-// sw.js - Virtual Vault Web Push Receiver
+// sw.js - Virtual Vault Advanced Web Push Receiver
 
 self.addEventListener('push', (event) => {
-    let data = { title: 'Vault System Notice', message: 'New transaction update available!' };
+    let data = { 
+        title: 'Vault System Notice', 
+        message: 'New transaction update available!',
+        url: '/'
+    };
 
     if (event.data) {
         try {
@@ -12,14 +16,26 @@ self.addEventListener('push', (event) => {
     }
 
     const options = {
-        // Fallback checks both 'body' and 'message' to match your broadcast payload
         body: data.message || data.body || 'System update received.',
-        icon: data.icon || 'https://cdn-icons-png.flaticon.com/512/584/584026.png',
+        icon: data.icon || 'https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png',
         badge: data.badge || 'https://cdn-icons-png.flaticon.com/512/584/584026.png',
         vibrate: [100, 50, 100],
+        tag: data.tag || 'vault-notification', // Overwrites stale notifications of the same tag
+        renotify: true,
         data: { 
             url: data.url || '/' 
-        }
+        },
+        // Interactive Action Buttons
+        actions: [
+            {
+                action: 'open_app',
+                title: '👁️ Open Vault'
+            },
+            {
+                action: 'dismiss',
+                title: '✖️ Dismiss'
+            }
+        ]
     };
 
     event.waitUntil(
@@ -30,20 +46,38 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
-    const targetUrl = event.notification.data?.url || '/';
+    // 1. Handle "Dismiss" Action
+    if (event.action === 'dismiss') {
+        return;
+    }
+
+    // 2. Handle Notification Click or "Open Vault" Action
+    const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Re-focus existing open tab if available
+            // Re-focus existing open tab if matching target URL or origin
             for (let client of windowClients) {
-                if (client.url.includes(targetUrl) && 'focus' in client) {
-                    return client.focus();
+                if (client.url === targetUrl || client.url.includes(self.location.origin)) {
+                    if ('focus' in client) {
+                        client.navigate(targetUrl);
+                        return client.focus();
+                    }
                 }
             }
-            // Otherwise open a new window
+            // Fallback: Open a brand new window tab
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
         })
     );
+});
+
+// Optional: Background sync handling for offline recovery
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim());
 });

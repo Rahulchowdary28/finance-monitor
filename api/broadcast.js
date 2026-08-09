@@ -7,7 +7,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// 2. Helper to configure Web Push lazily with fallback defaults
+// 2. Helper to configure Web Push
 function initWebPush() {
   const publicKey =
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
@@ -42,7 +42,7 @@ export async function POST(request) {
       );
     }
 
-    return await handleBroadcast(title, message);
+    return await handleBroadcast(title, message, false);
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err.message || err }),
@@ -54,7 +54,7 @@ export async function POST(request) {
   }
 }
 
-// 4. GET Endpoint for automated Cron jobs
+// 4. GET Endpoint for automated Cron job (Configured for 4:00 PM UTC)
 export async function GET(request) {
   try {
     const authHeader =
@@ -71,9 +71,11 @@ export async function GET(request) {
       );
     }
 
+    // Run smart broadcast that filters for users without today's expenses
     return await handleBroadcast(
-      '⚡ Vault Terminal Update',
-      'Check out your updated financial dashboard for today!'
+      '💸 Expense Tracker Reminder',
+      'You haven\'t logged any expenses for today yet! Open the vault to update your daily ledger.',
+      true // Enable check for missing daily transactions
     );
   } catch (err) {
     return new Response(
@@ -87,10 +89,10 @@ export async function GET(request) {
 }
 
 // 5. Shared Push Dispatch Logic
-async function handleBroadcast(title, message) {
-  // Ensure VAPID details are set before processing requests
+async function handleBroadcast(defaultTitle, defaultMessage, filterMissingExpenses = false) {
   initWebPush();
 
+  // Fetch active users with web push enabled
   const { data: users, error: userError } = await supabase
     .from('users_list')
     .select('name, push_subscription')
@@ -99,20 +101,46 @@ async function handleBroadcast(title, message) {
 
   if (userError) throw userError;
 
-  const payload = JSON.stringify({
-    title: title,
-    body: message,
-    message: message, // Included for backward compatibility with sw.js
-    icon: 'https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png'
-  });
+  let recipients = users;
+
+  // Filter out users who have already logged an expense today
+  if (filterMissingExpenses) {
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    // Fetch transactions logged today
+    const { data: todayTransactions, error: txError } = await supabase
+      .from('transactions')
+      .select('user_name')
+      .gte('created_at', startOfDay.toISOString());
+
+    if (txError) throw txError;
+
+    // Build set of users who already logged transactions today
+    const activeUsersToday = new Set(
+      (todayTransactions || []).map((t) => t.user_name.toLowerCase())
+    );
+
+    // Filter recipients to only users who haven't logged an expense
+    recipients = users.filter(
+      (u) => !activeUsersToday.has(u.name.toLowerCase())
+    );
+  }
 
   let delivered = 0;
   let failed = 0;
 
-  // Process send notifications concurrently for faster execution
   await Promise.all(
-    users.map(async (user) => {
+    recipients.map(async (user) => {
       if (!user.push_subscription) return;
+
+      const payload = JSON.stringify({
+        title: defaultTitle,
+        body: `Hey ${user.name}! ${defaultMessage}`,
+        message: `Hey ${user.name}! ${defaultMessage}`,
+        icon: 'https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png',
+        url: '/'
+      });
 
       try {
         await webpush.sendNotification(user.push_subscription, payload);
@@ -121,7 +149,6 @@ async function handleBroadcast(title, message) {
         console.error(`Push failed for ${user.name}:`, pushErr.message);
         failed++;
 
-        // Auto-clean expired/unsubscribed tokens (HTTP status 404 or 410)
         if (pushErr.statusCode === 404 || pushErr.statusCode === 410) {
           await supabase
             .from('users_list')
@@ -137,7 +164,8 @@ async function handleBroadcast(title, message) {
       success: true,
       delivered,
       failed,
-      totalRecipients: users.length
+      totalEligible: recipients.length,
+      totalUsers: users.length
     }),
     {
       status: 200,

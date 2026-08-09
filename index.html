@@ -97,59 +97,6 @@
         text-shadow: 0 0 20px rgba(255,255,255,0.3);
     }
     .auth-brand span { color: var(--cyan); text-shadow: var(--glow-cyan); }
-    
-    .profile-grid { 
-        display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
-        width: 100%; margin-top: 30px; 
-    }
-    .profile-item {
-        background: rgba(4, 6, 15, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 20px; padding: 20px 12px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-        cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        position: relative; overflow: hidden;
-    }
-    .profile-item:hover {
-        transform: translateY(-4px);
-        border-color: var(--cyan);
-        box-shadow: var(--glow-cyan);
-    }
-    .profile-item.user-on-hold {
-        border-color: rgba(255, 77, 77, 0.4);
-        opacity: 0.65;
-    }
-    .profile-item.user-on-hold:hover {
-        box-shadow: var(--glow-red);
-        border-color: var(--red);
-    }
-    
-    .security-node-display {
-        width: 46px; height: 46px; background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 50%;
-        display: flex; align-items: center; justify-content: center; position: relative;
-    }
-    .security-node-display .orbit-dot {
-        width: 10px; height: 10px; background: var(--accent); border-radius: 50%;
-        box-shadow: 0 0 10px var(--accent);
-    }
-    .profile-item:hover .security-node-display .orbit-dot {
-        background: var(--cyan); box-shadow: var(--glow-cyan);
-    }
-    .profile-item.user-on-hold .security-node-display .orbit-dot {
-        background: var(--red); box-shadow: var(--glow-red);
-    }
-    
-    .profile-item span { font-weight: 700; font-size: 0.9rem; color: var(--text); letter-spacing: 0.5px; }
-
-    .pin-box-view { display: none; width: 100%; }
-    .pin-box-view input { 
-        text-align: center; font-family: 'Orbitron', sans-serif;
-        font-size: 2rem; letter-spacing: 12px; margin: 20px 0; padding: 12px;
-        background: rgba(5, 7, 15, 0.9); border: 1px solid var(--cyan);
-        color: var(--cyan); border-radius: 16px; outline: none;
-        box-shadow: var(--glow-cyan);
-    }
 
     /* ─── ADMIN ROOT CONTROL PANEL ─── */
     #admin-management-view { text-align: left; }
@@ -177,12 +124,12 @@
     }
     .hdr-middle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center; width: 100%; }
 
-    select, input[type=text], input[type=number], input[type=date], input[type=password], textarea {
+    select, input[type=text], input[type=number], input[type=date], input[type=password], input[type=email], textarea {
         background: var(--input); border: 1px solid var(--border);
         color: var(--text); padding: 14px; border-radius: 12px;
         font-size: 14px; outline: none; width: 100%; transition: border 0.3s, box-shadow 0.3s;
     }
-    select, input[type=text], input[type=number], input[type=date], input[type=password] { height: 44px; }
+    select, input[type=text], input[type=number], input[type=date], input[type=password], input[type=email] { height: 44px; }
     select:focus, input:focus, textarea:focus { border-color: var(--accent); box-shadow: var(--glow-accent); }
     
     .ibtn {
@@ -362,24 +309,29 @@
     <canvas id="auth-canvas"></canvas>
     
     <div class="auth-container-card">
-        <div id="profile-select-view">
+        <div id="auth-login-view">
             <h2 class="auth-brand">Finance <span>Tracker</span></h2>
-            <p style="color:var(--dim); font-size:0.75rem; text-transform:uppercase; letter-spacing: 2px;"> Expense Ledger </p>
-            
-            <div class="profile-grid" id="profile-target-list"></div>
-            <button class="tab" onclick="verifyAdminCredentials()" style="margin: 32px auto 0; display:block; width:100%; padding:14px; border-radius: 14px; font-weight: 700;"><i class="fas fa-user-shield"></i> ADMIN PANEL </button>
+            <p style="color:var(--dim); font-size:0.75rem; text-transform:uppercase; letter-spacing: 2px; margin-bottom: 20px;">
+                Private Vault Sign In
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; text-align: left;">
+                <input type="email" id="user-email-input" placeholder="Enter your Email" required>
+                <input type="password" id="user-password-input" placeholder="Enter your Password" required>
+                
+                <button class="btn-save" onclick="handleUserLogin()" style="margin-top: 10px;">
+                    <i class="fas fa-lock"></i> Access Vault
+                </button>
+            </div>
+
+            <button class="tab" onclick="verifyAdminCredentials()" style="margin: 24px auto 0; display:block; width:100%; padding:14px; border-radius: 14px; font-weight: 700;">
+                <i class="fas fa-user-shield"></i> ADMIN PANEL
+            </button>
             
             <div class="wm" style="margin-top: 28px;">
                 <span class="wm-text">designed by</span>
                 <span class="wm-name">Rahul</span>
             </div>
-        </div>
-
-        <div id="pin-prompt-view" class="pin-box-view">
-            <h3 id="pin-view-title" style="font-family:'Orbitron', sans-serif; font-weight:800; letter-spacing: 1px;">SECURITY CLEARANCE</h3>
-            <p style="color:var(--dim); font-size:0.72rem; text-transform: uppercase;">Enter your PIN</p>
-            <input type="password" id="user-secure-pin" maxlength="4" inputmode="numeric" placeholder="••••" oninput="handlePinTyping(this)">
-            <button class="tab" onclick="backToProfiles()" style="margin: 0 auto; display:block;"><i class="fas fa-arrow-left"></i> Return</button>
         </div>
 
         <div id="admin-management-view" style="display:none; text-align:left;">
@@ -402,7 +354,7 @@
 
             <div style="background:var(--input); border:1px solid var(--border); padding:14px; border-radius:16px; margin-bottom:12px;">
                 <input type="text" id="admin-new-name" placeholder="User Profile Name" style="margin-bottom:8px;">
-                <input type="password" id="admin-new-pin" placeholder="Access PIN (4 Digits)" maxlength="4" inputmode="numeric" style="margin-bottom:8px;">
+                <input type="password" id="admin-new-pin" placeholder="Access Password" style="margin-bottom:8px;">
                 <button class="btn-save" onclick="adminProvisionUser()" style="margin-top:4px; padding:12px; font-size:0.8rem;">Deploy Core Space</button>
             </div>
             <div class="twrap" style="max-height:220px; border:1px solid var(--border); border-radius:12px; background: var(--input);">
@@ -646,7 +598,6 @@
     
     let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25,"AED":1.0};
     let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Electronics', 'Entertainment', 'Other'];
-    let authenticatingUserObj = null;
 
     const SUPABASE_URL='https://kfbtsoszcfnoovjvomir.supabase.co';
     const SUPABASE_KEY='sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
@@ -826,10 +777,50 @@
             populateCategoryDropdown();
             renderUserCatBadges();
             await fetchData();
+        }
+    }
+
+    async function handleUserLogin() {
+        const email = document.getElementById('user-email-input').value.trim();
+        const password = document.getElementById('user-password-input').value.trim();
+
+        if (!email || !password) {
+            alert("Please enter both email and password.");
             return;
         }
 
-        await fetchUserProfiles();
+        const { data, error } = await _supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            alert("Authentication failed: " + error.message);
+            return;
+        }
+
+        currentUser = data.user.user_metadata?.profile_name || data.user.email.split('@')[0];
+        
+        document.getElementById('active-user-badge').innerText = currentUser;
+        document.getElementById('pin-edit-btn').style.display = 'inline-block';
+        document.getElementById('auth-portal').style.display = 'none';
+
+        const { data: userData } = await _supabase
+            .from('users_list')
+            .select('selected_currency')
+            .eq('id', data.user.id)
+            .single();
+
+        if (userData?.selected_currency) {
+            currentBaseCurrency = userData.selected_currency;
+            localStorage.setItem('vault_base_currency', currentBaseCurrency);
+            document.getElementById('base-currency-select').value = currentBaseCurrency;
+        }
+
+        populateCategoryDropdown();
+        renderUserCatBadges();
+        await fetchData();
+        checkAndPopulateMultifoodTransaction();
     }
 
     async function changeBaseCurrency(val) {
@@ -852,25 +843,10 @@
         else document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    async function fetchUserProfiles(){
-        const {data} = await _supabase.from('users_list').select('*').order('name', {ascending: true});
-        const grid = document.getElementById('profile-target-list');
-        grid.innerHTML = '';
-        (data || []).forEach(u => {
-            const holdClass = u.is_hold ? 'user-on-hold' : '';
-            grid.innerHTML += `
-                <div class="profile-item ${holdClass}" onclick="initiatePinVerification('${u.name}', '${u.email || ''}', ${u.is_hold})">
-                    <div class="security-node-display"><div class="orbit-dot"></div></div>
-                    <span>${u.name} ${u.is_hold ? '🛑' : ''}</span>
-                </div>
-            `;
-        });
-    }
-
     function verifyAdminCredentials() {
         const adminPin = prompt("Enter Admin Access Code:");
         if (adminPin === "6969") {
-            document.getElementById('profile-select-view').style.display = 'none';
+            document.getElementById('auth-login-view').style.display = 'none';
             document.getElementById('admin-management-view').style.display = 'block';
             fetchAdminUsersTable();
         }
@@ -907,15 +883,14 @@
 
     async function adminProvisionUser() {
         const name = document.getElementById('admin-new-name').value.trim();
-        const pin = document.getElementById('admin-new-pin').value.trim();
-        if(!name || pin.length !== 4) { alert("Invalid input configurations."); return; }
+        const pass = document.getElementById('admin-new-pin').value.trim();
+        if(!name || pass.length < 6) { alert("Invalid input configurations. Password must be at least 6 characters."); return; }
         
         const userEmail = `${name.toLowerCase().replace(/\s+/g, '')}@finance.app`;
-        const authPassword = `${pin}0000`; // Auth requires minimum 6 characters password
 
         const { data: authData, error: authError } = await _supabase.auth.signUp({
             email: userEmail,
-            password: authPassword,
+            password: pass,
             options: { data: { profile_name: name } }
         });
 
@@ -947,60 +922,7 @@
 
     function backToProfilesFromAdmin() {
         document.getElementById('admin-management-view').style.display = 'none';
-        document.getElementById('profile-select-view').style.display = 'block';
-        fetchUserProfiles();
-    }
-
-    function initiatePinVerification(name, email, isHold) {
-        if(isHold) { 
-            alert("Access Revoked: This deployment space environment has been placed on an administrative hold."); 
-            return; 
-        }
-        authenticatingUserObj = { name, email: email || `${name.toLowerCase().replace(/\s+/g, '')}@finance.app` };
-        document.getElementById('profile-select-view').style.display = 'none';
-        document.getElementById('pin-prompt-view').style.display = 'block';
-        document.getElementById('pin-view-title').innerText = `Welcome ${name}`;
-        document.getElementById('user-secure-pin').value = '';
-        document.getElementById('user-secure-pin').focus();
-    }
-
-    async function handlePinTyping(element) {
-        if(element.value.length === 4) {
-            const authPassword = `${element.value}0000`;
-            const { data, error } = await _supabase.auth.signInWithPassword({
-                email: authenticatingUserObj.email,
-                password: authPassword
-            });
-
-            if (error) {
-                alert("Authentication failed: " + error.message);
-                element.value = '';
-                return;
-            }
-
-            currentUser = authenticatingUserObj.name;
-            document.getElementById('active-user-badge').innerText = currentUser;
-            document.getElementById('pin-edit-btn').style.display = 'inline-block';
-            document.getElementById('auth-portal').style.display = 'none';
-            populateCategoryDropdown();
-            renderUserCatBadges();
-            
-            _supabase.from('users_list').select('selected_currency').eq('name', currentUser).single().then(({data}) => {
-                if(data && data.selected_currency) {
-                    currentBaseCurrency = data.selected_currency;
-                    localStorage.setItem('vault_base_currency', currentBaseCurrency);
-                    document.getElementById('base-currency-select').value = currentBaseCurrency;
-                }
-                fetchData().then(() => {
-                    checkAndPopulateMultifoodTransaction();
-                });
-            });
-        }
-    }
-
-    function backToProfiles(){
-        document.getElementById('pin-prompt-view').style.display = 'none';
-        document.getElementById('profile-select-view').style.display = 'block';
+        document.getElementById('auth-login-view').style.display = 'block';
     }
 
     function toggleUserCatDrawer() {
@@ -1061,8 +983,21 @@
     }
 
     async function fetchData(){
-        const{data}=await _supabase.from('transactions').select('*').order('created_at',{ascending:false});
-        allTransactions=data||[];
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await _supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_name', currentUser)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Data fetch error:", error);
+            return;
+        }
+
+        allTransactions = data || [];
         updateUI();
     }
 
@@ -1276,19 +1211,18 @@
 
     async function changeUserPin() {
         if(!currentUser) return;
-        const newPin = prompt("Enter a new 4-digit security PIN access key matrix:");
-        if(newPin === null) return;
-        if(newPin.length !== 4 || isNaN(newPin)) {
-            alert("Security error: PIN structure must contain exactly 4 numeric characters.");
+        const newPassword = prompt("Enter a new password (min 6 characters):");
+        if(newPassword === null) return;
+        if(newPassword.length < 6) {
+            alert("Password must contain at least 6 characters.");
             return;
         }
-        const authPassword = `${newPin}0000`;
-        const { error } = await _supabase.auth.updateUser({ password: authPassword });
+        const { error } = await _supabase.auth.updateUser({ password: newPassword });
 
         if(error) {
-            alert("Database synchronized transmission error updating security PIN code: " + error.message);
+            alert("Error updating password: " + error.message);
         } else {
-            alert("Security Matrix authorization modified successfully! Please re-authenticate space.");
+            alert("Password modified successfully! Please re-authenticate.");
             logout();
         }
     }

@@ -613,40 +613,48 @@
         return outputArray;
     }
 
-    async function registerAndSubscribeUser(userId) {
+    async function registerAndSubscribeUser(userName) {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             alert('Web Push is not supported in this browser.');
             return;
         }
 
-        // 1. Register Service Worker
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        try {
+            // 1. Register Service Worker
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            await navigator.serviceWorker.ready;
 
-        // 2. Request Notification Permission
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-            alert('Permission for notifications was denied.');
-            return;
-        }
+            // 2. Request Notification Permission
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Permission for notifications was denied.');
+                return;
+            }
 
-        // 3. Subscribe User to Push Manager
-        const subscribeOptions = {
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-        };
-        
-        const subscription = await registration.pushManager.subscribe(subscribeOptions);
+            // 3. Subscribe User to Push Manager
+            const subscribeOptions = {
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+            };
+            
+            const subscription = await registration.pushManager.subscribe(subscribeOptions);
 
-        // 4. Save JSON payload to Supabase
-        const { error } = await _supabase
-            .from('users_list')
-            .update({ push_subscription: subscription.toJSON() })
-            .eq('id', userId);
+            // 4. Save JSON payload to Supabase
+            const { error } = await _supabase
+                .from('users_list')
+                .update({ push_subscription: subscription.toJSON() })
+                .eq('name', userName);
 
-        if (error) {
-            console.error('Database update failed:', error);
-        } else {
-            console.log('User successfully registered for official broadcasts!');
+            if (error) {
+                console.error('Database update failed:', error);
+                alert('Database error: ' + error.message);
+            } else {
+                console.log('User successfully registered for official broadcasts!');
+                alert('Push notifications enabled successfully!');
+            }
+        } catch (err) {
+            console.error('Push Notification Subscription Error:', err);
+            alert('Failed to enable notifications: ' + err.message);
         }
     }
     
@@ -662,7 +670,10 @@
     // ─── PUSH NOTIFICATIONS & SERVICE WORKER SETUP ───
     if ('serviceWorker' in navigator && 'PushManager' in window) {
         navigator.serviceWorker.register('/sw.js')
-            .then(() => console.log('Service Worker Registered'))
+            .then(reg => {
+                console.log('Service Worker Registered');
+                reg.update();
+            })
             .catch(err => console.error('Service Worker Registration Error:', err));
     }
 
@@ -671,30 +682,7 @@
             alert('Please log in to your user profile first.');
             return;
         }
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                alert('Notification permissions were denied.');
-                return;
-            }
-
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-            });
-
-            const { error } = await _supabase
-                .from('users_list')
-                .update({ push_subscription: subscription.toJSON() })
-                .eq('name', currentUser);
-
-            if (error) throw error;
-            alert('Push notifications enabled successfully!');
-        } catch (err) {
-            console.error('Push Notification Subscription Error:', err);
-            alert('Failed to enable notifications: ' + err.message);
-        }
+        await registerAndSubscribeUser(currentUser);
     }
 
     // ─── ADMIN PUSH BROADCAST TRANSMISSION LOGIC ───

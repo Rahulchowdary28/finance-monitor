@@ -7,6 +7,10 @@
     {
       "path": "/api/daily-summary",
       "schedule": "30 23 * * *"
+    },
+    {
+      "path": "/api/broadcast",
+      "schedule": "0 9 * * *"
     }
   ]
 }

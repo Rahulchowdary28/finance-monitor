@@ -601,7 +601,6 @@
     
     const PUBLIC_VAPID_KEY = 'BHaR2ys29miH921MBJ3so73X3LT8MDeYGiRS5l8f1sTD4x8rtQQcSR-CbvfxAjLFi607nQ_Xq239UHuiMX3xA3k';
 
-    // Convert VAPID key to Uint8Array format required by the browser
     function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
         const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -613,52 +612,38 @@
         return outputArray;
     }
 
-    async function registerAndSubscribeUser(userName) {
+    async function registerAndSubscribeUser(userId) {
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             alert('Web Push is not supported in this browser.');
             return;
         }
 
-        try {
-            // 1. Register Service Worker
-            const registration = await navigator.serviceWorker.register('/sw.js');
-            await navigator.serviceWorker.ready;
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+            alert('Permission for notifications was denied.');
+            return;
+        }
 
-            // 2. Request Notification Permission
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                alert('Permission for notifications was denied.');
-                return;
-            }
+        const subscribeOptions = {
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+        };
+        
+        const subscription = await registration.pushManager.subscribe(subscribeOptions);
 
-            // 3. Subscribe User to Push Manager
-            const subscribeOptions = {
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-            };
-            
-            const subscription = await registration.pushManager.subscribe(subscribeOptions);
+        const { error } = await _supabase
+            .from('users_list')
+            .update({ push_subscription: subscription.toJSON() })
+            .eq('id', userId);
 
-            // 4. Save JSON payload to Supabase
-            const { error } = await _supabase
-                .from('users_list')
-                .update({ push_subscription: subscription.toJSON() })
-                .eq('name', userName);
-
-            if (error) {
-                console.error('Database update failed:', error);
-                alert('Database error: ' + error.message);
-            } else {
-                console.log('User successfully registered for official broadcasts!');
-                alert('Push notifications enabled successfully!');
-            }
-        } catch (err) {
-            console.error('Push Notification Subscription Error:', err);
-            alert('Failed to enable notifications: ' + err.message);
+        if (error) {
+            console.error('Database update failed:', error);
+        } else {
+            console.log('User successfully registered for official broadcasts!');
         }
     }
     
-    // Cross currency conversion framework (Relative to standard AED baseline indexes)
     let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25,"AED":1.0};
     let globalCategories = ['Food', 'Bills', 'Salary', 'Groceries', 'Electronics', 'Entertainment', 'Other'];
     let authenticatingUserObj = null;
@@ -667,13 +652,9 @@
     const SUPABASE_KEY='sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
     const _supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-    // ─── PUSH NOTIFICATIONS & SERVICE WORKER SETUP ───
     if ('serviceWorker' in navigator && 'PushManager' in window) {
         navigator.serviceWorker.register('/sw.js')
-            .then(reg => {
-                console.log('Service Worker Registered');
-                reg.update();
-            })
+            .then(() => console.log('Service Worker Registered'))
             .catch(err => console.error('Service Worker Registration Error:', err));
     }
 
@@ -682,10 +663,32 @@
             alert('Please log in to your user profile first.');
             return;
         }
-        await registerAndSubscribeUser(currentUser);
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Notification permissions were denied.');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+            });
+
+            const { error } = await _supabase
+                .from('users_list')
+                .update({ push_subscription: subscription.toJSON() })
+                .eq('name', currentUser);
+
+            if (error) throw error;
+            alert('Push notifications enabled successfully!');
+        } catch (err) {
+            console.error('Push Notification Subscription Error:', err);
+            alert('Failed to enable notifications: ' + err.message);
+        }
     }
 
-    // ─── ADMIN PUSH BROADCAST TRANSMISSION LOGIC ───
     async function sendAdminBroadcast() {
         const titleInput = document.getElementById('broadcast-title');
         const messageInput = document.getElementById('broadcast-message');
@@ -813,6 +816,19 @@
             currentBaseCurrency = localStorage.getItem('vault_base_currency');
             document.getElementById('base-currency-select').value = currentBaseCurrency;
         }
+
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session && session.user) {
+            currentUser = session.user.user_metadata?.profile_name || session.user.email.split('@')[0];
+            document.getElementById('active-user-badge').innerText = currentUser;
+            document.getElementById('pin-edit-btn').style.display = 'inline-block';
+            document.getElementById('auth-portal').style.display = 'none';
+            populateCategoryDropdown();
+            renderUserCatBadges();
+            await fetchData();
+            return;
+        }
+
         await fetchUserProfiles();
     }
 
@@ -843,7 +859,7 @@
         (data || []).forEach(u => {
             const holdClass = u.is_hold ? 'user-on-hold' : '';
             grid.innerHTML += `
-                <div class="profile-item ${holdClass}" onclick="initiatePinVerification('${u.name}', '${u.pin}', ${u.is_hold})">
+                <div class="profile-item ${holdClass}" onclick="initiatePinVerification('${u.name}', '${u.email || ''}', ${u.is_hold})">
                     <div class="security-node-display"><div class="orbit-dot"></div></div>
                     <span>${u.name} ${u.is_hold ? '🛑' : ''}</span>
                 </div>
@@ -893,7 +909,29 @@
         const name = document.getElementById('admin-new-name').value.trim();
         const pin = document.getElementById('admin-new-pin').value.trim();
         if(!name || pin.length !== 4) { alert("Invalid input configurations."); return; }
-        await _supabase.from('users_list').insert([{name, pin, is_hold:false, selected_currency:'AED'}]);
+        
+        const userEmail = `${name.toLowerCase().replace(/\s+/g, '')}@finance.app`;
+        const authPassword = `${pin}0000`; // Auth requires minimum 6 characters password
+
+        const { data: authData, error: authError } = await _supabase.auth.signUp({
+            email: userEmail,
+            password: authPassword,
+            options: { data: { profile_name: name } }
+        });
+
+        if (authError) {
+            alert("Auth Registration Error: " + authError.message);
+            return;
+        }
+
+        await _supabase.from('users_list').insert([{
+            id: authData.user?.id,
+            name: name,
+            email: userEmail,
+            is_hold: false,
+            selected_currency: 'AED'
+        }]);
+
         document.getElementById('admin-new-name').value = '';
         document.getElementById('admin-new-pin').value = '';
         fetchAdminUsersTable();
@@ -913,12 +951,12 @@
         fetchUserProfiles();
     }
 
-    function initiatePinVerification(name, pin, isHold) {
+    function initiatePinVerification(name, email, isHold) {
         if(isHold) { 
             alert("Access Revoked: This deployment space environment has been placed on an administrative hold."); 
             return; 
         }
-        authenticatingUserObj = { name, pin };
+        authenticatingUserObj = { name, email: email || `${name.toLowerCase().replace(/\s+/g, '')}@finance.app` };
         document.getElementById('profile-select-view').style.display = 'none';
         document.getElementById('pin-prompt-view').style.display = 'block';
         document.getElementById('pin-view-title').innerText = `Welcome ${name}`;
@@ -926,30 +964,37 @@
         document.getElementById('user-secure-pin').focus();
     }
 
-    function handlePinTyping(element) {
+    async function handlePinTyping(element) {
         if(element.value.length === 4) {
-            if(element.value === authenticatingUserObj.pin) {
-                currentUser = authenticatingUserObj.name;
-                document.getElementById('active-user-badge').innerText = currentUser;
-                document.getElementById('pin-edit-btn').style.display = 'inline-block';
-                document.getElementById('auth-portal').style.display = 'none';
-                populateCategoryDropdown();
-                renderUserCatBadges();
-                
-                _supabase.from('users_list').select('selected_currency').eq('name', currentUser).single().then(({data}) => {
-                    if(data && data.selected_currency) {
-                        currentBaseCurrency = data.selected_currency;
-                        localStorage.setItem('vault_base_currency', currentBaseCurrency);
-                        document.getElementById('base-currency-select').value = currentBaseCurrency;
-                    }
-                    fetchData().then(() => {
-                        checkAndPopulateMultifoodTransaction();
-                    });
-                });
-            } else {
-                alert("Incorrect Pin Matrix.");
+            const authPassword = `${element.value}0000`;
+            const { data, error } = await _supabase.auth.signInWithPassword({
+                email: authenticatingUserObj.email,
+                password: authPassword
+            });
+
+            if (error) {
+                alert("Authentication failed: " + error.message);
                 element.value = '';
+                return;
             }
+
+            currentUser = authenticatingUserObj.name;
+            document.getElementById('active-user-badge').innerText = currentUser;
+            document.getElementById('pin-edit-btn').style.display = 'inline-block';
+            document.getElementById('auth-portal').style.display = 'none';
+            populateCategoryDropdown();
+            renderUserCatBadges();
+            
+            _supabase.from('users_list').select('selected_currency').eq('name', currentUser).single().then(({data}) => {
+                if(data && data.selected_currency) {
+                    currentBaseCurrency = data.selected_currency;
+                    localStorage.setItem('vault_base_currency', currentBaseCurrency);
+                    document.getElementById('base-currency-select').value = currentBaseCurrency;
+                }
+                fetchData().then(() => {
+                    checkAndPopulateMultifoodTransaction();
+                });
+            });
         }
     }
 
@@ -1049,13 +1094,11 @@
         }
     }
 
-    // ⚡ TEXT MESSAGE PARSER FUNCTION
     function parseIncomingMessage(text) {
         if(!text) return;
         
         let lowered = text.toLowerCase();
         
-        // 1. Detect Transaction Type
         if(lowered.includes("credit") || lowered.includes("received") || lowered.includes("deposited") || lowered.includes("refund")) {
             document.getElementById('type').value = 'credit';
         } else if(lowered.includes("saving") || lowered.includes("piggy")) {
@@ -1064,17 +1107,14 @@
             document.getElementById('type').value = 'debit';
         }
 
-        // 2. Extract Amount Matrix (Matches currencies like AED, USD, INR, ₹, $, etc followed by digits)
         let amtMatch = text.match(/(?:aed|usd|inr|eur|rs\.?|[\$₹€])\s*([0-9,]+\.?[0-9]*)/i);
         if(!amtMatch) {
-            // Fallback match for standalone decimal/number fields
             amtMatch = text.match(/\b([0-9]+\.[0-9]{2})\b/) || text.match(/\b([0-9]{2,5})\b/);
         }
         if(amtMatch && amtMatch[1]) {
             document.getElementById('amt').value = amtMatch[1].replace(/,/g, '');
         }
 
-        // 3. Extract Merchant / Vendor (Description Context)
         let desc = "";
         if(lowered.includes("at ")) {
             let parts = text.split(/at /i);
@@ -1083,29 +1123,23 @@
             let parts = text.split(/to /i);
             if(parts[1]) desc = parts[1].split(/[.,\s]/)[0];
         } else {
-            // General backup fallback using first 4 terms
             desc = text.split(" ").slice(0, 4).join(" ");
         }
         if(desc) document.getElementById('desc').value = desc.trim();
 
-        // 4. Smart Category Allocation Guessing Matrix
         for(let catNode of globalCategories) {
             if(lowered.includes(catNode.toLowerCase())) {
                 document.getElementById('cat').value = catNode;
                 break;
             }
         }
-        // Specific semantic backups
         if(lowered.includes("restaurant") || lowered.includes("swiggy") || lowered.includes("zomato") || lowered.includes("cafe")) {
             if(globalCategories.includes("Food")) document.getElementById('cat').value = "Food";
         } else if(lowered.includes("electricity") || lowered.includes("water") || lowered.includes("recharge")) {
             if(globalCategories.includes("Bills")) document.getElementById('cat').value = "Bills";
         }
 
-        // 5. Default current Date
         document.getElementById('txn-date').value = new Date().toISOString().slice(0, 10);
-        
-        // Auto-wiping input bar buffer clear after calculation completes
         setTimeout(() => { document.getElementById('ai-msg-parser').value = ''; }, 1200);
     }
 
@@ -1248,9 +1282,11 @@
             alert("Security error: PIN structure must contain exactly 4 numeric characters.");
             return;
         }
-        const { error } = await _supabase.from('users_list').update({ pin: newPin }).eq('name', currentUser);
+        const authPassword = `${newPin}0000`;
+        const { error } = await _supabase.auth.updateUser({ password: authPassword });
+
         if(error) {
-            alert("Database synchronized transmission error updating security PIN code.");
+            alert("Database synchronized transmission error updating security PIN code: " + error.message);
         } else {
             alert("Security Matrix authorization modified successfully! Please re-authenticate space.");
             logout();
@@ -1322,7 +1358,12 @@
         document.getElementById('savings-status').innerText=includeSavingsInBalance?"Savings Tracker: ON":"Savings Tracker: OFF";
         updateUI();
     }
-    function logout(){ location.reload(); }
+
+    async function logout(){
+        await _supabase.auth.signOut();
+        location.reload(); 
+    }
+
     function toggleTheme(){ document.body.hasAttribute('data-theme')?document.body.removeAttribute('data-theme'):document.body.setAttribute('data-theme','light'); updateUI(); }
     
     function filterData(type,btn){

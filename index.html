@@ -584,6 +584,54 @@
     
    
     const PUBLIC_VAPID_KEY = 'BHaR2ys29miH921MBJ3so73X3LT8MDeYGiRS5l8f1sTD4x8rtQQcSR-CbvfxAjLFi607nQ_Xq239UHuiMX3xA3k';
+    // Convert VAPID key to Uint8Array format required by the browser
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+async function registerAndSubscribeUser(userId) {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Web Push is not supported in this browser.');
+        return;
+    }
+
+    // 1. Register Service Worker
+    const registration = await navigator.serviceWorker.register('/sw.js');
+
+    // 2. Request Notification Permission
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+        alert('Permission for notifications was denied.');
+        return;
+    }
+
+    // 3. Subscribe User to Push Manager
+    const subscribeOptions = {
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+    };
+    
+    const subscription = await registration.pushManager.subscribe(subscribeOptions);
+
+    // 4. Save JSON payload to Supabase
+    const { error } = await supabaseClient
+        .from('users_list')
+        .update({ push_subscription: subscription.toJSON() })
+        .eq('id', userId);
+
+    if (error) {
+        console.error('Database update failed:', error);
+    } else {
+        console.log('User successfully registered for official broadcasts!');
+    }
+}
     
     // Cross currency conversion framework (Relative to standard AED baseline indexes)
     let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25,"AED":1.0};

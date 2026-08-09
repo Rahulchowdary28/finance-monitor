@@ -14,7 +14,6 @@ export async function GET(request) {
   }
 
   try {
-    // 💡 Fetching selected_currency column from your user metadata profiles table
     const { data: users, error: userError } = await supabase
       .from('users_list')
       .select('name, email, selected_currency')
@@ -31,18 +30,14 @@ export async function GET(request) {
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const currentMonthLabel = monthNames[today.getMonth()];
 
-    // Core currency definition variables mapped to standard conversion ratios matching your application frontend
     const currencySymbols = { "AED": "AED ", "USD": "$", "INR": "₹", "EUR": "€" };
     const liveRates = { "USD": 0.2722, "INR": 22.65, "EUR": 0.25, "AED": 1.0 };
 
     for (const user of users) {
       if (!user.email) continue;
 
-      // Establish target currency configuration settings with safety fallbacks
       const userCurrency = user.selected_currency || 'AED';
       const userSymbol = currencySymbols[userCurrency] || 'AED ';
-      
-      // Compute core multiplier relative to baseline AED database records to match dashboard view logic perfectly
       const toBaseFactor = liveRates[userCurrency] / liveRates['AED'];
 
       const { data: dailyTxns, error: txError } = await supabase
@@ -55,9 +50,8 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
-      // If no transactions were made during this day, skip this user entirely
       if (!dailyTxns || dailyTxns.length === 0) {
-        continue; 
+        continue;
       }
 
       const { data: monthlyTxns, error: mTxError } = await supabase
@@ -70,7 +64,6 @@ export async function GET(request) {
 
       if (mTxError) throw mTxError;
 
-      // Transform transaction parameters to selected target currency using the calculated factor
       const totalDailySpend = dailyTxns ? dailyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * toBaseFactor), 0) : 0;
       const totalMonthlySpend = monthlyTxns ? monthlyTxns.reduce((sum, t) => sum + (parseFloat(t.amount) * toBaseFactor), 0) : 0;
 

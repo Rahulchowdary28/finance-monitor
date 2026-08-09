@@ -20,7 +20,7 @@ self.addEventListener('push', (event) => {
         icon: data.icon || 'https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png',
         badge: data.badge || 'https://cdn-icons-png.flaticon.com/512/584/584026.png',
         vibrate: [100, 50, 100],
-        tag: data.tag || 'vault-notification', // Overwrites stale notifications of the same tag
+        tag: data.tag || 'vault-notification',
         renotify: true,
         data: { 
             url: data.url || '/' 
@@ -44,28 +44,39 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
+    // 1. Close the notification banner immediately
     event.notification.close();
 
-    // 1. Handle "Dismiss" Action
+    // 2. Handle "Dismiss" Action
     if (event.action === 'dismiss') {
         return;
     }
 
-    // 2. Handle Notification Click or "Open Vault" Action
-    const targetUrl = new URL(event.notification.data?.url || '/', self.location.origin).href;
+    // 3. Resolve target URL relative to origin
+    const rawUrl = event.notification.data?.url || '/';
+    const targetUrl = new URL(rawUrl, self.location.origin).href;
 
+    // 4. Safely focus or open target window
     event.waitUntil(
-        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-            // Re-focus existing open tab if matching target URL or origin
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (windowClients) => {
+            // Check if app tab is already open
             for (let client of windowClients) {
-                if (client.url === targetUrl || client.url.includes(self.location.origin)) {
+                if (client.url.includes(self.location.origin)) {
+                    // Safely attempt navigation if URL differs, then bring to front
+                    if ('navigate' in client && client.url !== targetUrl) {
+                        try {
+                            await client.navigate(targetUrl);
+                        } catch (err) {
+                            console.warn('Navigation failed, focusing existing window:', err);
+                        }
+                    }
                     if ('focus' in client) {
-                        client.navigate(targetUrl);
                         return client.focus();
                     }
                 }
             }
-            // Fallback: Open a brand new window tab
+
+            // Fallback: Open new browser window if tab isn't open
             if (clients.openWindow) {
                 return clients.openWindow(targetUrl);
             }
@@ -73,7 +84,7 @@ self.addEventListener('notificationclick', (event) => {
     );
 });
 
-// Optional: Background sync handling for offline recovery
+// Immediately activate new service worker versions
 self.addEventListener('install', (event) => {
     self.skipWaiting();
 });

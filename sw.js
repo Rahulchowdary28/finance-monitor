@@ -1,4 +1,4 @@
-// sw.js - Virtual Vault Mobile Push Receiver
+// sw.js - Virtual Vault Web Push Receiver
 
 self.addEventListener('push', (event) => {
     let data = { 
@@ -24,11 +24,7 @@ self.addEventListener('push', (event) => {
         renotify: true,
         data: { 
             url: data.url || '/' 
-        },
-        actions: [
-            { action: 'open_app', title: '👁️ Open Vault' },
-            { action: 'dismiss', title: '✖️ Dismiss' }
-        ]
+        }
     };
 
     event.waitUntil(
@@ -37,29 +33,23 @@ self.addEventListener('push', (event) => {
 });
 
 self.addEventListener('notificationclick', (event) => {
+    // 1. Close notification banner
     event.notification.close();
 
-    // 1. If user tapped "Dismiss", exit immediately
-    if (event.action === 'dismiss') {
-        return;
-    }
-
-    // 2. Build full target URL
+    // 2. Build target URL
     const relativeUrl = event.notification.data?.url || '/';
     const targetUrl = new URL(relativeUrl, self.location.origin).href;
 
-    // 3. Directly handle focus or open tab
+    // 3. Focus open window or open a new tab
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clientList) => {
-                // If any window/tab of this origin is open, focus it
                 for (let i = 0; i < clientList.length; i++) {
                     let client = clientList[i];
                     if (client.url.includes(self.location.origin) && 'focus' in client) {
                         return client.focus();
                     }
                 }
-                // If no tab is open, launch a new window
                 if (clients.openWindow) {
                     return clients.openWindow(targetUrl);
                 }

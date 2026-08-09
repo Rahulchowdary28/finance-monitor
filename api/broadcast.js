@@ -1,67 +1,83 @@
-import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
+import webpush from 'web-push';
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 webpush.setVapidDetails(
-  process.env.ADMIN_EMAIL,
-  process.env.PUBLIC_VAPID_KEY,
-  process.env.PRIVATE_VAPID_KEY
+  'mailto:alerts@drivehouse.ae',
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
 );
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-export default async function handler(req, res) {
-  // Allow manual POST triggers from Admin UI or external requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed. Use POST.' });
-  }
-
-  const { title = "Official Announcement", message = "You have a new update!" } = req.body || {};
-
+export async function POST(request) {
   try {
-    const { data: users, error } = await supabase
-      .from('users_list')
-      .select('id, push_subscription')
-      .not('push_subscription', 'is', null);
+    const { title, message } = await request.json();
 
-    if (error) throw error;
-
-    if (!users || users.length === 0) {
-      return res.status(200).json({ success: true, message: 'No registered subscribers found.' });
+    if (!title || !message) {
+      return new Response(JSON.stringify({ error: 'Title and message are required.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const payload = JSON.stringify({ title, body: message });
-
-    const pushPromises = users.map(async (user) => {
-      try {
-        let sub = user.push_subscription;
-        if (typeof sub === 'string') sub = JSON.parse(sub);
-
-        if (!sub || !sub.endpoint) return;
-
-        await webpush.sendNotification(sub, payload);
-      } catch (err) {
-        console.error(`Failed sending to user ${user.id}:`, err.message);
-
-        // Remove invalid/expired subscriptions
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          await supabase
-            .from('users_list')
-            .update({ push_subscription: null })
-            .eq('id', user.id);
-        }
-      }
-    });
-
-    await Promise.all(pushPromises);
-
-    return res.status(200).json({ 
-      success: true, 
-      message: `Broadcast delivered to ${users.length} device(s).` 
-    });
+    return await handleBroadcast(title, message);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return new Response(JSON.stringify({ error: err.message || err }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
+}
+
+export async function GET(request) {
+  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized security perimeter breach.' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+
+  return await handleBroadcast('⚡ Vault Terminal Update', 'Check out your updated financial dashboard for today!');
+}
+
+async function handleBroadcast(title, message) {
+  const { data: users, error: userError } = await supabase
+    .from('users_list')
+    .select('name, push_subscription')
+    .eq('is_hold', false)
+    .not('push_subscription', 'is', null);
+
+  if (userError) throw userError;
+
+  const payload = JSON.stringify({
+    title: title,
+    body: message,
+    icon: 'https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png'
+  });
+
+  let delivered = 0;
+  let failed = 0;
+
+  for (const user of users) {
+    if (!user.push_subscription) continue;
+
+    try {
+      await webpush.sendNotification(user.push_subscription, payload);
+      delivered++;
+    } catch (pushErr) {
+      console.error(`Push failed for ${user.name}:`, pushErr.message);
+      failed++;
+    }
+  }
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      delivered,
+      failed,
+      totalRecipients: users.length
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } }
+  );
 }

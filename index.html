@@ -578,12 +578,12 @@
 </div>
 
 <script>
-    // Paste your public VAPID key generated from `npx web-push generate-vapid-keys`
-    const PUBLIC_VAPID_KEY = 'BHaR2ys29miH921MBJ3so73X3LT8MDeYGiRS5l8f1sTD4x8rtQQcSR-CbvfxAjLFi607nQ_Xq239UHuiMX3xA3k';
-
     let allTransactions=[], currentUser=null, currentFilter='all', includeSavingsInBalance=true, expenseChart, savingsGoal=5000;
     let currentBaseCurrency='AED';
     let currencySymbols={"AED":"AED ","USD":"$","INR":"₹","EUR":"€"};
+    
+   
+    const PUBLIC_VAPID_KEY = 'BHaR2ys29miH921MBJ3so73X3LT8MDeYGiRS5l8f1sTD4x8rtQQcSR-CbvfxAjLFi607nQ_Xq239UHuiMX3xA3k';
     
     // Cross currency conversion framework (Relative to standard AED baseline indexes)
     let liveRates={"USD":0.2722,"INR":22.65,"EUR":0.25,"AED":1.0};
@@ -593,6 +593,55 @@
     const SUPABASE_URL='https://kfbtsoszcfnoovjvomir.supabase.co';
     const SUPABASE_KEY='sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
     const _supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+    // ─── PUSH NOTIFICATIONS & SERVICE WORKER SETUP ───
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.register('/sw.js')
+            .then(() => console.log('Service Worker Registered'))
+            .catch(err => console.error('Service Worker Registration Error:', err));
+    }
+
+    async function enablePushNotifications() {
+        if (!currentUser) {
+            alert('Please log in to your user profile first.');
+            return;
+        }
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Notification permissions were denied.');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+            });
+
+            const { error } = await _supabase
+                .from('users_list')
+                .update({ push_subscription: subscription.toJSON() })
+                .eq('name', currentUser);
+
+            if (error) throw error;
+            alert('Push notifications enabled successfully!');
+        } catch (err) {
+            console.error('Push Notification Subscription Error:', err);
+            alert('Failed to enable notifications: ' + err.message);
+        }
+    }
 
     const canvas = document.getElementById('auth-canvas');
     const ctx = canvas.getContext('2d');
@@ -666,64 +715,6 @@
         document.getElementById('utilityMenu').classList.toggle('show');
     }
     document.addEventListener('click', () => { document.getElementById('utilityMenu').classList.remove('show'); });
-
-    // Helper: Convert VAPID key string to Uint8Array
-    function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-        }
-        return outputArray;
-    }
-
-    // Register Service Worker and Subscribe to Push Notifications
-    async function enablePushNotifications() {
-        if (!currentUser) {
-            alert('Please authenticate into a user session first.');
-            return;
-        }
-
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-            alert('Push Notifications are not supported by this browser.');
-            return;
-        }
-
-        try {
-            const permission = await Notification.requestPermission();
-            if (permission !== 'granted') {
-                alert('Notification permission was denied.');
-                return;
-            }
-
-            // Register service worker if not registered
-            const registration = await navigator.serviceWorker.register('/sw.js');
-            await navigator.serviceWorker.ready;
-
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-            });
-
-            // Save subscription JSON payload to Supabase
-            const { error } = await _supabase
-                .from('users_list')
-                .update({ push_subscription: subscription })
-                .eq('name', currentUser);
-
-            if (error) {
-                console.error('Failed to update push subscription in Supabase:', error);
-                alert('Failed to save push token to database.');
-            } else {
-                alert('Push notifications enabled for ' + currentUser + '!');
-            }
-        } catch (err) {
-            console.error('Error enabling push notifications:', err);
-            alert('Failed to activate push subscription.');
-        }
-    }
 
     async function initializeSystemFlow(){
         if(localStorage.getItem('vault_global_categories')) {

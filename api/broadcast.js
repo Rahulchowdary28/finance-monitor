@@ -73,7 +73,7 @@ export async function GET(request) {
 
     // Run smart broadcast that filters for users without today's expenses
     return await handleBroadcast(
-      '💸 Expense Tracker Reminder',
+      '💸 Reminder',
       'Spent Well?? Click here to Record it.',
       true // Enable check for missing daily transactions
     );

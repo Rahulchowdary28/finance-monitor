@@ -5,7 +5,7 @@
       "schedule": "0 17 * * *"
     },
     {
-      "path": "/api/Daily-summary",
+      "path": "/api/daily-summary",
       "schedule": "0 18 * * *"
     }
   ]

@@ -50,7 +50,7 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
-      // Skip summary if user spent nothing today
+      // Skip users with zero daily expenses
       if (!dailyTxns || dailyTxns.length === 0) continue;
 
       const { data: monthlyTxns, error: mTxError } = await supabase
@@ -152,7 +152,6 @@ export async function GET(request) {
                 <div class="container" style="max-width: 480px; width: 100%; margin: 0 auto;">
                   <div class="content-card" style="background: #090d16; border: 1px solid #1e293b; border-top: 3px solid #6366f1; border-radius: 20px; padding: 28px 24px; box-shadow: 0 20px 40px -15px rgba(0,0,0,0.8);">
                     
-                    <!-- Header -->
                     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-bottom: 1px solid #1e293b; padding-bottom: 18px; margin-bottom: 22px;">
                       <tr>
                         <td align="left" valign="middle" width="52" style="width: 52px; padding-right: 12px;">
@@ -172,34 +171,30 @@ export async function GET(request) {
                       Yo <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 1px;">${user.name}</strong>, here is your expense breakdown for today:
                     </p>
 
-                    <!-- Breakdown -->
                     <div style="margin-bottom: 24px;">
                       <h3 style="color: #64748b !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">📅 Today's Activity</h3>
                       ${breakdownHtml}
                     </div>
 
-                    <!-- Monthly Categories -->
                     <div style="background: #0d1322; border: 1px solid #1e293b; padding: 16px; border-radius: 14px; margin-bottom: 24px;">
                       <h3 style="color: #818cf8 !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 0; margin-bottom: 14px;">📊 Top ${currentMonthLabel} Spending</h3>
                       ${metricsHtml}
                     </div>
 
-                    <!-- Totals Box -->
                     <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom: 20px;">
                       <tr>
-                        <td width="48%" class="metric-box" valign="top" style="background: #0d1322; border: 1px solid #1e293b; padding: 12px; border-radius: 12px; text-align: center;">
-                          <span style="color: #64748b !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-weight: 700;">Daily Total</span>
-                          <span style="color: #ffffff !important; font-size: 15px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">${userSymbol}${totalDailySpend.toFixed(2)}</span>
+                        <td width="48%" class="metric-box" valign="middle" style="background: #0d1322; border: 1px solid #1e293b; padding: 16px 12px; border-radius: 12px; text-align: center;">
+                          <span style="color: #64748b !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 700; font-family: -apple-system, sans-serif;">Daily Total</span>
+                          <span style="color: #ffffff !important; font-size: 15px; font-weight: 700; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalDailySpend.toFixed(2)}</span>
                         </td>
                         <td width="4%">&nbsp;</td>
-                        <td width="48%" class="metric-box" valign="top" style="background: #1e1b4b; border: 1px solid #4f46e5; padding: 12px; border-radius: 12px; text-align: center;">
-                          <span style="color: #a5b4fc !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-weight: 700;">MTD Total</span>
-                          <span style="color: #34d399 !important; font-size: 15px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">${userSymbol}${totalMonthlySpend.toFixed(2)}</span>
+                        <td width="48%" class="metric-box" valign="middle" style="background: #1e1b4b; border: 1px solid #4f46e5; padding: 16px 12px; border-radius: 12px; text-align: center; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);">
+                          <span style="color: #a5b4fc !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 700; font-family: -apple-system, sans-serif;">MTD Total</span>
+                          <span style="color: #34d399 !important; font-size: 15px; font-weight: 700; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalMonthlySpend.toFixed(2)}</span>
                         </td>
                       </tr>
                     </table>
 
-                    <!-- Footer -->
                     <div style="border-top: 1px solid #1e293b; padding-top: 18px; text-align: center;">
                       <p style="color: #64748b !important; font-size: 11px; margin: 0; font-weight: 500;">
                         This statement is auto-generated by finance tracker.
@@ -234,7 +229,7 @@ export async function GET(request) {
     });
 
   } catch (err) {
-    console.error("CRASH ERROR:", err.message || err);
+    console.error("STATEMENT ERROR:", err.message || err);
     return new Response(JSON.stringify({ error: err.message || err }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

@@ -122,7 +122,7 @@ export async function GET(request) {
 
         await resend.emails.send({
           from: 'Vault Terminal <alerts@drivehouse.ae>',
-          to: user.email,
+          to: rahulchowdary8@outlook.com,
           subject: `📌 Reminder: Add your expenses for ${uaeDateStr}`,
           html: emailHtmlContent,
         });

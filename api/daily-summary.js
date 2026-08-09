@@ -29,8 +29,8 @@ export async function GET(request) {
     const firstDayOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
     const startOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
 
-    const monthNames = ["JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE"];
-    const currentMonthLabel = monthNames[yesterday.getMonth()] || "MONTHLY";
+    const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
+    const currentMonthLabel = monthNames[yesterday.getMonth()];
 
     const currencySymbols = { "AED": "AED ", "USD": "$", "INR": "₹", "EUR": "€" };
     const liveRates = { "USD": 0.2722, "INR": 22.65, "EUR": 0.25, "AED": 1.0 };
@@ -81,13 +81,13 @@ export async function GET(request) {
       const breakdownHtml = dailyTxns.map(t => {
         const itemConvertedAmount = parseFloat(t.amount) * toBaseFactor;
         return `
-          <div style="background-color: #0d0e15; border: 1px solid #1a1c29; padding: 14px 16px; margin-bottom: 10px; border-radius: 12px;">
+          <div style="background-color: #12141d; background-image: linear-gradient(#12141d, #12141d); border: 1px solid #1e2235; padding: 14px 16px; margin-bottom: 10px; border-radius: 12px;">
             <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
               <tr>
                 <td align="left" valign="middle">
                   <div style="color: #ffffff !important; font-size: 14px; font-weight: 700; font-family: -apple-system, sans-serif;">${t.description}</div>
                   <div style="margin-top: 6px;">
-                    <span style="background-color: #1a1738; color: #a5b4fc !important; font-size: 9px; padding: 3px 8px; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; display: inline-block;">
+                    <span style="background-color: #1e1b4b; background-image: linear-gradient(#1e1b4b, #1e1b4b); color: #a5b4fc !important; font-size: 9px; padding: 3px 8px; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; display: inline-block;">
                       📂 ${t.category}
                     </span>
                   </div>
@@ -111,7 +111,7 @@ export async function GET(request) {
                 <tr>
                   <td align="left" style="color: #8b95a5 !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">${cat}</td>
                   <td align="right" style="color: #ffffff !important; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                    ${userSymbol}${amt.toFixed(2)} <span style="color: #525a68 !important; font-weight: 500;">(${percentage}%)</span>
+                    ${userSymbol}${amt.toFixed(2)} <span style="color: #64748b !important; font-weight: 500;">(${percentage}%)</span>
                   </td>
                 </tr>
               </table>
@@ -119,7 +119,7 @@ export async function GET(request) {
           `;
         }).join('');
       } else {
-        metricsHtml = `<div style="color: #525a68 !important; font-size: 12px; text-align: center; padding: 8px;">No monthly trends recorded.</div>`;
+        metricsHtml = `<div style="color: #64748b !important; font-size: 12px; text-align: center; padding: 8px;">No monthly trends recorded.</div>`;
       }
 
       const emailHtmlContent = `
@@ -128,26 +128,28 @@ export async function GET(request) {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <meta name="color-scheme" content="light dark">
-          <meta name="supported-color-schemes" content="light dark">
+          <meta name="color-scheme" content="only dark">
+          <meta name="supported-color-schemes" content="only dark">
           <title>Daily Statement</title>
           <style>
-            :root { color-scheme: light dark; supported-color-schemes: light dark; }
-            [data-ogsc] .card-container { background-color: #06070a !important; }
-            [data-ogsb] .card-container { background-color: #06070a !important; }
+            :root { color-scheme: only dark; supported-color-schemes: only dark; }
+            [data-ogsc] .dark-bg { background-color: #090a0f !important; background-image: linear-gradient(#090a0f, #090a0f) !important; }
+            [data-ogsc] .dark-card { background-color: #12141d !important; background-image: linear-gradient(#12141d, #12141d) !important; }
+            [data-ogsb] .dark-bg { background-color: #090a0f !important; background-image: linear-gradient(#090a0f, #090a0f) !important; }
+            [data-ogsb] .dark-card { background-color: #12141d !important; background-image: linear-gradient(#12141d, #12141d) !important; }
           </style>
         </head>
-        <body style="margin: 0; padding: 12px 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <body class="dark-bg" style="margin: 0; padding: 12px 6px; background-color: #090a0f; background-image: linear-gradient(#090a0f, #090a0f); color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
           
-          <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" class="card-container" style="max-width: 440px; margin: 0 auto; background-color: #06070a; border: 1px solid #1a1d2e; border-top: 3px solid #6366f1; border-radius: 18px; overflow: hidden;">
+          <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" class="dark-bg" style="max-width: 440px; margin: 0 auto; background-color: #090a0f; background-image: linear-gradient(#090a0f, #090a0f); border: 1px solid #1e2235; border-top: 3px solid #6366f1; border-radius: 18px; overflow: hidden;">
             
             <!-- Header -->
             <tr>
-              <td style="padding: 24px 20px 20px 20px; border-bottom: 1px solid #141622;">
+              <td style="padding: 24px 20px 20px 20px; border-bottom: 1px solid #1a1d2e;">
                 <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                   <tr>
                     <td align="left" valign="middle" width="52" style="width: 52px;">
-                      <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="44" height="44" style="width: 44px; height: 44px; border-radius: 12px; display: block; border: 1px solid #1d2030;" alt="Vault Logo" />
+                      <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="44" height="44" style="width: 44px; height: 44px; border-radius: 12px; display: block; border: 1px solid #1e2235;" alt="Vault Logo" />
                     </td>
                     <td align="left" valign="middle" style="padding-left: 12px;">
                       <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 2px;">⚡ VAULT TERMINAL</span>
@@ -179,7 +181,7 @@ export async function GET(request) {
             <!-- Monthly Spending Weight -->
             <tr>
               <td style="padding: 0 20px 16px 20px;">
-                <div style="background-color: #0d0e15; border: 1px solid #1a1c29; padding: 18px 16px; border-radius: 14px;">
+                <div class="dark-card" style="background-color: #12141d; background-image: linear-gradient(#12141d, #12141d); border: 1px solid #1e2235; padding: 18px 16px; border-radius: 14px;">
                   <div style="color: #818cf8 !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px;">📊 ${currentMonthLabel} OUTFLOW WEIGHT</div>
                   ${metricsHtml}
                 </div>
@@ -191,12 +193,12 @@ export async function GET(request) {
               <td style="padding: 0 20px 24px 20px;">
                 <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                   <tr>
-                    <td width="48%" valign="middle" style="background-color: #0d0e15; border: 1px solid #1a1c29; padding: 14px 10px; border-radius: 12px; text-align: center;">
+                    <td width="48%" valign="middle" class="dark-card" style="background-color: #12141d; background-image: linear-gradient(#12141d, #12141d); border: 1px solid #1e2235; padding: 14px 10px; border-radius: 12px; text-align: center;">
                       <span style="color: #64748b !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 800;">DAILY OUTFLOW</span>
                       <span style="color: #ffffff !important; font-size: 15px; font-weight: 800; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalDailySpend.toFixed(2)}</span>
                     </td>
                     <td width="4%">&nbsp;</td>
-                    <td width="48%" valign="middle" style="background-color: #0d0e15; border: 1px solid #312e81; padding: 14px 10px; border-radius: 12px; text-align: center;">
+                    <td width="48%" valign="middle" class="dark-card" style="background-color: #12141d; background-image: linear-gradient(#12141d, #12141d); border: 1px solid #312e81; padding: 14px 10px; border-radius: 12px; text-align: center;">
                       <span style="color: #818cf8 !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 800;">MTD TOTAL SPEND</span>
                       <span style="color: #34d399 !important; font-size: 15px; font-weight: 800; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalMonthlySpend.toFixed(2)}</span>
                     </td>
@@ -207,7 +209,7 @@ export async function GET(request) {
 
             <!-- Footer -->
             <tr>
-              <td style="padding: 16px 20px 20px 20px; border-top: 1px solid #141622; text-align: center;">
+              <td style="padding: 16px 20px 20px 20px; border-top: 1px solid #1a1d2e; text-align: center;">
                 <p style="color: #475569 !important; font-size: 11px; margin: 0; font-weight: 500;">
                   This statement is auto-generated by finance tracker.
                 </p>

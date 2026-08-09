@@ -7,14 +7,14 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function GET(request) {
   const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized.' }), {
+    return new Response(JSON.stringify({ error: 'Unauthorized security perimeter breach.' }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' }
     });
   }
 
   try {
-    // 1. Fetch active users along with their selected currency
+    // 1. Fetch active users with currency settings
     const { data: users, error: userError } = await supabase
       .from('users_list')
       .select('name, email, selected_currency')
@@ -22,20 +22,17 @@ export async function GET(request) {
 
     if (userError) throw userError;
 
-    // 2. Calculate today's date bounds based strictly on UAE Time (GST / UTC+4)
+    // 2. Strict UAE Date calculation (GST / UTC+4)
     const uaeDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' }); // YYYY-MM-DD
-    
-    // Currency symbols mapping
     const currencySymbols = { "AED": "AED ", "USD": "$", "INR": "₹", "EUR": "€" };
 
     for (const user of users) {
       if (!user.email) continue;
 
-      // Extract user currency with safety fallback
       const userCurrency = user.selected_currency || 'AED';
       const userSymbol = currencySymbols[userCurrency] || 'AED ';
 
-      // 3. Check if user logged any debit transactions today in UAE time window
+      // 3. Query transactions made during UAE calendar day
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
         .select('id')
@@ -46,42 +43,67 @@ export async function GET(request) {
 
       if (txError) throw txError;
 
-      // 4. Skip users who already logged transactions today
+      // 4. Skip if expenses exist for today
       if (dailyTxns && dailyTxns.length > 0) {
         continue;
       }
 
-      // 5. Generate reminder email content with custom currency notation
+      // 5. Generate matching email design
       const emailHtmlContent = `
         <!DOCTYPE html>
-        <html lang="en">
+        <html lang="en" style="color-scheme: dark; supported-color-schemes: dark;">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="color-scheme" content="dark">
+          <meta name="supported-color-schemes" content="dark">
+          <style>
+            body, .bg-wrapper { background: linear-gradient(#070913, #070913) !important; color: #ffffff !important; }
+            div, p, td, h2, h3, span { font-smoothing: antialiased; -webkit-font-smoothing: antialiased; }
+          </style>
         </head>
-        <body style="margin: 0; padding: 30px 10px; background: #070913; color: #ffffff; font-family: -apple-system, sans-serif;">
-          <div style="max-width: 460px; margin: 0 auto; background: #0d1127; border: 1px solid #242b54; border-top: 4px solid #6366f1; border-radius: 16px; padding: 28px;">
+        <body style="margin: 0; padding: 30px 10px; background: linear-gradient(#070913, #070913); color: #ffffff;">
+          <div class="bg-wrapper" style="max-width: 460px; margin: 0 auto; background: linear-gradient(#070913, #070913); border: 1px solid #242b54; border-top: 4px solid #6366f1; border-radius: 16px; padding: 28px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.75);">
             
-            <div style="margin-bottom: 20px;">
-              <span style="color: #818cf8; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
-              <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">Expense Reminder</h2>
-            </div>
+            <!-- Header Table with Vault Logo -->
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="border-bottom: 1px solid #242b54; padding-bottom: 16px; margin-bottom: 24px; table-layout: fixed;">
+              <tr>
+                <td align="left" valign="middle" width="65" style="width: 65px; padding-right: 12px;">
+                  <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="55" height="55" style="width: 55px; height: 55px; border-radius: 28px; display: block; border: 1px solid #242b54;" alt="Vault Logo" />
+                </td>
+                <td align="left" valign="middle">
+                  <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-family: -apple-system, sans-serif; display: block; margin-bottom: 4px;">⚡ VAULT TERMINAL</span>
+                  <h2 style="color: #ffffff !important; margin: 0; font-size: 20px; font-weight: 700; font-family: -apple-system, sans-serif; letter-spacing: -0.5px;">Expense Reminder</h2>
+                </td>
+                <td align="right" valign="middle" width="95" style="width: 95px; min-width: 95px; text-align: right; white-space: nowrap !important; color: #8696ad !important; font-size: 13px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                  ${uaeDateStr}
+                </td>
+              </tr>
+            </table>
 
-            <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-              Hey <strong>${user.name}</strong>, you haven't logged any expenses for today (<strong>${uaeDateStr}</strong>) yet.
+            <!-- Body Message -->
+            <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; font-family: -apple-system, sans-serif; margin-bottom: 24px; text-align: left;">
+              Yo! <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 2px;">${user.name}</strong>, you haven't logged any expenses for today yet.
             </p>
 
-            <div style="background: #161b33; border: 1px dashed #4f46e5; padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 24px;">
-              <p style="color: #9ca3af; font-size: 13px; margin: 0 0 14px 0;">
-                Log your daily transactions to keep your monthly <strong>${userSymbol}</strong> spending metrics up to date!
+            <!-- Call-To-Action Box -->
+            <div style="background: linear-gradient(#0d1127, #0d1127); border: 1px dashed #4f46e5; padding: 22px; border-radius: 14px; text-align: center; margin-bottom: 28px;">
+              <p style="color: #9ca3af !important; font-size: 13px; margin: 0 0 16px 0; font-family: -apple-system, sans-serif; line-height: 1.5;">
+                Log your daily activity to maintain your spending metrics in <strong>${userSymbol}</strong> (${userCurrency}).
               </p>
-              <a href="https://your-app-domain.com" style="background: #6366f1; color: #ffffff; text-decoration: none; padding: 10px 20px; font-size: 13px; font-weight: 700; border-radius: 8px; display: inline-block;">
-                + Add Today's Expense (${userCurrency})
+              <a href="https://your-app-domain.com" style="background: #6366f1; color: #ffffff !important; text-decoration: none; padding: 11px 22px; font-size: 13px; font-weight: 700; border-radius: 8px; display: inline-block; font-family: -apple-system, sans-serif; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+                + Log Today's Expense
               </a>
             </div>
 
-            <div style="text-align: center; border-top: 1px solid #242b54; padding-top: 16px;">
-              <p style="color: #8696ad; font-size: 11px; margin: 0;">Auto-generated reminder by Vault Terminal • UAE Timezone</p>
+            <!-- Footer -->
+            <div style="margin-top: 36px; text-align: center; border-top: 1px solid #242b54; padding-top: 16px;">
+              <p style="color: #8696ad !important; font-size: 11px; margin: 0; font-family: -apple-system, sans-serif; line-height: 1.5; font-weight: 500;">
+                This reminder is auto-generated by finance tracker.
+              </p>
+              <p style="color: #6366f1 !important; font-size: 10px; margin: 6px 0 0 0; font-family: -apple-system, sans-serif; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">
+                Designed by Rahul
+              </p>
             </div>
 
           </div>
@@ -93,20 +115,20 @@ export async function GET(request) {
       await resend.emails.send({
         from: 'Vault Terminal <alerts@drivehouse.ae>',
         to: user.email,
-        subject: `📌 Friendly Reminder: Add your expenses for today`,
+        subject: `📌 Reminder: Add your expenses for ${uaeDateStr}`,
         html: emailHtmlContent,
       });
 
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    return new Response(JSON.stringify({ success: true, message: 'UAE reminders processed successfully.' }), {
+    return new Response(JSON.stringify({ success: true, message: 'Matching reminder telemetry delivered successfully.' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (err) {
-    console.error("REMINDER CRON ERROR:", err.message || err);
+    console.error("REMINDER CRASH ERROR:", err.message || err);
     return new Response(JSON.stringify({ error: err.message || err }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }

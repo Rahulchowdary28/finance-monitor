@@ -21,14 +21,18 @@ export async function GET(request) {
 
     if (userError) throw userError;
 
-    const uaeDateStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
+    // Calculate UAE "Yesterday" since script runs at 3:30 AM UAE time
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
 
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const uaeYesterdayStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Dubai' });
+
+    const firstDayOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
     const startOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const currentMonthLabel = monthNames[today.getMonth()];
+    const currentMonthLabel = monthNames[yesterday.getMonth()];
 
     const currencySymbols = { "AED": "AED ", "USD": "$", "INR": "₹", "EUR": "€" };
     const liveRates = { "USD": 0.2722, "INR": 22.65, "EUR": 0.25, "AED": 1.0 };
@@ -40,17 +44,18 @@ export async function GET(request) {
       const userSymbol = currencySymbols[userCurrency] || 'AED ';
       const toBaseFactor = liveRates[userCurrency] / liveRates['AED'];
 
+      // Query yesterday's debit transactions
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
         .select('description, amount, category')
         .eq('user_name', user.name)
         .eq('type', 'debit')
-        .gte('created_at', `${uaeDateStr}T00:00:00+04:00`)
-        .lte('created_at', `${uaeDateStr}T23:59:59+04:00`);
+        .gte('created_at', `${uaeYesterdayStr}T00:00:00+04:00`)
+        .lte('created_at', `${uaeYesterdayStr}T23:59:59+04:00`);
 
       if (txError) throw txError;
 
-      // Skip users with zero daily expenses
+      // Skip users with zero expenses yesterday
       if (!dailyTxns || dailyTxns.length === 0) continue;
 
       const { data: monthlyTxns, error: mTxError } = await supabase
@@ -59,7 +64,7 @@ export async function GET(request) {
         .eq('user_name', user.name)
         .eq('type', 'debit')
         .gte('created_at', `${startOfMonthStr}T00:00:00+04:00`)
-        .lte('created_at', `${uaeDateStr}T23:59:59+04:00`);
+        .lte('created_at', `${uaeYesterdayStr}T23:59:59+04:00`);
 
       if (mTxError) throw mTxError;
 
@@ -162,17 +167,17 @@ export async function GET(request) {
                           <h2 style="color: #ffffff !important; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.4px;">Daily Statement</h2>
                         </td>
                         <td align="right" valign="middle" style="color: #64748b !important; font-size: 12px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
-                          ${uaeDateStr}
+                          ${uaeYesterdayStr}
                         </td>
                       </tr>
                     </table>
 
                     <p style="color: #cbd5e1 !important; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
-                      Yo <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 1px;">${user.name}</strong>, here is your expense breakdown for today:
+                      Yo <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 1px;">${user.name}</strong>, here is your expense breakdown for yesterday:
                     </p>
 
                     <div style="margin-bottom: 24px;">
-                      <h3 style="color: #64748b !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">📅 Today's Activity</h3>
+                      <h3 style="color: #64748b !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">📅 Yesterday's Activity</h3>
                       ${breakdownHtml}
                     </div>
 
@@ -216,7 +221,7 @@ export async function GET(request) {
       await resend.emails.send({
         from: 'Vault Terminal <alerts@drivehouse.ae>',
         to: user.email,
-        subject: `Daily Expense Statement - ${uaeDateStr}`,
+        subject: `Daily Expense Statement - ${uaeYesterdayStr}`,
         html: emailHtmlContent,
       });
 

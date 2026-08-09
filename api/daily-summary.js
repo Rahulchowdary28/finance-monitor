@@ -29,7 +29,7 @@ export async function GET(request) {
     const firstDayOfMonth = new Date(yesterday.getFullYear(), yesterday.getMonth(), 1);
     const startOfMonthStr = firstDayOfMonth.toISOString().split('T')[0];
 
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
     const currentMonthLabel = monthNames[yesterday.getMonth()];
 
     const currencySymbols = { "AED": "AED ", "USD": "$", "INR": "₹", "EUR": "€" };
@@ -81,19 +81,19 @@ export async function GET(request) {
       const breakdownHtml = dailyTxns.map(t => {
         const itemConvertedAmount = parseFloat(t.amount) * toBaseFactor;
         return `
-          <div style="background-color: #111827; border: 1px solid #1f2937; padding: 12px 14px; margin-bottom: 8px; border-radius: 12px;">
+          <div style="background-color: #13151f; border: 1px solid #232738; padding: 14px 16px; margin-bottom: 10px; border-radius: 12px;">
             <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
               <tr>
                 <td align="left" valign="middle">
-                  <div style="color: #ffffff !important; font-size: 13px; font-weight: 600; font-family: -apple-system, sans-serif;">${t.description}</div>
-                  <div style="margin-top: 4px;">
-                    <span style="background-color: #311b92; color: #a5b4fc !important; font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;">
-                      📂 ${t.category}
+                  <div style="color: #ffffff; font-size: 14px; font-weight: 700; font-family: -apple-system, sans-serif;">${t.description}</div>
+                  <div style="margin-top: 6px;">
+                    <span style="background-color: #1e1b4b; color: #a5b4fc; font-size: 9px; padding: 3px 8px; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; display: inline-block;">
+                      📁 ${t.category}
                     </span>
                   </div>
                 </td>
-                <td align="right" valign="middle" style="color: #f87171 !important; font-size: 15px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                  -${userSymbol}${itemConvertedAmount.toFixed(2)}
+                <td align="right" valign="middle" style="color: #f87171; font-size: 15px; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
+                  -${userSymbol} ${itemConvertedAmount.toFixed(2)}
                 </td>
               </tr>
             </table>
@@ -107,148 +107,111 @@ export async function GET(request) {
           const percentage = ((amt / totalMonthlySpend) * 100).toFixed(0);
           return `
             <div style="margin-bottom: 12px; font-family: -apple-system, sans-serif;">
-              <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="font-size: 11px; margin-bottom: 4px;">
+              <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="font-size: 11px;">
                 <tr>
-                  <td align="left" style="color: #9ca3af !important; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">${cat}</td>
-                  <td align="right" style="color: #ffffff !important; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
-                    ${userSymbol}${amt.toFixed(2)} <span style="color: #818cf8 !important; font-weight: 500;">(${percentage}%)</span>
+                  <td align="left" style="color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;">${cat}</td>
+                  <td align="right" style="color: #ffffff; font-weight: 700; font-family: 'Courier New', Courier, monospace;">
+                    ${userSymbol}${amt.toFixed(2)} <span style="color: #64748b; font-weight: 500;">(${percentage}%)</span>
                   </td>
                 </tr>
               </table>
-              <div style="width: 100%; background-color: #1f2937; height: 6px; border-radius: 3px; overflow: hidden;">
-                <div style="width: ${percentage}%; background-color: #6366f1; height: 100%; border-radius: 3px;"></div>
-              </div>
             </div>
           `;
         }).join('');
       } else {
-        metricsHtml = `<div style="color: #6b7280 !important; font-size: 12px; text-align: center; padding: 8px;">No monthly trends recorded.</div>`;
+        metricsHtml = `<div style="color: #64748b; font-size: 12px; text-align: center; padding: 8px;">No monthly trends recorded.</div>`;
       }
 
       const emailHtmlContent = `
         <!DOCTYPE html>
-        <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+        <html lang="en">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <meta name="color-scheme" content="only dark">
-          <meta name="supported-color-schemes" content="only dark">
           <title>Daily Statement</title>
-          <!--[if mso]>
-          <xml>
-            <o:OfficeDocumentSettings>
-              <o:AllowPNG/>
-              <o:PixelsPerInch>96</o:PixelsPerInch>
-            </o:OfficeDocumentSettings>
-          </xml>
-          <![endif]-->
-          <style>
-            :root { color-scheme: only dark; supported-color-schemes: only dark; }
-            u + #body a { color: inherit; text-decoration: none; font-size: inherit; font-family: inherit; font-weight: inherit; line-height: inherit; }
-          </style>
         </head>
-        <body id="body" style="margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #0b0f19; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+        <body style="margin: 0; padding: 16px 8px; background-color: #090a0f; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
           
-          <!-- Outer Canvas -->
-          <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" style="background-color: #0b0f19; width: 100%; margin: 0; padding: 0;">
+          <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" style="max-width: 440px; margin: 0 auto; background-color: #090a0f; border: 1px solid #1a1d2d; border-top: 3px solid #6366f1; border-radius: 18px; overflow: hidden;">
+            
+            <!-- Header -->
             <tr>
-              <td align="center" valign="top" style="padding: 20px 8px; background-color: #0b0f19;">
-                
-                <!--[if mso]>
-                <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:460px;">
-                <v:fill type="tile" color="#0b0f19" />
-                <v:textbox inset="0,0,0,0">
-                <![endif]-->
-
-                <!-- Card Wrapper -->
-                <table border="0" cellpadding="0" cellspacing="0" width="100%" role="presentation" style="max-width: 460px; margin: 0 auto; background-color: #111827; border: 1px solid #1f2937; border-top: 3px solid #6366f1; border-radius: 16px; overflow: hidden;">
-                  
-                  <!-- Header -->
+              <td style="padding: 24px 20px 20px 20px; border-bottom: 1px solid #1a1d2d;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
                   <tr>
-                    <td style="padding: 20px; border-bottom: 1px solid #1f2937; background-color: #111827;">
-                      <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
-                        <tr>
-                          <td align="left" valign="middle" width="46" style="width: 46px;">
-                            <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="40" height="40" style="width: 40px; height: 40px; border-radius: 10px; display: block; border: 1px solid #1f2937;" alt="Vault Logo" />
-                          </td>
-                          <td align="left" valign="middle" style="padding-left: 10px;">
-                            <span style="color: #818cf8 !important; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 2px;">⚡ VAULT TERMINAL</span>
-                            <h2 style="color: #ffffff !important; margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.4px;">Daily Statement</h2>
-                          </td>
-                          <td align="right" valign="middle" style="color: #9ca3af !important; font-size: 11px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
-                            ${uaeYesterdayStr}
-                          </td>
-                        </tr>
-                      </table>
+                    <td align="left" valign="middle" width="52" style="width: 52px;">
+                      <img src="https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png" width="44" height="44" style="width: 44px; height: 44px; border-radius: 12px; display: block; border: 1px solid #232738;" alt="Vault Logo" />
+                    </td>
+                    <td align="left" valign="middle" style="padding-left: 12px;">
+                      <span style="color: #818cf8; font-weight: 800; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; display: block; margin-bottom: 2px;">⚡ VAULT TERMINAL</span>
+                      <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px;">Daily Statement</h2>
+                    </td>
+                    <td align="right" valign="top" style="color: #64748b; font-size: 11px; font-family: 'Courier New', Courier, monospace; font-weight: 700;">
+                      ${uaeYesterdayStr}
                     </td>
                   </tr>
-
-                  <!-- Greeting -->
-                  <tr>
-                    <td style="padding: 20px 20px 16px 20px; color: #e5e7eb !important; font-size: 14px; line-height: 1.6; background-color: #111827;">
-                      Yo <strong style="color: #ffffff !important; border-bottom: 1px dashed #6366f1; padding-bottom: 1px;">${user.name}</strong>, here is your expense breakdown for yesterday:
-                    </td>
-                  </tr>
-
-                  <!-- Yesterday Activity -->
-                  <tr>
-                    <td style="padding: 0 20px 16px 20px; background-color: #111827;">
-                      <h3 style="color: #9ca3af !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 10px 0;">📅 Yesterday's Activity</h3>
-                      ${breakdownHtml}
-                    </td>
-                  </tr>
-
-                  <!-- Monthly Spending -->
-                  <tr>
-                    <td style="padding: 0 20px 16px 20px; background-color: #111827;">
-                      <div style="background-color: #1f2937; border: 1px solid #374151; padding: 16px; border-radius: 12px;">
-                        <h3 style="color: #818cf8 !important; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin: 0 0 14px 0;">📊 Top ${currentMonthLabel} Spending</h3>
-                        ${metricsHtml}
-                      </div>
-                    </td>
-                  </tr>
-
-                  <!-- Total Metric Cards -->
-                  <tr>
-                    <td style="padding: 0 20px 20px 20px; background-color: #111827;">
-                      <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
-                        <tr>
-                          <td width="48%" valign="middle" style="background-color: #1f2937; border: 1px solid #374151; padding: 12px 8px; border-radius: 12px; text-align: center;">
-                            <span style="color: #9ca3af !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-weight: 700;">Daily Total</span>
-                            <span style="color: #ffffff !important; font-size: 14px; font-weight: 700; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalDailySpend.toFixed(2)}</span>
-                          </td>
-                          <td width="4%">&nbsp;</td>
-                          <td width="48%" valign="middle" style="background-color: #311b92; border: 1px solid #6366f1; padding: 12px 8px; border-radius: 12px; text-align: center;">
-                            <span style="color: #c7d2fe !important; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; font-weight: 700;">MTD Total</span>
-                            <span style="color: #34d399 !important; font-size: 14px; font-weight: 700; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalMonthlySpend.toFixed(2)}</span>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-
-                  <!-- Footer -->
-                  <tr>
-                    <td style="padding: 16px 20px; border-top: 1px solid #1f2937; text-align: center; background-color: #111827;">
-                      <p style="color: #6b7280 !important; font-size: 11px; margin: 0; font-weight: 500;">
-                        This statement is auto-generated by finance tracker.
-                      </p>
-                      <p style="color: #818cf8 !important; font-size: 10px; margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800;">
-                        DESIGNED BY RAHUL
-                      </p>
-                    </td>
-                  </tr>
-
                 </table>
-
-                <!--[if mso]>
-                </v:textbox>
-                </v:rect>
-                <![endif]-->
-
               </td>
             </tr>
+
+            <!-- Greeting -->
+            <tr>
+              <td style="padding: 20px 20px 16px 20px; color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+                Yo <strong>${user.name}</strong>, Here is the itemized expense breakdown from today:
+              </td>
+            </tr>
+
+            <!-- Itemized Activity -->
+            <tr>
+              <td style="padding: 0 20px 16px 20px;">
+                <div style="color: #64748b; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">📅 ITEMIZED ACTIVITY</div>
+                ${breakdownHtml}
+              </td>
+            </tr>
+
+            <!-- Monthly Spending Weight -->
+            <tr>
+              <td style="padding: 0 20px 16px 20px;">
+                <div style="background-color: #13151f; border: 1px solid #232738; padding: 18px 16px; border-radius: 14px;">
+                  <div style="color: #818cf8; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px;">📊 ${currentMonthLabel} OUTFLOW WEIGHT</div>
+                  ${metricsHtml}
+                </div>
+              </td>
+            </tr>
+
+            <!-- Total Metrics -->
+            <tr>
+              <td style="padding: 0 20px 24px 20px;">
+                <table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation">
+                  <tr>
+                    <td width="48%" valign="middle" style="background-color: #13151f; border: 1px solid #232738; padding: 14px 10px; border-radius: 12px; text-align: center;">
+                      <span style="color: #64748b; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 800;">DAILY OUTFLOW</span>
+                      <span style="color: #ffffff; font-size: 15px; font-weight: 800; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalDailySpend.toFixed(2)}</span>
+                    </td>
+                    <td width="4%">&nbsp;</td>
+                    <td width="48%" valign="middle" style="background-color: #13151f; border: 1px solid #312e81; padding: 14px 10px; border-radius: 12px; text-align: center;">
+                      <span style="color: #818cf8; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px; font-weight: 800;">MTD TOTAL SPEND</span>
+                      <span style="color: #34d399; font-size: 15px; font-weight: 800; font-family: 'Courier New', Courier, monospace; display: block;">${userSymbol}${totalMonthlySpend.toFixed(2)}</span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 16px 20px 20px 20px; border-top: 1px solid #1a1d2d; text-align: center;">
+                <p style="color: #475569; font-size: 11px; margin: 0; font-weight: 500;">
+                  This statement is auto-generated by finance tracker.
+                </p>
+                <p style="color: #818cf8; font-size: 10px; margin: 6px 0 0 0; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 800;">
+                  DESIGNED BY RAHUL
+                </p>
+              </td>
+            </tr>
+
           </table>
+
         </body>
         </html>
       `;

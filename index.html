@@ -603,6 +603,33 @@
     </div>
 </div>
 
+<!-- ─── SET NEW PASSWORD MODAL (ON RECOVERY LINK CLICK) ─── -->
+<div id="update-password-modal" style="display:none; position:fixed; inset:0; z-index:26000; background:rgba(2,4,10,0.94); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px;">
+    <div class="auth-container-card" style="max-width:400px; text-align:center; position:relative; z-index:26001;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin:0; font-size:1rem;"><i class="fas fa-lock"></i> Set New Password</h3>
+            <button onclick="closeUpdatePasswordModal()" style="background:none; border:none; color:var(--dim); font-size:1.1rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <p style="color:var(--dim); font-size:0.75rem; margin-bottom:16px;">Create a new secure password to update your vault credentials.</p>
+        
+        <form onsubmit="handleUpdateNewPassword(event)" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">New Password</label>
+                <input type="password" id="new-password-input" placeholder="••••••••" required minlength="6" autocomplete="new-password">
+            </div>
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">Confirm New Password</label>
+                <input type="password" id="confirm-password-input" placeholder="••••••••" required minlength="6" autocomplete="new-password">
+            </div>
+            <button type="submit" class="auth-submit-btn" id="update-password-submit-btn" style="margin-top:8px; background:var(--lime); color:#040612; box-shadow:0 0 15px rgba(0,255,136,0.4);">
+                <i class="fas fa-save"></i> Save & Update Password
+            </button>
+        </form>
+        
+        <div id="update-password-status-msg" class="auth-error-box"></div>
+    </div>
+</div>
+
 <!-- ─── STANDALONE ADMIN CONTROL CONSOLE MODAL ─── -->
 <div id="admin-modal" style="display:none; position:fixed; inset:0; z-index:20000; background:rgba(2,4,10,0.88); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
     <div class="auth-container-card" style="max-width:520px; text-align:left; position:relative; z-index:20001;">
@@ -979,7 +1006,7 @@
 
         try {
             const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin
+                redirectTo: window.location.origin + '/#reset-password'
             });
 
             if (error) throw error;
@@ -987,14 +1014,15 @@
             statusMsg.style.display = 'block';
             statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
             statusMsg.style.borderColor = 'var(--lime)';
-            statusMsg.style.color = '#88ffbb';
-            statusMsg.innerText = `Automated recovery link dispatched to ${email}! Check your email inbox.`;
+            statusMsg.style.color = 'var(--lime)';
+            statusMsg.innerText = 'Password recovery link has been dispatched to your email inbox!';
+            document.getElementById('recovery-email-input').value = '';
         } catch (err) {
             statusMsg.style.display = 'block';
             statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
             statusMsg.style.borderColor = 'var(--red)';
             statusMsg.style.color = '#ff8888';
-            statusMsg.innerText = err.message;
+            statusMsg.innerText = err.message || 'Failed to send recovery email.';
         } finally {
             btn.disabled = false;
             btn.innerHTML = `<i class="fas fa-paper-plane"></i> Dispatch Recovery Email`;
@@ -1414,6 +1442,10 @@
 
         // Listen for Auth Changes (Login, Logout, OAuth Callback)
         _supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                openUpdatePasswordModal();
+            }
+
             if (session && session.user) {
                 currentUserSession = session;
                 currentUserId = session.user.id;
@@ -1424,7 +1456,7 @@
                                   'User';
 
                 currentUser = displayName;
-                document.getElementById('active-user-badge').innerText = currentUser;
+                document.getElementById('active-user-badge').innerText = 'Syncing...';
                 document.getElementById('auth-portal').style.display = 'none';
 
                 // Sync User Settings from DB (querying by user_id OR email OR name)

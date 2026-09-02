@@ -299,27 +299,45 @@ async function fetchUsersTable() {
                 <small style="color:var(--dim); font-weight:400; font-size:0.7rem;">${u.email || ''}</small>
             </td>
             <td style="padding:10px; text-align:center;">
-                <button onclick="toggleUserHold('${rowId}', ${u.is_hold ? 'true' : 'false'})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
+                <button onclick="toggleUserHold('${rowId}', '${u.email || ''}', ${u.is_hold ? 'true' : 'false'})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
                     <i class="fas ${toggleIcon}" style="margin-right:4px;"></i> ${statusLabel}
                 </button>
             </td>
             <td style="padding:10px; text-align:right;">
-                <button onclick="deleteUserProfile('${rowId}', '${u.name}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                <button onclick="deleteUserProfile('${rowId}', '${u.email || ''}', '${u.name || ''}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
             </td>
         </tr>`;
     });
 }
 
-async function toggleUserHold(userId, currentStatus) {
-    await _supabase.from('users_list').update({ is_hold: !currentStatus }).or(`user_id.eq.${userId},id.eq.${userId}`);
-    fetchUsersTable();
+async function toggleUserHold(userId, email, currentStatus) {
+    const nextStatus = !currentStatus;
+    
+    if (email) {
+        await _supabase.from('users_list').update({ is_hold: nextStatus }).ilike('email', email);
+    }
+    if (userId) {
+        await _supabase.from('users_list').update({ is_hold: nextStatus }).eq('user_id', userId);
+        if (!isNaN(userId)) {
+            await _supabase.from('users_list').update({ is_hold: nextStatus }).eq('id', Number(userId));
+        }
+    }
+    await fetchUsersTable();
 }
 
-async function deleteUserProfile(userId, name) {
-    if (confirm(`Purge profile space for ${name || userId}?`)) {
-        await _supabase.from('transactions').delete().or(`user_id.eq.${userId},user_name.ilike.${name}`);
-        await _supabase.from('users_list').delete().or(`user_id.eq.${userId},id.eq.${userId}`);
-        fetchUsersTable();
+async function deleteUserProfile(userId, email, name) {
+    if (confirm(`Purge profile space for ${name || email || userId}?`)) {
+        if (email) {
+            await _supabase.from('users_list').delete().ilike('email', email);
+        }
+        if (name) {
+            await _supabase.from('transactions').delete().ilike('user_name', name);
+        }
+        if (userId) {
+            await _supabase.from('users_list').delete().eq('user_id', userId);
+            await _supabase.from('transactions').delete().eq('user_id', userId);
+        }
+        await fetchUsersTable();
     }
 }
 

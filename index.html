@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Virtual Vault | Premium Finance Terminal</title>
     <link rel="manifest" href="/manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="#040612">
     
@@ -1350,29 +1351,31 @@
     async function fetchData(){
         if (!currentUserId && !currentUser) return;
         
-        // Auto-claim legacy transactions matching user's profile name if unassigned
-        if (currentUserId && currentUser) {
-            try {
-                await _supabase
-                    .from('transactions')
-                    .update({ user_id: currentUserId })
-                    .is('user_id', null)
-                    .ilike('user_name', currentUser);
-            } catch (err) {
-                console.log("Legacy data migration sync:", err);
+        try {
+            let query = _supabase.from('transactions').select('*').order('created_at', { ascending: false });
+            if (currentUserId && currentUser) {
+                query = query.or(`user_id.eq.${currentUserId},user_name.ilike."${currentUser}"`);
+            } else if (currentUserId) {
+                query = query.eq('user_id', currentUserId);
+            } else if (currentUser) {
+                query = query.ilike('user_name', currentUser);
             }
-        }
 
-        let query = _supabase.from('transactions').select('*').order('created_at', { ascending: false });
-        if (currentUserId) {
-            query = query.or(`user_id.eq.${currentUserId},user_name.ilike.${currentUser}`);
-        } else {
-            query = query.ilike('user_name', currentUser);
+            const { data, error } = await query;
+            if (error) {
+                console.warn("Database fetch or filter note:", error.message);
+                const { data: fallbackData } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', currentUserId)
+                    .order('created_at', { ascending: false });
+                allTransactions = fallbackData || [];
+            } else {
+                allTransactions = data || [];
+            }
+        } catch (err) {
+            console.error("Database fetch exception:", err);
         }
-
-        const { data, error } = await query;
-        if (error) console.error("Database fetch error:", error);
-        allTransactions = data || [];
         updateUI();
     }
 

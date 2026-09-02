@@ -1440,9 +1440,13 @@
             document.getElementById('base-currency-select').value = currentBaseCurrency;
         }
 
+        if (window.location.hash.includes('type=recovery') || window.location.hash.includes('reset-password')) {
+            setTimeout(openUpdatePasswordModal, 300);
+        }
+
         // Listen for Auth Changes (Login, Logout, OAuth Callback)
         _supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'PASSWORD_RECOVERY') {
+            if (event === 'PASSWORD_RECOVERY' || (window.location.hash && window.location.hash.includes('type=recovery'))) {
                 openUpdatePasswordModal();
             }
 
@@ -1450,17 +1454,13 @@
                 currentUserSession = session;
                 currentUserId = session.user.id;
                 
-                let displayName = session.user.user_metadata?.full_name || 
-                                  session.user.user_metadata?.name || 
-                                  session.user.email?.split('@')[0] || 
-                                  'User';
-
-                currentUser = displayName;
                 document.getElementById('active-user-badge').innerText = 'Syncing...';
                 document.getElementById('auth-portal').style.display = 'none';
 
-                // Sync User Settings from DB (querying by user_id OR email OR name)
                 let userEmail = session.user.email ? session.user.email.toLowerCase() : '';
+                let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+                let firstName = googleFullName ? googleFullName.split(' ')[0] : (session.user.email?.split('@')[0] || 'User');
+                
                 let profile = null;
 
                 if (currentUserId) {
@@ -1481,8 +1481,7 @@
                     profile = p2;
                 }
 
-                if (!profile && displayName) {
-                    const firstName = displayName.split(' ')[0];
+                if (!profile && firstName) {
                     const { data: p3 } = await _supabase
                         .from('users_list')
                         .select('*')
@@ -1492,18 +1491,17 @@
                 }
 
                 if (profile) {
-                    // Auto-link user_id and email on legacy profile row if missing or outdated
+                    currentUser = profile.name || firstName;
                     if (!profile.user_id || profile.user_id !== currentUserId) {
                         await _supabase
                             .from('users_list')
                             .update({ user_id: currentUserId, email: session.user.email || profile.email })
                             .eq('id', profile.id);
 
-                        // Attach existing transactions to this user_id
                         await _supabase
                             .from('transactions')
                             .update({ user_id: currentUserId })
-                            .ilike('user_name', profile.name);
+                            .ilike('user_name', currentUser);
                     }
 
                     if (profile.is_hold) {
@@ -1512,17 +1510,16 @@
                         return;
                     }
 
-                    if (profile.name) {
-                        currentUser = profile.name;
-                        document.getElementById('active-user-badge').innerText = currentUser;
-                    }
-
                     if (profile.selected_currency) {
                         currentBaseCurrency = profile.selected_currency;
                         localStorage.setItem('vault_base_currency', currentBaseCurrency);
                         document.getElementById('base-currency-select').value = currentBaseCurrency;
                     }
+                } else {
+                    currentUser = firstName;
                 }
+
+                document.getElementById('active-user-badge').innerText = currentUser;
 
                 populateCategoryDropdown();
                 renderUserCatBadges();

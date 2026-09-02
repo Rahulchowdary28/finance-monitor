@@ -77,7 +77,15 @@ USING (true);
 
 CREATE POLICY "Allow update for users" 
 ON public.users_list FOR UPDATE 
-USING (auth.uid()::text = user_id::text OR user_id IS NULL);
+USING (true);
+
+CREATE POLICY "Allow insert for users" 
+ON public.users_list FOR INSERT 
+WITH CHECK (true);
+
+CREATE POLICY "Allow delete for users" 
+ON public.users_list FOR DELETE 
+USING (true);
 
 CREATE POLICY "Users can select own transactions" 
 ON public.transactions FOR SELECT 

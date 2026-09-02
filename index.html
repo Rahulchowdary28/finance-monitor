@@ -1211,6 +1211,9 @@
 
     // ─── INITIALIZE SYSTEM FLOW & SUPABASE AUTH LISTENER ───
     async function initializeSystemFlow(){
+        if(localStorage.getItem('vault_theme') === 'light') {
+            document.body.setAttribute('data-theme', 'light');
+        }
         if(localStorage.getItem('vault_global_categories')) {
             globalCategories = JSON.parse(localStorage.getItem('vault_global_categories'));
         }

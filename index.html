@@ -375,11 +375,6 @@
     .stat.income { animation: pulseGlowGreen 3s infinite ease-in-out; animation-delay: 0.5s; }
     .stat.expenses { animation: pulseGlowRed 3s infinite ease-in-out; animation-delay: 1s; }
 
-    [data-theme="light"] .stat.balance, [data-theme="light"] .stat.income, [data-theme="light"] .stat.expenses {
-        animation: none !important;
-        box-shadow: none !important;
-    }
-
     .stat small { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; font-weight: 700; }
     .stat b { font-size: 1.35rem; font-weight: 800; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -1000,12 +995,12 @@
             tbody.innerHTML += `<tr>
                 <td style="padding:8px; font-size:0.8rem; font-weight:700;">${u.name || u.email}</td>
                 <td style="padding:8px; font-size:0.8rem; text-align:center;">
-                    <button onclick="adminToggleHoldStatus('${u.id}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
+                    <button onclick="adminToggleHoldStatus('${u.user_id || u.id}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
                         <i class="fas ${toggleIcon}" style="margin-right:4px;"></i> ${statusLabel}
                     </button>
                 </td>
                 <td style="padding:8px; font-size:0.8rem; text-align:right;">
-                    <button onclick="adminDeleteUser('${u.id}', '${u.name}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
+                    <button onclick="adminDeleteUser('${u.user_id || u.id}', '${u.name}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>`;
         });
@@ -1013,14 +1008,14 @@
 
     async function adminToggleHoldStatus(userId, currentHoldStatus) {
         const newHoldStatus = !currentHoldStatus;
-        await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('id', userId);
+        await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('user_id', userId);
         fetchAdminUsersTable();
     }
 
     async function adminDeleteUser(userId, name) {
         if(confirm(`Purge profile space for ${name || userId}?`)) {
             await _supabase.from('transactions').delete().eq('user_id', userId);
-            await _supabase.from('users_list').delete().eq('id', userId);
+            await _supabase.from('users_list').delete().eq('user_id', userId);
             fetchAdminUsersTable();
         }
     }

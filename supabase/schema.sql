@@ -153,16 +153,83 @@ CREATE TRIGGER on_auth_user_created
 -- ==============================================================================
 -- 11. SUPABASE AUTOMATED EMAIL CONFIGURATION GUIDE (WELCOME & PASSWORD RECOVERY)
 -- ==============================================================================
--- To automate Welcome Emails & Password Reset Emails via Supabase Dashboard:
--- 
--- A. PASSWORD RESET EMAILS:
---    1. Go to Supabase Dashboard -> Authentication -> Email Templates -> Reset Password
---    2. Subject: Reset Your Virtual Vault Password
---    3. Body Template:
---       <h2>Virtual Vault Security Alert</h2>
---       <p>Follow this secure link to reset your account password:</p>
---       <p><a href="{{ .ConfirmationURL }}">Reset Password</a></p>
---
+-- To automate Welcome Emails & Password Reset Emails via Supabase Dashboard:/* 
+-----------------------------------------------------------------------
+11. Professional Cyberpunk HTML Email Template for Supabase Reset Password
+-----------------------------------------------------------------------
+Paste this into Supabase Dashboard -> Authentication -> Email Templates -> Reset Password:
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Vault Security Alert</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #040612; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f3f4f6;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;">
+        <tr>
+            <td align="center" style="padding: 40px 10px;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #0d1127; border: 1px solid rgba(0, 212, 255, 0.2); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden;">
+                    
+                    <tr>
+                        <td align="center" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(0, 212, 255, 0.2)); padding: 30px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                            <table border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <div style="font-size: 20px; font-weight: 800; color: #00d4ff; letter-spacing: 3px; text-transform: uppercase;">
+                                            🛡️ VIRTUAL VAULT
+                                        </div>
+                                        <div style="font-size: 11px; color: #9ca3af; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;">
+                                            Security & Clearance Perimeter
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 32px 28px;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #ffffff;">
+                                Password Reset Request
+                            </h2>
+                            <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #9ca3af;">
+                                A password recovery dispatch was initiated for your Virtual Vault profile. Click the authorization button below to establish a new secure access key:
+                            </p>
+
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #00ff88; color: #040612; text-decoration: none; font-size: 14px; font-weight: 800; border-radius: 12px; letter-spacing: 1px; text-transform: uppercase; box-shadow: 0 0 15px rgba(0, 255, 136, 0.4);">
+                                            Authorize & Reset Password
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="background-color: rgba(18, 24, 54, 0.8); border-left: 3px solid #6366f1; padding: 14px 16px; border-radius: 8px; margin-top: 24px;">
+                                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #d1d5db;">
+                                    <strong style="color: #6366f1;">Notice:</strong> If you did not request this security clearance reset, no further action is required. Your current credentials remain secure.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="background-color: #060919; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 11px; color: #6b7280; line-height: 1.5;">
+                            This is an automated system security dispatch.<br>
+                            &copy; 2026 Virtual Vault Terminal. All rights reserved.
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+*/--
 -- B. WELCOME / SIGNUP CONFIRMATION EMAILS:
 --    1. Go to Supabase Dashboard -> Authentication -> Email Templates -> Confirm Signup
 --    2. Subject: Welcome to Virtual Vault Terminal

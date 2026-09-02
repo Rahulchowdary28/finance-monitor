@@ -880,6 +880,13 @@
     let currentUser = null;
     let authMode = 'signin'; // 'signin' or 'signup'
 
+    // Capture Password Recovery Hash BEFORE supabase-js parses and strips it from URL
+    const isRecoveryURL = Boolean(window.location.hash && (
+        window.location.hash.includes('type=recovery') || 
+        window.location.hash.includes('reset-password') ||
+        (window.location.hash.includes('access_token') && window.location.hash.includes('type=recovery'))
+    ));
+
     const PUBLIC_VAPID_KEY = 'BHaR2ys29miH921MBJ3so73X3LT8MDeYGiRS5l8f1sTD4x8rtQQcSR-CbvfxAjLFi607nQ_Xq239UHuiMX3xA3k';
     const SUPABASE_URL = 'https://kfbtsoszcfnoovjvomir.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
@@ -1441,14 +1448,14 @@
             document.getElementById('base-currency-select').value = currentBaseCurrency;
         }
 
-        if (window.location.hash.includes('type=recovery') || window.location.hash.includes('reset-password')) {
-            setTimeout(openUpdatePasswordModal, 300);
+        if (isRecoveryURL || window.location.hash.includes('type=recovery') || window.location.hash.includes('reset-password')) {
+            setTimeout(openUpdatePasswordModal, 150);
         }
 
         // Listen for Auth Changes (Login, Logout, OAuth Callback)
         _supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === 'PASSWORD_RECOVERY' || (window.location.hash && window.location.hash.includes('type=recovery'))) {
-                openUpdatePasswordModal();
+            if (event === 'PASSWORD_RECOVERY' || isRecoveryURL) {
+                setTimeout(openUpdatePasswordModal, 100);
             }
 
             if (session && session.user) {

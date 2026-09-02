@@ -1006,7 +1006,7 @@
 
         try {
             const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + '/#reset-password'
+                redirectTo: window.location.origin
             });
 
             if (error) throw error;
@@ -1015,7 +1015,7 @@
             statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
             statusMsg.style.borderColor = 'var(--lime)';
             statusMsg.style.color = 'var(--lime)';
-            statusMsg.innerText = 'Password recovery link has been dispatched to your email inbox!';
+            statusMsg.innerText = 'Password recovery email dispatched! Please check your Spam/Junk folder if not in Inbox.';
             document.getElementById('recovery-email-input').value = '';
         } catch (err) {
             statusMsg.style.display = 'block';

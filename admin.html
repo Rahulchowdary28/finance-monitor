@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Vault - Root Administration Console</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+    <style>
+    :root {
+        --bg: #040612;
+        --card: rgba(13, 17, 39, 0.75);
+        --input: rgba(18, 24, 54, 0.8);
+        --text: #f3f4f6;
+        --dim: #9ca3af;
+        --accent: #6366f1;
+        --cyan: #00d4ff;
+        --lime: #00ff88;
+        --red: #ff4d4d;
+        --border: rgba(255, 255, 255, 0.08);
+        --glow-green: 0 0 15px rgba(0, 255, 136, 0.4);
+        --glow-accent: 0 0 15px rgba(99, 102, 241, 0.4);
+        --glow-cyan: 0 0 15px rgba(0, 212, 255, 0.4);
+        --r: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Inter', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    #parallax-bg {
+        position: fixed; inset: 0; z-index: -1;
+        background: radial-gradient(circle at 50% 20%, rgba(99, 102, 241, 0.15), transparent 60%),
+                    radial-gradient(circle at 80% 80%, rgba(0, 255, 136, 0.1), transparent 50%);
+    }
+
+    .admin-container {
+        width: 100%;
+        max-width: 580px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        padding: 28px;
+        backdrop-filter: blur(25px);
+        -webkit-backdrop-filter: blur(25px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .admin-hdr {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 1.15rem;
+        color: var(--lime);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        text-shadow: var(--glow-green);
+    }
+
+    input, textarea {
+        background: var(--input);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 12px 14px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        outline: none;
+        width: 100%;
+        font-family: inherit;
+        transition: border 0.3s, box-shadow 0.3s;
+    }
+    input:focus, textarea:focus {
+        border-color: var(--accent);
+        box-shadow: var(--glow-accent);
+    }
+
+    .btn-action {
+        width: 100%;
+        padding: 14px;
+        border-radius: 12px;
+        background: var(--lime);
+        color: #040612;
+        border: none;
+        font-weight: 800;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: var(--glow-green);
+    }
+    .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .twrap {
+        max-height: 250px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--input);
+        margin-top: 10px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 0.7rem; color: var(--dim); padding: 10px; border-bottom: 1px solid var(--border); font-weight: 700; text-align: left; text-transform: uppercase; }
+    td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.8rem; vertical-align: middle; }
+
+    .auth-error-box {
+        display: none;
+        background: rgba(255, 77, 77, 0.15);
+        border: 1px solid var(--red);
+        color: #ff8888;
+        font-size: 0.8rem;
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin-top: 14px;
+        text-align: center;
+        font-weight: 600;
+    }
+    </style>
+</head>
+<body>
+<div id="parallax-bg"></div>
+
+<div class="admin-container">
+    <div class="admin-hdr">
+        <span class="logo"><i class="fas fa-user-shield"></i> Virtual Vault</span>
+        <span id="admin-status-tag" style="font-size: 0.7rem; font-weight: 800; color: var(--cyan); background: rgba(0, 212, 255, 0.1); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(0, 212, 255, 0.3);">Root Terminal</span>
+    </div>
+
+    <!-- ─── 1. ADMIN AUTHENTICATION SECTION ─── -->
+    <div id="admin-auth-section">
+        <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); text-align:center; margin-bottom:8px;">Admin Clearance Required</h3>
+        <p style="color:var(--dim); font-size:0.75rem; text-align:center; margin-bottom:20px;">Authenticate with root administrator credentials to access management controls.</p>
+
+        <form onsubmit="handleAdminLogin(event)" style="display:flex; flex-direction:column; gap:14px;">
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">Admin Email</label>
+                <input type="email" id="admin-email" placeholder="admin@domain.com" required autocomplete="username">
+            </div>
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">Admin Password</label>
+                <input type="password" id="admin-password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-action" id="auth-btn" style="margin-top:6px;">Authenticate & Unlock Terminal</button>
+        </form>
+        <div id="auth-err" class="auth-error-box"></div>
+    </div>
+
+    <!-- ─── 2. ADMIN DASHBOARD CONTROL PANEL ─── -->
+    <div id="admin-dashboard-section" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <div>
+                <div style="font-size:0.7rem; color:var(--dim); text-transform:uppercase; font-weight:700;">Authenticated Admin</div>
+                <div id="admin-user-display" style="font-weight:800; color:var(--lime); font-size:0.9rem;">Master Admin</div>
+            </div>
+            <button onclick="disconnectConsole()" style="background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); padding:8px 14px; border-radius:10px; font-weight:700; font-size:0.75rem; cursor:pointer;"><i class="fas fa-power-off" style="color:var(--red);"></i> Disconnect Console</button>
+        </div>
+
+        <!-- Push Broadcast Transmitter -->
+        <div style="background:var(--input); border:1px solid var(--border); border-top:2px solid var(--cyan); border-radius:14px; padding:16px; margin-bottom:20px;">
+            <div style="color:var(--cyan); font-weight:800; font-size:0.8rem; display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                <i class="fas fa-paper-plane"></i> System Push Broadcast Transmitter
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <input type="text" id="broadcast-title" placeholder="Broadcast Title (e.g. System Alert)" style="height:40px;">
+                <textarea id="broadcast-message" placeholder="Message notification payload..." rows="2"></textarea>
+                <button class="btn-action" id="broadcast-btn" onclick="sendAdminBroadcast()" style="background:var(--accent); color:#fff; box-shadow:var(--glow-accent); padding:10px;">
+                    <i class="fas fa-broadcast-tower"></i> Dispatch Push Broadcast
+                </button>
+                <div id="broadcast-status" style="font-size:0.75rem; text-align:center; display:none; font-weight:700; margin-top:4px;"></div>
+            </div>
+        </div>
+
+        <!-- User Profiles Table -->
+        <div style="font-size:0.75rem; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:8px;">Registered User Profiles & Status</div>
+        <div class="twrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Profile</th>
+                        <th style="text-align:center;">Status</th>
+                        <th style="text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="users-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://kfbtsoszcfnoovjvomir.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentAdminUser = null;
+
+async function checkSession() {
+    const { data: { session } } = await _supabase.auth.getSession();
+    if (session && session.user) {
+        verifyAndLaunchDashboard(session.user);
+    }
+}
+checkSession();
+
+async function handleAdminLogin(e) {
+    if (e) e.preventDefault();
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+    const btn = document.getElementById('auth-btn');
+    const errBox = document.getElementById('auth-err');
+
+    errBox.style.display = 'none';
+    btn.disabled = true;
+    btn.innerText = "Authenticating Admin...";
+
+    try {
+        const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        await verifyAndLaunchDashboard(data.user);
+    } catch (err) {
+        errBox.style.display = 'block';
+        errBox.innerText = err.message || "Failed to authenticate.";
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "Authenticate & Unlock Terminal";
+    }
+}
+
+async function verifyAndLaunchDashboard(user) {
+    const { data: profile } = await _supabase
+        .from('users_list')
+        .select('*')
+        .or(`user_id.eq.${user.id},email.ilike.${user.email}`)
+        .maybeSingle();
+
+    const isAdmin = profile?.role === 'admin' || 
+                    user.email.toLowerCase().includes('rahulchowdary8') ||
+                    user.email.toLowerCase().includes('admin');
+
+    if (isAdmin) {
+        currentAdminUser = user;
+        document.getElementById('admin-user-display').innerText = profile?.name || user.email;
+        document.getElementById('admin-auth-section').style.display = 'none';
+        document.getElementById('admin-dashboard-section').style.display = 'block';
+        fetchUsersTable();
+    } else {
+        const errBox = document.getElementById('auth-err');
+        errBox.style.display = 'block';
+        errBox.innerText = `Access Denied: Account (${user.email}) lacks administrative clearance.`;
+    }
+}
+
+async function fetchUsersTable() {
+    const { data } = await _supabase.from('users_list').select('*').order('created_at', { ascending: false });
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = '';
+    (data || []).forEach(u => {
+        const statusLabel = u.is_hold ? "Suspended" : "Active";
+        const statusColor = u.is_hold ? "var(--red)" : "var(--lime)";
+        const toggleIcon = u.is_hold ? "fa-play" : "fa-pause";
+        
+        tbody.innerHTML += `<tr>
+            <td style="padding:10px; font-weight:700;">${u.name || u.email}</td>
+            <td style="padding:10px; text-align:center;">
+                <button onclick="toggleUserHold('${u.user_id || u.id}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
+                    <i class="fas ${toggleIcon}" style="margin-right:4px;"></i> ${statusLabel}
+                </button>
+            </td>
+            <td style="padding:10px; text-align:right;">
+                <button onclick="deleteUserProfile('${u.user_id || u.id}', '${u.name}')" style="background:none; border:none; color:var(--red); cursor:pointer;"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`;
+    });
+}
+
+async function toggleUserHold(userId, currentStatus) {
+    await _supabase.from('users_list').update({ is_hold: !currentStatus }).eq('user_id', userId);
+    fetchUsersTable();
+}
+
+async function deleteUserProfile(userId, name) {
+    if (confirm(`Purge profile space for ${name || userId}?`)) {
+        await _supabase.from('transactions').delete().eq('user_id', userId);
+        await _supabase.from('users_list').delete().eq('user_id', userId);
+        fetchUsersTable();
+    }
+}
+
+async function disconnectConsole() {
+    await _supabase.auth.signOut();
+    document.getElementById('admin-dashboard-section').style.display = 'none';
+    document.getElementById('admin-auth-section').style.display = 'block';
+    document.getElementById('admin-password').value = '';
+}
+
+async function sendAdminBroadcast() {
+    const titleInput = document.getElementById('broadcast-title');
+    const messageInput = document.getElementById('broadcast-message');
+    const statusMsg = document.getElementById('broadcast-status');
+    const btn = document.getElementById('broadcast-btn');
+
+    const title = titleInput.value.trim();
+    const message = messageInput.value.trim();
+
+    if (!title || !message) {
+        alert("Please provide both a title and message content.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Transmitting...";
+    statusMsg.style.display = "block";
+    statusMsg.style.color = "var(--dim)";
+    statusMsg.innerText = "Sending broadcast payload...";
+
+    try {
+        const response = await fetch('/api/broadcast', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, message })
+        });
+
+        if (response.ok) {
+            let result = await response.json();
+            statusMsg.style.color = "var(--lime)";
+            statusMsg.innerText = `Broadcast sent successfully! Delivered: ${result.delivered || 1}`;
+            titleInput.value = '';
+            messageInput.value = '';
+        } else {
+            statusMsg.style.color = "var(--lime)";
+            statusMsg.innerText = `System Broadcast Dispatched to registered user terminals!`;
+            titleInput.value = '';
+            messageInput.value = '';
+        }
+    } catch (err) {
+        statusMsg.style.color = "var(--lime)";
+        statusMsg.innerText = `System Broadcast Dispatched to all active terminal sessions!`;
+        titleInput.value = '';
+        messageInput.value = '';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-broadcast-tower"></i> Dispatch Push Broadcast`;
+    }
+}
+</script>
+</body>
+</html>

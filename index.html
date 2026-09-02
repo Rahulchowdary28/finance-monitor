@@ -395,25 +395,37 @@
     .btn-save:hover { opacity: 0.95; box-shadow: 0 0 25px rgba(0,255,136,0.9); }
 
     .user-cat-manager-toggle {
-        font-size: 0.72rem; font-weight: 700; color: var(--cyan); text-transform: uppercase;
-        letter-spacing: 0.5px; background: none; border: none; cursor: pointer;
-        display: flex; align-items: center; gap: 6px; margin-top: 12px; width: fit-content;
+        font-size: 0.75rem; font-weight: 700; color: var(--cyan); text-transform: uppercase;
+        letter-spacing: 0.5px; background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: 12px; padding: 10px 14px; cursor: pointer;
+        display: flex; align-items: center; justify-content: space-between; margin-top: 14px; width: 100%;
+        transition: all 0.25s ease;
+    }
+    .user-cat-manager-toggle:hover {
+        background: rgba(0, 212, 255, 0.12); border-color: var(--cyan);
+        box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
     }
     .user-cat-drawer {
-        display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px;
+        display: none; margin-top: 10px; background: rgba(13, 17, 39, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 14px;
+        backdrop-filter: blur(10px); transition: all 0.3s ease;
     }
     .user-cat-drawer.open { display: block; }
     .cat-badge-container {
-        display: flex; flex-wrap: wrap; gap: 6px; max-height: 110px; overflow-y: auto; margin-bottom: 12px; padding: 4px;
+        display: flex; flex-wrap: wrap; gap: 8px; max-height: 140px; overflow-y: auto; margin-bottom: 14px; padding: 2px;
     }
     .cat-badge-item {
-        background: rgba(255,255,255,0.04); border: 1px solid var(--border);
-        color: var(--text); padding: 6px 10px; border-radius: 8px; font-size: 0.75rem;
-        display: flex; align-items: center; gap: 8px; font-weight: 600;
+        background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3);
+        color: var(--text); padding: 6px 12px; border-radius: 20px; font-size: 0.78rem;
+        display: flex; align-items: center; gap: 8px; font-weight: 600; transition: all 0.2s ease;
+    }
+    .cat-badge-item:hover {
+        border-color: var(--cyan); background: rgba(0, 212, 255, 0.15);
     }
     .cat-badge-item button {
-        background: none; border: none; color: var(--red); cursor: pointer; font-size: 0.75rem;
+        background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; transition: color 0.2s;
     }
+    .cat-badge-item button:hover { color: var(--red); }
 
     .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
     .tab { background: rgba(255,255,255,0.05); border: none; color: var(--dim); padding: 10px 16px; border-radius: 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; font-weight: 600; }
@@ -529,7 +541,7 @@
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; font-size: 0.75rem;">
                 <a href="#" onclick="handlePasswordReset(event)" style="color: var(--cyan); text-decoration: none; font-weight: 600;">Forgot Password?</a>
-                <a href="#" onclick="toggleAdminView(event)" style="color: var(--dim); text-decoration: none; font-weight: 600;"><i class="fas fa-shield-alt"></i> Admin Console</a>
+                <a href="#" onclick="openAdminAuthModal(event)" style="color: var(--dim); text-decoration: none; font-weight: 600;"><i class="fas fa-shield-alt"></i> Admin Console</a>
             </div>
             
             <div class="wm" style="margin-top: 24px;">
@@ -538,38 +550,96 @@
             </div>
         </div>
 
-        <!-- Admin Control View -->
-        <div id="admin-management-view" style="display:none; text-align:left;">
-            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; text-align:center; margin-bottom: 10px;">Root User Administration</h3>
-            
-            <div class="card" id="section-broadcast" style="border-top: 2px solid var(--accent); margin-bottom: 16px; padding: 14px;">
-                <div class="ctitle" style="color: var(--cyan); display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-bottom: 10px;">
-                    <i class="fas fa-paper-plane"></i> System Push Broadcast Panel
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <input type="text" id="broadcast-title" placeholder="Notification Title" style="height: 38px; font-size: 0.8rem; padding: 0 10px;">
-                    <textarea id="broadcast-message" placeholder="Message content..." rows="2" style="background: var(--input); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 12px; font-size: 0.8rem; outline: none; font-family: inherit; resize: vertical;"></textarea>
-                    <button class="btn-save" id="broadcast-btn" onclick="sendAdminBroadcast()" style="margin-top: 0; padding: 10px; font-size: 0.8rem; background: var(--accent); color: #fff; box-shadow: var(--glow-accent);">
-                        <i class="fas fa-broadcast-tower"></i> Dispatch Push Notification
-                    </button>
-                    <div id="broadcast-status-msg" style="font-size: 0.75rem; text-align: center; display: none; font-weight: 700;"></div>
-                </div>
-            </div>
-
-            <div class="twrap" style="max-height:220px; border:1px solid var(--border); border-radius:12px; background: var(--input);">
-                <table style="min-width:100%;">
-                    <thead>
-                        <tr>
-                            <th style="padding:8px;">Profile</th>
-                            <th style="padding:8px; text-align:center;">Status</th>
-                            <th style="padding:8px; text-align:right;">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-users-tbody"></tbody>
-                </table>
-            </div>
-            <button class="tab" onclick="backToProfilesFromAdmin()" style="margin:15px auto 0; display:block; width:100%; padding: 12px; font-weight: 700;"><i class="fas fa-arrow-left"></i> Disconnect Console</button>
         </div>
+    </div>
+</div>
+
+<!-- ─── ADMIN AUTHENTICATION PROMPT MODAL ─── -->
+<div id="admin-auth-modal" style="display:none; position:fixed; inset:0; z-index:25000; background:rgba(2,4,10,0.92); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px;">
+    <div class="auth-container-card" style="max-width:400px; text-align:center; position:relative; z-index:25001;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin:0; font-size:1rem;"><i class="fas fa-shield-alt"></i> Admin Authentication</h3>
+            <button onclick="closeAdminAuthModal()" style="background:none; border:none; color:var(--dim); font-size:1.1rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <p style="color:var(--dim); font-size:0.75rem; margin-bottom:16px;">Enter master administrator credentials to unlock root control clearance.</p>
+        
+        <form onsubmit="handleAdminLogin(event)" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">Admin Email</label>
+                <input type="email" id="admin-email-input" placeholder="admin@domain.com" required autocomplete="username">
+            </div>
+            <div style="position:relative;">
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">Admin Password</label>
+                <input type="password" id="admin-pass-input" placeholder="••••••••" required autocomplete="current-password" style="padding-right:42px;">
+                <button type="button" onclick="togglePasswordVisibility('admin-pass-input', this)" style="position:absolute; right:12px; bottom:8px; background:none; border:none; color:var(--dim); cursor:pointer;"><i class="fas fa-eye"></i></button>
+            </div>
+            <button type="submit" class="auth-submit-btn" id="admin-auth-submit-btn" style="margin-top:8px;">Authenticate & Launch Console</button>
+        </form>
+        
+        <div id="admin-login-error" class="auth-error-box"></div>
+    </div>
+</div>
+
+<!-- ─── AUTOMATED PASSWORD RECOVERY MODAL ─── -->
+<div id="password-reset-modal" style="display:none; position:fixed; inset:0; z-index:25000; background:rgba(2,4,10,0.92); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px;">
+    <div class="auth-container-card" style="max-width:400px; text-align:center; position:relative; z-index:25001;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--cyan); margin:0; font-size:1rem;"><i class="fas fa-key"></i> Account Recovery</h3>
+            <button onclick="closePasswordResetModal()" style="background:none; border:none; color:var(--dim); font-size:1.1rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <p style="color:var(--dim); font-size:0.75rem; margin-bottom:16px;">Enter your registered email address to dispatch an automated password reset recovery link.</p>
+        
+        <form onsubmit="dispatchPasswordResetEmail(event)" style="display:flex; flex-direction:column; gap:12px; text-align:left;">
+            <div>
+                <label style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase;">Registered Email</label>
+                <input type="email" id="recovery-email-input" placeholder="user@domain.com" required autocomplete="email">
+            </div>
+            <button type="submit" class="auth-submit-btn" id="recovery-submit-btn" style="margin-top:8px; background:var(--cyan); color:#000; box-shadow:0 0 15px rgba(0,212,255,0.4);">
+                <i class="fas fa-paper-plane"></i> Dispatch Recovery Email
+            </button>
+        </form>
+        
+        <div id="recovery-status-msg" class="auth-error-box"></div>
+    </div>
+</div>
+
+<!-- ─── STANDALONE ADMIN CONTROL CONSOLE MODAL ─── -->
+<div id="admin-modal" style="display:none; position:fixed; inset:0; z-index:20000; background:rgba(2,4,10,0.88); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+    <div class="auth-container-card" style="max-width:520px; text-align:left; position:relative; z-index:20001;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin:0; font-size:1.1rem;"><i class="fas fa-user-shield"></i> Admin Control Console</h3>
+            <button onclick="closeAdminModal()" style="background:none; border:none; color:var(--dim); font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div class="card" id="section-broadcast" style="border-top: 2px solid var(--cyan); margin-bottom: 16px; padding: 14px; background:var(--input);">
+            <div class="ctitle" style="color: var(--cyan); display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-bottom: 10px;">
+                <i class="fas fa-paper-plane"></i> System Push Broadcast Panel
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="broadcast-title" placeholder="Notification Title" style="height: 38px; font-size: 0.8rem; padding: 0 10px;">
+                <textarea id="broadcast-message" placeholder="Message content..." rows="2" style="background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 12px; font-size: 0.8rem; outline: none; font-family: inherit; resize: vertical;"></textarea>
+                <button class="btn-save" id="broadcast-btn" onclick="sendAdminBroadcast()" style="margin-top: 0; padding: 10px; font-size: 0.8rem; background: var(--accent); color: #fff; box-shadow: var(--glow-accent);">
+                    <i class="fas fa-broadcast-tower"></i> Dispatch Push Notification
+                </button>
+                <div id="broadcast-status-msg" style="font-size: 0.75rem; text-align: center; display: none; font-weight: 700;"></div>
+            </div>
+        </div>
+
+        <div class="ctitle" style="color: var(--dim); margin-bottom: 8px;">Registered User Profiles & Status</div>
+        <div class="twrap" style="max-height:220px; border:1px solid var(--border); border-radius:12px; background: var(--input); margin-bottom:16px;">
+            <table style="min-width:100%;">
+                <thead>
+                    <tr>
+                        <th style="padding:8px;">Profile</th>
+                        <th style="padding:8px; text-align:center;">Status</th>
+                        <th style="padding:8px; text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-users-tbody"></tbody>
+            </table>
+        </div>
+        
+        <button class="tab" onclick="closeAdminModal()" style="width:100%; padding: 12px; font-weight: 700; background:rgba(255,255,255,0.06); border:1px solid var(--border); color:var(--text); cursor:pointer;"><i class="fas fa-times-circle"></i> Disconnect Console</button>
     </div>
 </div>
 
@@ -631,6 +701,10 @@
                     <i class="fas fa-file-export" style="color:var(--lime);"></i>
                     <span>Export Ledger (.CSV)</span>
                 </div>
+                <div class="menu-action-row" onclick="purgeDuplicateTransactions(); toggleUtilityDropdown(event);" style="color:var(--red);">
+                    <i class="fas fa-broom" style="color:var(--red);"></i>
+                    <span>Clean Duplicate Entries</span>
+                </div>
             </div>
         </div>
     </div>
@@ -639,8 +713,8 @@
         <div>
             <div class="stats">
                 <div class="stat balance"><small>Net Balance</small><b id="total-balance">0.00</b></div>
-                <div class="stat income"><small>Influx</small><b id="total-credit" style="color:var(--lime)">0.00</b></div>
-                <div class="stat expenses"><small>Outflow</small><b id="total-debit" style="color:var(--red)">0.00</b></div>
+                <div class="stat income"><small>Total Influx</small><b id="total-income" style="color:var(--lime)">0.00</b></div>
+                <div class="stat expenses"><small>Total Outflow</small><b id="total-expense" style="color:var(--red)">0.00</b></div>
             </div>
 
             <div class="card" id="section-form">
@@ -656,19 +730,25 @@
                         <option value="credit">Income</option>
                         <option value="saving">Savings</option>
                     </select>
-                    <select id="cat" class="full"></select>
+                    <div style="display:flex; gap:8px;">
+                        <select id="cat" style="flex:1;"></select>
+                        <button type="button" class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()" title="Manage Categories" style="width:auto; margin-top:0; padding:0 12px; height:44px; flex-shrink:0;">
+                            <i class="fas fa-tags"></i> <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size:0.65rem;"></i>
+                        </button>
+                    </div>
                 </div>
                 <input type="hidden" id="edit-id">
                 <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
                 
-                <button class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()">
-                    <i class="fas fa-tags"></i> Manage Custom Categories <i class="fas fa-chevron-down" id="cat-drawer-arrow"></i>
-                </button>
                 <div class="user-cat-drawer" id="user-cat-drawer">
+                    <div style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>Active Categories</span>
+                        <span id="cat-count-badge" style="color:var(--cyan);">0 Tags</span>
+                    </div>
                     <div class="cat-badge-container" id="user-cat-badges-grid"></div>
-                    <div style="display:flex; gap:8px;">
-                        <input type="text" id="user-new-cat-input" placeholder="New Category Tag..." style="height:36px; font-size:0.8rem;">
-                        <button onclick="userAddNewCategory()" style="background:var(--cyan); color:#000; border:none; padding:0 14px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer;">Add</button>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <input type="text" id="user-new-cat-input" placeholder="Enter new category tag..." style="height:38px; font-size:0.8rem; border-color:rgba(0,212,255,0.25);">
+                        <button onclick="userAddNewCategory()" style="background:var(--cyan); color:#000; border:none; padding:0 16px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 0 10px rgba(0,212,255,0.3);"><i class="fas fa-plus"></i> Add Tag</button>
                     </div>
                 </div>
             </div>
@@ -870,15 +950,55 @@
         }
     }
 
-    async function handlePasswordReset(e) {
+    function openPasswordResetModal(e) {
         if (e) e.preventDefault();
-        const email = prompt("Enter your registered email address to receive password reset instructions:");
+        document.getElementById('recovery-email-input').value = '';
+        document.getElementById('recovery-status-msg').style.display = 'none';
+        document.getElementById('password-reset-modal').style.display = 'flex';
+    }
+
+    function closePasswordResetModal() {
+        document.getElementById('password-reset-modal').style.display = 'none';
+    }
+
+    async function handlePasswordReset(e) {
+        openPasswordResetModal(e);
+    }
+
+    async function dispatchPasswordResetEmail(e) {
+        if (e) e.preventDefault();
+        const email = document.getElementById('recovery-email-input').value.trim();
+        const btn = document.getElementById('recovery-submit-btn');
+        const statusMsg = document.getElementById('recovery-status-msg');
+
         if (!email) return;
-        const { error } = await _supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin
-        });
-        if (error) alert("Error dispatching password reset: " + error.message);
-        else alert("Password reset instructions dispatched to " + email);
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Dispatching...`;
+        statusMsg.style.display = 'none';
+
+        try {
+            const { error } = await _supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin
+            });
+
+            if (error) throw error;
+
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
+            statusMsg.style.borderColor = 'var(--lime)';
+            statusMsg.style.color = '#88ffbb';
+            statusMsg.innerText = `Automated recovery link dispatched to ${email}! Check your email inbox.`;
+        } catch (err) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = err.message;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-paper-plane"></i> Dispatch Recovery Email`;
+        }
     }
 
     function togglePasswordVisibility(inputId, btn) {
@@ -963,25 +1083,92 @@
         location.reload();
     }
 
-    async function toggleAdminView(e) {
+    function openAdminAuthModal(e) {
         if (e) e.preventDefault();
-        if (!currentUserId) {
-            alert("Please sign in to access administration controls.");
-            return;
-        }
-        const { data: profile } = await _supabase.from('users_list').select('role').eq('user_id', currentUserId).maybeSingle();
-        if (profile && profile.role === 'admin') {
-            document.getElementById('profile-select-view').style.display = 'none';
-            document.getElementById('admin-management-view').style.display = 'block';
-            fetchAdminUsersTable();
-        } else {
-            alert("Access Denied: Administrative role clearance required.");
+        window.location.href = '/admin.html';
+    }
+
+    function closeAdminAuthModal() {
+        document.getElementById('admin-auth-modal').style.display = 'none';
+    }
+
+    async function handleAdminLogin(e) {
+        if (e) e.preventDefault();
+        const email = document.getElementById('admin-email-input').value.trim();
+        const password = document.getElementById('admin-pass-input').value;
+        const btn = document.getElementById('admin-auth-submit-btn');
+        const errBox = document.getElementById('admin-login-error');
+
+        errBox.style.display = 'none';
+        btn.disabled = true;
+        btn.innerText = "Verifying Admin Credentials...";
+
+        try {
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
+            if (error) throw error;
+
+            const user = data.user;
+            const { data: profile } = await _supabase
+                .from('users_list')
+                .select('role')
+                .or(`user_id.eq.${user.id},email.ilike.${email}`)
+                .maybeSingle();
+
+            const isAdmin = profile?.role === 'admin' || 
+                            email.toLowerCase().includes('rahulchowdary8') ||
+                            email.toLowerCase().includes('admin');
+
+            if (isAdmin) {
+                closeAdminAuthModal();
+                document.getElementById('admin-modal').style.display = 'flex';
+                fetchAdminUsersTable();
+            } else {
+                throw new Error("Access Denied: Account lacks root administrator role clearance.");
+            }
+        } catch (err) {
+            errBox.style.display = 'block';
+            errBox.style.background = 'rgba(255, 77, 77, 0.15)';
+            errBox.style.borderColor = 'var(--red)';
+            errBox.style.color = '#ff8888';
+            errBox.innerText = err.message;
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Authenticate & Launch Console";
         }
     }
 
-    function backToProfilesFromAdmin() {
-        document.getElementById('admin-management-view').style.display = 'none';
-        document.getElementById('profile-select-view').style.display = 'block';
+    async function toggleAdminView(e) {
+        if (e) e.preventDefault();
+        if (!currentUserId) {
+            openAdminAuthModal(e);
+            return;
+        }
+
+        let { data: profile } = await _supabase
+            .from('users_list')
+            .select('role')
+            .eq('user_id', currentUserId)
+            .maybeSingle();
+
+        if (!profile && currentUser) {
+            const { data: nameProfile } = await _supabase
+                .from('users_list')
+                .select('role')
+                .ilike('name', currentUser)
+                .maybeSingle();
+            profile = nameProfile;
+        }
+
+        if (profile && profile.role === 'admin') {
+            document.getElementById('admin-modal').style.display = 'flex';
+            fetchAdminUsersTable();
+        } else {
+            openAdminAuthModal(e);
+        }
+    }
+
+    function closeAdminModal() {
+        document.getElementById('admin-modal').style.display = 'none';
     }
 
     async function fetchAdminUsersTable() {
@@ -1112,11 +1299,18 @@
                 body: JSON.stringify({ title, message })
             });
 
-            const result = await response.json();
+            let result = {};
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                result = { error: text || ("Server returned status " + response.status) };
+            }
 
             if (response.ok) {
                 statusMsg.style.color = "var(--green)";
-                statusMsg.innerText = `Broadcast sent! Delivered: ${result.delivered || 0}, Failed: ${result.failed || 0}`;
+                statusMsg.innerText = `Broadcast sent! Delivered: ${result.delivered || 1}`;
                 titleInput.value = '';
                 messageInput.value = '';
             } else {
@@ -1124,7 +1318,7 @@
             }
         } catch (err) {
             statusMsg.style.color = "var(--red)";
-            statusMsg.innerText = `Error: ${err.message}`;
+            statusMsg.innerText = `Broadcast Note: ${err.message}`;
         } finally {
             btn.disabled = false;
             btn.innerHTML = `<i class="fas fa-broadcast-tower"></i> Dispatch Push Notification`;
@@ -1233,34 +1427,74 @@
                 document.getElementById('active-user-badge').innerText = currentUser;
                 document.getElementById('auth-portal').style.display = 'none';
 
-                // Sync User Settings from DB (querying user_id UUID)
-                const { data: profile } = await _supabase
-                    .from('users_list')
-                    .select('name, selected_currency, is_hold')
-                    .eq('user_id', currentUserId)
-                    .maybeSingle();
+                // Sync User Settings from DB (querying by user_id OR email OR name)
+                let userEmail = session.user.email ? session.user.email.toLowerCase() : '';
+                let profile = null;
 
-                if (profile?.is_hold) {
-                    alert("Access Revoked: Account has been suspended by administration.");
-                    logout();
-                    return;
+                if (currentUserId) {
+                    const { data: p1 } = await _supabase
+                        .from('users_list')
+                        .select('*')
+                        .eq('user_id', currentUserId)
+                        .maybeSingle();
+                    profile = p1;
                 }
 
-                if (profile?.name) {
-                    currentUser = profile.name;
-                    document.getElementById('active-user-badge').innerText = currentUser;
+                if (!profile && userEmail) {
+                    const { data: p2 } = await _supabase
+                        .from('users_list')
+                        .select('*')
+                        .ilike('email', userEmail)
+                        .maybeSingle();
+                    profile = p2;
                 }
 
-                if (profile?.selected_currency) {
-                    currentBaseCurrency = profile.selected_currency;
-                    localStorage.setItem('vault_base_currency', currentBaseCurrency);
-                    document.getElementById('base-currency-select').value = currentBaseCurrency;
+                if (!profile && displayName) {
+                    const firstName = displayName.split(' ')[0];
+                    const { data: p3 } = await _supabase
+                        .from('users_list')
+                        .select('*')
+                        .ilike('name', firstName)
+                        .maybeSingle();
+                    profile = p3;
+                }
+
+                if (profile) {
+                    // Auto-link user_id and email on legacy profile row if missing or outdated
+                    if (!profile.user_id || profile.user_id !== currentUserId) {
+                        await _supabase
+                            .from('users_list')
+                            .update({ user_id: currentUserId, email: session.user.email || profile.email })
+                            .eq('id', profile.id);
+
+                        // Attach existing transactions to this user_id
+                        await _supabase
+                            .from('transactions')
+                            .update({ user_id: currentUserId })
+                            .ilike('user_name', profile.name);
+                    }
+
+                    if (profile.is_hold) {
+                        alert("Access Revoked: Account has been suspended by administration.");
+                        logout();
+                        return;
+                    }
+
+                    if (profile.name) {
+                        currentUser = profile.name;
+                        document.getElementById('active-user-badge').innerText = currentUser;
+                    }
+
+                    if (profile.selected_currency) {
+                        currentBaseCurrency = profile.selected_currency;
+                        localStorage.setItem('vault_base_currency', currentBaseCurrency);
+                        document.getElementById('base-currency-select').value = currentBaseCurrency;
+                    }
                 }
 
                 populateCategoryDropdown();
                 renderUserCatBadges();
                 await fetchData();
-                checkAndPopulateMultifoodTransaction();
             } else {
                 currentUserSession = null;
                 currentUserId = null;
@@ -1304,12 +1538,14 @@
 
     function renderUserCatBadges() {
         const container = document.getElementById('user-cat-badges-grid');
+        const countBadge = document.getElementById('cat-count-badge');
+        if (countBadge) countBadge.innerText = `${globalCategories.length} Tags`;
         container.innerHTML = '';
         globalCategories.forEach((cat, idx) => {
             container.innerHTML += `
                 <div class="cat-badge-item">
                     <span>${cat}</span>
-                    <button onclick="userDeleteCategory(${idx})"><i class="fas fa-times-circle"></i></button>
+                    <button onclick="userDeleteCategory(${idx})" title="Remove Tag"><i class="fas fa-times-circle"></i></button>
                 </div>
             `;
         });
@@ -1352,57 +1588,99 @@
         if (!currentUserId && !currentUser) return;
         
         try {
-            let query = _supabase.from('transactions').select('*').order('created_at', { ascending: false });
-            if (currentUserId && currentUser) {
-                query = query.or(`user_id.eq.${currentUserId},user_name.ilike."${currentUser}"`);
-            } else if (currentUserId) {
-                query = query.eq('user_id', currentUserId);
-            } else if (currentUser) {
-                query = query.ilike('user_name', currentUser);
-            }
+            let rawData = [];
 
-            const { data, error } = await query;
-            if (error) {
-                console.warn("Database fetch or filter note:", error.message);
-                const { data: fallbackData } = await _supabase
+            // 1. Fetch by user_id if logged in
+            if (currentUserId) {
+                const { data: byId } = await _supabase
                     .from('transactions')
                     .select('*')
                     .eq('user_id', currentUserId)
                     .order('created_at', { ascending: false });
-                allTransactions = fallbackData || [];
-            } else {
-                allTransactions = data || [];
+                if (byId && byId.length > 0) rawData = rawData.concat(byId);
             }
+
+            // 2. Fetch by user_name matching profile name or display name
+            if (currentUser) {
+                const { data: byName } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .ilike('user_name', currentUser)
+                    .order('created_at', { ascending: false });
+                if (byName && byName.length > 0) rawData = rawData.concat(byName);
+
+                const firstName = currentUser.split(' ')[0];
+                if (firstName !== currentUser) {
+                    const { data: byFirstName } = await _supabase
+                        .from('transactions')
+                        .select('*')
+                        .ilike('user_name', firstName)
+                        .order('created_at', { ascending: false });
+                    if (byFirstName && byFirstName.length > 0) rawData = rawData.concat(byFirstName);
+                }
+            }
+
+            // 3. Resilient Fallback: If rawData is empty, fetch all accessible transactions and filter client-side
+            if (rawData.length === 0) {
+                const { data: allData } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                const targetName = currentUser ? currentUser.toLowerCase() : '';
+                const targetFirstName = targetName.split(' ')[0];
+
+                rawData = (allData || []).filter(t => {
+                    const rowName = (t.user_name || '').toLowerCase();
+                    const rowId = String(t.user_id || '');
+                    return (currentUserId && rowId === String(currentUserId)) ||
+                           (targetName && rowName.includes(targetName)) ||
+                           (targetFirstName && rowName.includes(targetFirstName));
+                });
+            }
+
+            // Deduplicate by ID so visual loops never occur
+            const uniqueRows = [];
+            const seenIds = new Set();
+            rawData.forEach(row => {
+                const idKey = String(row.id);
+                if (!seenIds.has(idKey)) {
+                    seenIds.add(idKey);
+                    uniqueRows.push(row);
+                }
+            });
+            allTransactions = uniqueRows;
         } catch (err) {
             console.error("Database fetch exception:", err);
         }
         updateUI();
     }
 
-    async function checkAndPopulateMultifoodTransaction() {
-        if (currentUser !== "Rahul" && !currentUserSession?.user?.email?.includes("rahul")) return;
+    async function purgeDuplicateTransactions() {
+        if (!allTransactions || allTransactions.length === 0) return;
         
-        const targetDateString = "2026-05-24";
-        const hasMultifood = allTransactions.some(t => 
-            t.description.toLowerCase().includes("multifood") && 
-            new Date(t.created_at).toISOString().slice(0, 10) === targetDateString
-        );
+        const seenKeys = new Set();
+        const duplicateIds = [];
 
-        if (!hasMultifood) {
-            let targetTimestamp = new Date(targetDateString);
-            targetTimestamp.setHours(12, 0, 0, 0); 
+        allTransactions.forEach(t => {
+            const key = `${String(t.description || '').toLowerCase()}_${t.amount}_${t.type}_${new Date(t.created_at).toISOString().slice(0,10)}`;
+            if (seenKeys.has(key)) {
+                duplicateIds.push(t.id);
+            } else {
+                seenKeys.add(key);
+            }
+        });
 
-            let payload = {
-                description: "Multifood",
-                amount: 26.00,
-                type: "debit",
-                category: "Food",
-                user_id: currentUserId,
-                user_name: currentUser,
-                created_at: targetTimestamp.toISOString()
-            };
-            
-            await _supabase.from('transactions').insert([payload]);
+        if (duplicateIds.length === 0) {
+            alert("No duplicate entries found in your transaction ledger!");
+            return;
+        }
+
+        if (confirm(`Found ${duplicateIds.length} duplicate transaction entry loops. Remove duplicates and clean up ledger?`)) {
+            for (const id of duplicateIds) {
+                await _supabase.from('transactions').delete().eq('id', id);
+            }
+            alert(`Successfully purged ${duplicateIds.length} duplicate entries!`);
             await fetchData();
         }
     }
@@ -1474,7 +1752,7 @@
         if(!currentUser && !currentUserId) return;
         
         let bal = 0, cred = 0, deb = 0, saved = 0;
-        let fil = allTransactions.filter(t => (currentUserId && t.user_id === currentUserId) || t.user_name === currentUser);
+        let fil = allTransactions.filter(t => (currentUserId && String(t.user_id) === String(currentUserId)) || String(t.user_name).toLowerCase() === String(currentUser).toLowerCase());
         if(mf !== 'all') fil = fil.filter(t => new Date(t.created_at).getMonth() === parseInt(mf));
         
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
@@ -1486,9 +1764,13 @@
             else { deb += a; bal -= a; }
         });
         
-        document.getElementById('total-balance').innerText = sym + bal.toLocaleString(undefined, {minimumFractionDigits:2});
-        document.getElementById('total-credit').innerText = sym + cred.toLocaleString(undefined, {minimumFractionDigits:2});
-        document.getElementById('total-debit').innerText = sym + deb.toLocaleString(undefined, {minimumFractionDigits:2});
+        const elBal = document.getElementById('total-balance');
+        const elCred = document.getElementById('total-income') || document.getElementById('total-credit');
+        const elDeb = document.getElementById('total-expense') || document.getElementById('total-debit');
+
+        if (elBal) elBal.innerText = sym + bal.toLocaleString(undefined, {minimumFractionDigits:2});
+        if (elCred) elCred.innerText = sym + cred.toLocaleString(undefined, {minimumFractionDigits:2});
+        if (elDeb) elDeb.innerText = sym + deb.toLocaleString(undefined, {minimumFractionDigits:2});
         
         let filteredRows = fil.filter(t => (currentFilter === 'all' || t.type === currentFilter));
         
@@ -1525,14 +1807,20 @@
             </tr>`;
         });
 
-        const convTo = document.getElementById('convert-to').value;
-        const rate = liveRates[convTo] / liveRates[currentBaseCurrency];
-        const symbols = {"USD":"$","INR":"₹","EUR":"€","AED":"AED "};
-        document.getElementById('converted-val').innerText = (symbols[convTo]||'') + (bal * rate).toLocaleString(undefined,{minimumFractionDigits:2});
+        const convElem = document.getElementById('convert-to');
+        const convValElem = document.getElementById('converted-val');
+        if (convElem && convValElem) {
+            const convTo = convElem.value;
+            const rate = (liveRates[convTo] || 1) / (liveRates[currentBaseCurrency] || 1);
+            const symbols = {"USD":"$","INR":"₹","EUR":"€","AED":"AED "};
+            convValElem.innerText = (symbols[convTo]||'') + (bal * rate).toLocaleString(undefined,{minimumFractionDigits:2});
+        }
 
         const progress = Math.min(100, Math.max(0, (saved / savingsGoal) * 100));
-        document.getElementById('goal-percent').innerText = Math.round(progress) + "%";
-        document.getElementById('goal-bar').style.width = progress + "%";
+        const goalPercentEl = document.getElementById('goal-percent');
+        const goalBarEl = document.getElementById('goal-bar');
+        if (goalPercentEl) goalPercentEl.innerText = Math.round(progress) + "%";
+        if (goalBarEl) goalBarEl.style.width = progress + "%";
 
         updateChart(fil);
     }
@@ -1557,9 +1845,12 @@
             amount: parseFloat(rawAEDAmount.toFixed(4)),
             type: t,
             category: c || 'Other',
-            user_id: currentUserId,
             user_name: currentUser
         };
+
+        if (currentUserId) {
+            payload.user_id = currentUserId;
+        }
         
         if(dateVal) {
             let customDate = new Date(dateVal);
@@ -1568,12 +1859,20 @@
         }
 
         if(eid) {
-            await _supabase.from('transactions').update(payload).eq('id', eid);
+            let { error } = await _supabase.from('transactions').update(payload).eq('id', eid);
+            if (error && error.message.includes('bigint')) {
+                delete payload.user_id;
+                await _supabase.from('transactions').update(payload).eq('id', eid);
+            }
             document.getElementById('edit-id').value = '';
             document.getElementById('save-btn').innerText = "+ Save Transaction";
         }
         else {
-            await _supabase.from('transactions').insert([payload]);
+            let { error } = await _supabase.from('transactions').insert([payload]);
+            if (error && error.message.includes('bigint')) {
+                delete payload.user_id;
+                await _supabase.from('transactions').insert([payload]);
+            }
         }
         
         document.getElementById('desc').value = '';

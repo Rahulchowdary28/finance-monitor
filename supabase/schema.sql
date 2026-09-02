@@ -216,9 +216,72 @@ Paste this into Supabase Dashboard -> Authentication -> Email Templates -> Reset
                         </td>
                     </tr>
 
+/* 
+-----------------------------------------------------------------------
+12. Professional Cyberpunk HTML Email Template for Supabase Magic Link / User Invite
+-----------------------------------------------------------------------
+Paste this into Supabase Dashboard -> Authentication -> Email Templates -> Magic Link (or User Invite):
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Vault Terminal Access Link</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #040612; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f3f4f6;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;">
+        <tr>
+            <td align="center" style="padding: 40px 10px;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #0d1127; border: 1px solid rgba(0, 255, 136, 0.25); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.7); overflow: hidden;">
+                    
+                    <tr>
+                        <td align="center" style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 212, 255, 0.2)); padding: 32px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                            <table border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center">
+                                        <div style="font-size: 22px; font-weight: 900; color: #00ff88; letter-spacing: 3px; text-transform: uppercase;">
+                                            ⚡ VIRTUAL VAULT
+                                        </div>
+                                        <div style="font-size: 11px; color: #9ca3af; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px;">
+                                            Instant Terminal Clearance Pass
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 32px 28px;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 700; color: #ffffff;">
+                                Secure Magic Link Authorization
+                            </h2>
+                            <p style="margin: 0 0 24px 0; font-size: 14px; line-height: 1.6; color: #9ca3af;">
+                                You have been granted single-click terminal access clearance to Virtual Vault. Click the button below to authenticate and launch your financial dashboard:
+                            </p>
+
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 28px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ .ConfirmationURL }}" target="_blank" style="display: inline-block; padding: 14px 34px; background-color: #00d4ff; color: #040612; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 12px; letter-spacing: 1.5px; text-transform: uppercase; box-shadow: 0 0 20px rgba(0, 212, 255, 0.45);">
+                                            Authenticate & Launch Vault
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="background-color: rgba(18, 24, 54, 0.8); border-left: 3px solid #00d4ff; padding: 14px 16px; border-radius: 8px; margin-top: 24px;">
+                                <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #d1d5db;">
+                                    <strong style="color: #00d4ff;">Notice:</strong> This authorization pass is single-use and expires automatically. If you did not request terminal access, ignore this dispatch.
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
                     <tr>
                         <td align="center" style="background-color: #060919; padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 11px; color: #6b7280; line-height: 1.5;">
-                            This is an automated system security dispatch.<br>
+                            This is an automated access clearance dispatch.<br>
                             &copy; 2026 Virtual Vault Terminal. All rights reserved.
                         </td>
                     </tr>

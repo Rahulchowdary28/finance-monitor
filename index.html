@@ -684,6 +684,7 @@
         <div class="hdr-middle">
             <div id="live-clock" class="clock">00:00:00</div>
             <select id="month-filter" onchange="updateUI()" style="color:var(--accent);border-color:rgba(99,102,241,0.35);">
+                <option value="recent" selected>Recent Activity</option>
                 <option value="all">Full History</option>
                 <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
                 <option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option>
@@ -1782,7 +1783,22 @@
         
         let bal = 0, cred = 0, deb = 0, saved = 0;
         let fil = allTransactions.filter(t => (currentUserId && String(t.user_id) === String(currentUserId)) || String(t.user_name).toLowerCase() === String(currentUser).toLowerCase());
-        if(mf !== 'all') fil = fil.filter(t => new Date(t.created_at).getMonth() === parseInt(mf));
+        
+        if (mf === 'recent') {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            let recentFil = fil.filter(t => {
+                const d = new Date(t.created_at);
+                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+            });
+            if (recentFil.length < 5) {
+                recentFil = fil.slice(0, 10);
+            }
+            fil = recentFil;
+        } else if (mf !== 'all') {
+            fil = fil.filter(t => new Date(t.created_at).getMonth() === parseInt(mf));
+        }
         
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
         

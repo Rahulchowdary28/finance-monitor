@@ -1,0 +1,16 @@
+{
+  "short_name": "Vault",
+  "name": "Virtual Vault Premium Terminal",
+  "icons": [
+    {
+      "src": "https://kfbtsoszcfnoovjvomir.supabase.co/storage/v1/object/public/public-assets/Gemini_Generated_Image_bn2wfabn2wfabn2w.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#040612",
+  "theme_color": "#0d1127",
+  "display": "standalone",
+  "orientation": "portrait"
+}

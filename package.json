@@ -1,0 +1,14 @@
+{
+  "name": "finance-monitor-mailer",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "api/daily-summary.js",
+  "scripts": {
+    "broadcast": "node broadcast.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.4",
+    "resend": "^3.2.0",
+    "web-push": "^3.6.7"
+  }
+}

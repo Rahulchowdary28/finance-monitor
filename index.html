@@ -1104,6 +1104,7 @@
                         email: email,
                         role: 'User',
                         is_hold: false,
+                        is_email_verified: false,
                         selected_currency: 'AED'
                     }], { onConflict: 'user_id' }).catch(() => {});
                 }
@@ -1694,22 +1695,14 @@
             }
 
             if (session && session.user) {
-                const isConfirmed = session.user.email_confirmed_at != null || session.user.app_metadata?.provider === 'google';
-                if (!isConfirmed) {
-                    await _supabase.auth.signOut();
-                    showActivationPendingView(session.user.email);
-                    return;
+                const isFromMagicLinkClick = window.location.hash.includes('access_token=') || 
+                                             window.location.hash.includes('type=signup') || 
+                                             window.location.hash.includes('type=magiclink') ||
+                                             session.user.app_metadata?.provider === 'google';
+
+                if (isFromMagicLinkClick && session.user.id) {
+                    await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id).catch(() => {});
                 }
-
-                document.getElementById('activation-pending-view').style.display = 'none';
-                document.getElementById('profile-select-view').style.display = 'block';
-
-                currentUserSession = session;
-                currentUserId = session.user.id;
-                
-                document.getElementById('view-limit-select').value = '5';
-                document.getElementById('active-user-badge').innerText = 'Syncing...';
-                document.getElementById('auth-portal').style.display = 'none';
 
                 let userEmail = session.user.email ? session.user.email.toLowerCase() : '';
                 let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
@@ -1717,11 +1710,11 @@
                 
                 let profile = null;
 
-                if (currentUserId) {
+                if (session.user.id) {
                     const { data: p1 } = await _supabase
                         .from('users_list')
                         .select('*')
-                        .eq('user_id', currentUserId)
+                        .eq('user_id', session.user.id)
                         .maybeSingle();
                     profile = p1;
                 }
@@ -1743,6 +1736,23 @@
                         .maybeSingle();
                     profile = p3;
                 }
+
+                // If user registered manually and has not clicked magic link, block access
+                if (profile && profile.is_email_verified === false && !isFromMagicLinkClick) {
+                    await _supabase.auth.signOut();
+                    showActivationPendingView(session.user.email);
+                    return;
+                }
+
+                document.getElementById('activation-pending-view').style.display = 'none';
+                document.getElementById('profile-select-view').style.display = 'block';
+
+                currentUserSession = session;
+                currentUserId = session.user.id;
+                
+                document.getElementById('view-limit-select').value = '5';
+                document.getElementById('active-user-badge').innerText = 'Syncing...';
+                document.getElementById('auth-portal').style.display = 'none';
 
                 if (profile) {
                     currentUser = profile.name || firstName;

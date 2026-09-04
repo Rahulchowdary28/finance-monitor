@@ -1062,6 +1062,83 @@
         }
     }
 
+    function openUpdatePasswordModal() {
+        document.getElementById('new-password-input').value = '';
+        document.getElementById('confirm-password-input').value = '';
+        document.getElementById('update-password-status-msg').style.display = 'none';
+        document.getElementById('update-password-modal').style.display = 'flex';
+    }
+
+    function closeUpdatePasswordModal() {
+        document.getElementById('update-password-modal').style.display = 'none';
+    }
+
+    async function handleUpdateNewPassword(e) {
+        if (e) e.preventDefault();
+        const newPass = document.getElementById('new-password-input').value;
+        const confirmPass = document.getElementById('confirm-password-input').value;
+        const btn = document.getElementById('update-password-submit-btn');
+        const statusMsg = document.getElementById('update-password-status-msg');
+
+        if (!newPass || !confirmPass) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = 'Please enter and confirm your new password.';
+            return;
+        }
+
+        if (newPass.length < 6) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = 'Password must be at least 6 characters long.';
+            return;
+        }
+
+        if (newPass !== confirmPass) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = 'Passwords do not match. Please verify.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Updating Password...`;
+        statusMsg.style.display = 'none';
+
+        try {
+            const { error } = await _supabase.auth.updateUser({ password: newPass });
+            if (error) throw error;
+
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
+            statusMsg.style.borderColor = 'var(--lime)';
+            statusMsg.style.color = 'var(--lime)';
+            statusMsg.innerText = 'Password updated successfully! Redirecting to your vault...';
+
+            setTimeout(() => {
+                closeUpdatePasswordModal();
+                if (window.history.replaceState) {
+                    window.history.replaceState(null, null, window.location.pathname);
+                }
+            }, 1800);
+        } catch (err) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = err.message || 'Failed to update password.';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-save"></i> Save & Update Password`;
+        }
+    }
+
     function togglePasswordVisibility(inputId, btn) {
         const input = document.getElementById(inputId);
         const icon = btn.querySelector('i');

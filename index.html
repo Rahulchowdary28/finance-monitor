@@ -576,8 +576,39 @@
             </div>
         </div>
 
+        <!-- MANDATORY EMAIL ACTIVATION PENDING VIEW -->
+        <div id="activation-pending-view" style="display: none; text-align: center; padding: 10px 0;">
+            <div style="font-size: 2.2rem; color: var(--cyan); margin-bottom: 12px;">
+                <i class="fas fa-envelope-open-text"></i>
+            </div>
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin-bottom:8px; font-size:1.1rem;">
+                Mandatory Email Activation
+            </h3>
+            <p style="color:var(--dim); font-size:0.8rem; line-height:1.5; margin-bottom:18px;">
+                An activation link has been sent to <strong id="activation-email-target" style="color:var(--cyan);">user@domain.com</strong>.<br>
+                Please check your inbox and click <strong style="color:var(--lime);">AUTHENTICATE & LAUNCH VAULT</strong> to activate your account.
+            </p>
+
+            <div style="background: rgba(0,240,255,0.06); border: 1px dashed var(--cyan); border-radius: 12px; padding: 14px; margin-bottom: 20px; font-size: 0.75rem; color: var(--dim); text-align: left; line-height: 1.4;">
+                <i class="fas fa-shield-alt" style="color:var(--cyan); margin-right:6px;"></i>
+                Account activation is mandatory for manual registration. Once clicked, your vault dashboard will unlock automatically.
+            </div>
+
+            <button onclick="resendActivationEmail()" id="resend-activation-btn" class="auth-submit-btn" style="background:var(--accent); color:#fff; box-shadow:var(--glow-accent); width:100%;">
+                <i class="fas fa-paper-plane"></i> Resend Activation Link
+            </button>
+            
+            <div id="activation-status-msg" class="auth-error-box" style="margin-top:14px; display:none;"></div>
+
+            <div style="margin-top:20px;">
+                <a href="#" onclick="showAuthSelectionView(event)" style="color:var(--dim); font-size:0.75rem; text-decoration:none; font-weight:600;">
+                    <i class="fas fa-arrow-left"></i> Back to Sign In
+                </a>
+            </div>
         </div>
+
     </div>
+</div>
 </div>
 
 <!-- ─── ADMIN AUTHENTICATION PROMPT MODAL ─── -->
@@ -959,6 +990,77 @@
         }
     }
 
+    let pendingActivationEmail = '';
+
+    function showActivationPendingView(email, msg = '') {
+        pendingActivationEmail = email || pendingActivationEmail;
+        document.getElementById('activation-email-target').innerText = pendingActivationEmail || 'your email';
+        document.getElementById('profile-select-view').style.display = 'none';
+        document.getElementById('activation-pending-view').style.display = 'block';
+        document.getElementById('auth-portal').style.display = 'flex';
+
+        const statusMsg = document.getElementById('activation-status-msg');
+        if (msg) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = msg;
+        } else {
+            statusMsg.style.display = 'none';
+        }
+    }
+
+    function showAuthSelectionView(e) {
+        if (e) e.preventDefault();
+        document.getElementById('activation-pending-view').style.display = 'none';
+        document.getElementById('profile-select-view').style.display = 'block';
+    }
+
+    async function resendActivationEmail() {
+        const btn = document.getElementById('resend-activation-btn');
+        const statusMsg = document.getElementById('activation-status-msg');
+        if (!pendingActivationEmail) return;
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Dispatching...`;
+        statusMsg.style.display = 'none';
+
+        try {
+            const { error } = await _supabase.auth.resend({
+                type: 'signup',
+                email: pendingActivationEmail,
+                options: {
+                    emailRedirectTo: window.location.origin
+                }
+            });
+            if (error) {
+                const { error: err2 } = await _supabase.auth.signInWithOtp({
+                    email: pendingActivationEmail,
+                    options: {
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+                if (err2) throw err2;
+            }
+
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
+            statusMsg.style.borderColor = 'var(--lime)';
+            statusMsg.style.color = 'var(--lime)';
+            statusMsg.innerText = 'A fresh activation link has been sent to ' + pendingActivationEmail + '!';
+        } catch (err) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = err.message || 'Failed to resend activation link.';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-paper-plane"></i> Resend Activation Link`;
+        }
+    }
+
     async function handleEmailAuth(e) {
         if (e) e.preventDefault();
         clearAuthError();
@@ -1006,17 +1108,28 @@
                     }], { onConflict: 'user_id' }).catch(() => {});
                 }
 
-                if (data.session) {
-                    showAuthError("Account created! Access granted to your Vault...", false);
+                if (data.session && data.user && data.user.email_confirmed_at) {
+                    // Account auto-confirmed
                 } else {
-                    showAuthError("Verification link sent to " + email + ". Please check your email inbox and click the verification link to log into your Vault.", false);
+                    if (data.session) {
+                        await _supabase.auth.signOut();
+                    }
+                    showActivationPendingView(email);
+                    return;
                 }
             } else {
-                const { error } = await _supabase.auth.signInWithPassword({
+                const { data: loginData, error } = await _supabase.auth.signInWithPassword({
                     email,
                     password
                 });
                 if (error) throw error;
+
+                const isConfirmed = loginData.user?.email_confirmed_at != null || loginData.user?.app_metadata?.provider === 'google';
+                if (!isConfirmed) {
+                    await _supabase.auth.signOut();
+                    showActivationPendingView(email, "Your account is not activated yet. Please click the activation link in your email to unlock your Vault.");
+                    return;
+                }
             }
         } catch (err) {
             showAuthError(err.message);
@@ -1577,6 +1690,16 @@
             }
 
             if (session && session.user) {
+                const isConfirmed = session.user.email_confirmed_at != null || session.user.app_metadata?.provider === 'google';
+                if (!isConfirmed) {
+                    await _supabase.auth.signOut();
+                    showActivationPendingView(session.user.email);
+                    return;
+                }
+
+                document.getElementById('activation-pending-view').style.display = 'none';
+                document.getElementById('profile-select-view').style.display = 'block';
+
                 currentUserSession = session;
                 currentUserId = session.user.id;
                 

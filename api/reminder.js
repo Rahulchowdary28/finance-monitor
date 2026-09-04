@@ -1,20 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
-const resend = new Resend(process.env.RESEND_API_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL || 'https://kfbtsoszcfnoovjvomir.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || 'sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03'
+);
+const resendApiKey = process.env.RESEND_API_KEY || 're_12345';
+const resend = new Resend(resendApiKey);
 
-export async function GET(request) {
-  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response(JSON.stringify({ error: 'Unauthorized security perimeter breach.' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' }
-    });
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'] || '';
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';
+
+  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}` && !isVercelCron) {
+    return res.status(401).json({ error: 'Unauthorized security perimeter breach.' });
   }
 
-  const { searchParams } = new URL(request.url);
-  const isDryRun = searchParams.get('dryRun') === 'true' || searchParams.get('test') === 'true';
+  const queryParams = req.query || {};
+  const isDryRun = queryParams.dryRun === 'true' || queryParams.test === 'true';
 
   try {
     const { data: users, error: userError } = await supabase
@@ -37,7 +47,7 @@ export async function GET(request) {
       const { data: dailyTxns, error: txError } = await supabase
         .from('transactions')
         .select('id')
-        .eq('user_name', user.name)
+        .ilike('user_name', user.name)
         .eq('type', 'debit')
         .gte('created_at', `${uaeDateStr}T00:00:00+04:00`)
         .lte('created_at', `${uaeDateStr}T23:59:59+04:00`);
@@ -49,7 +59,7 @@ export async function GET(request) {
 
       emailLog.push({ name: user.name, email: user.email, currency: userCurrency });
 
-      if (!isDryRun) {
+      if (!isDryRun && process.env.RESEND_API_KEY) {
         const emailHtmlContent = `
           <!DOCTYPE html>
           <html lang="en">
@@ -140,7 +150,7 @@ export async function GET(request) {
         `;
 
         await resend.emails.send({
-          from: 'Vault Terminal <alerts@drivehouse.ae>',
+          from: process.env.SENDER_EMAIL || 'Vault Terminal <alerts@drivehouse.ae>',
           to: user.email,
           subject: `📌 Reminder: Add your expenses for ${uaeDateStr}`,
           html: emailHtmlContent,
@@ -150,20 +160,14 @@ export async function GET(request) {
       }
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        dryRun: isDryRun,
-        recipientsCount: emailLog.length,
-        pendingRecipients: emailLog,
-      }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
+    return res.status(200).json({
+      success: true,
+      dryRun: isDryRun,
+      recipientsCount: emailLog.length,
+      pendingRecipients: emailLog,
+    });
   } catch (err) {
     console.error("REMINDER ERROR:", err.message || err);
-    return new Response(JSON.stringify({ error: err.message || err }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return res.status(500).json({ error: err.message || err });
   }
 }

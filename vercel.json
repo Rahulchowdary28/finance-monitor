@@ -7,8 +7,16 @@
   },
   "crons": [
     {
+      "path": "/api/reminder",
+      "schedule": "0 17 * * *"
+    },
+    {
       "path": "/api/broadcast",
-      "schedule": "0 16 * * *"
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/daily-summary",
+      "schedule": "30 19 * * *"
     }
   ]
 }

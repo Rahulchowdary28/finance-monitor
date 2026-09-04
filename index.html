@@ -1003,6 +1003,111 @@
 
     let pendingActivationEmail = '';
     let isExplicitSignupInProgress = false;
+    let liveActivationPollInterval = null;
+    let activationChannel = null;
+    let isLiveActivationTriggered = false;
+
+    function startLiveActivationListener(email) {
+        if (!email) return;
+        const targetEmail = email.toLowerCase().trim();
+        isLiveActivationTriggered = false;
+
+        if (liveActivationPollInterval) clearInterval(liveActivationPollInterval);
+        if (activationChannel) {
+            try { _supabase.removeChannel(activationChannel); } catch(e) {}
+        }
+
+        // 1. Multi-tab BroadcastChannel listener
+        if (window.BroadcastChannel) {
+            try {
+                const bc = new BroadcastChannel('vault_activation_sync');
+                bc.onmessage = (evt) => {
+                    if (evt.data && evt.data.email === targetEmail && evt.data.verified) {
+                        onLiveActivationSuccess(evt.data.name || targetEmail.split('@')[0]);
+                    }
+                };
+            } catch(e) {}
+        }
+
+        // 2. Realtime Heartbeat Poll every 2 seconds
+        liveActivationPollInterval = setInterval(async () => {
+            if (isLiveActivationTriggered) {
+                clearInterval(liveActivationPollInterval);
+                return;
+            }
+            try {
+                const { data } = await _supabase
+                    .from('users_list')
+                    .select('name, is_email_verified, user_id')
+                    .ilike('email', targetEmail)
+                    .maybeSingle();
+
+                if (data && data.is_email_verified === true) {
+                    clearInterval(liveActivationPollInterval);
+                    onLiveActivationSuccess(data.name || targetEmail.split('@')[0]);
+                }
+            } catch (e) {}
+        }, 2000);
+
+        // 3. Supabase Realtime Postgres Changes Listener
+        try {
+            const cleanEmail = targetEmail.replace(/[^a-z0-9]/g, '');
+            activationChannel = _supabase.channel('act-listen-' + cleanEmail)
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'users_list'
+                }, (payload) => {
+                    if (payload.new && payload.new.email && payload.new.email.toLowerCase() === targetEmail && payload.new.is_email_verified === true) {
+                        clearInterval(liveActivationPollInterval);
+                        onLiveActivationSuccess(payload.new.name || targetEmail.split('@')[0]);
+                    }
+                })
+                .subscribe();
+        } catch (e) {}
+    }
+
+    function stopLiveActivationListener() {
+        if (liveActivationPollInterval) clearInterval(liveActivationPollInterval);
+        if (activationChannel) {
+            try { _supabase.removeChannel(activationChannel); } catch(e) {}
+        }
+    }
+
+    async function onLiveActivationSuccess(userName) {
+        if (isLiveActivationTriggered) return;
+        isLiveActivationTriggered = true;
+        stopLiveActivationListener();
+
+        const activationView = document.getElementById('activation-pending-view');
+        if (activationView) {
+            activationView.innerHTML = `
+                <div style="background: rgba(0, 255, 136, 0.12); border: 2px solid var(--lime); border-radius: 16px; padding: 24px 16px; text-align: center; box-shadow: 0 0 25px rgba(0, 255, 136, 0.35);">
+                    <div style="font-size: 3rem; color: var(--lime); margin-bottom: 12px;"><i class="fas fa-check-circle"></i></div>
+                    <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:#fff; font-size:1.2rem; margin-bottom:6px; letter-spacing:1px;">
+                        ACCOUNT ACTIVATED!
+                    </h3>
+                    <p style="color:var(--lime); font-weight:700; font-size:1rem; margin-bottom:14px;">
+                        Welcome, ${userName}!
+                    </p>
+                    <div style="font-size: 0.8rem; color: var(--dim); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i class="fas fa-spinner fa-spin" style="color: var(--cyan);"></i> Unlocking Vault Dashboard...
+                    </div>
+                </div>
+            `;
+        }
+
+        if (window.BroadcastChannel) {
+            try {
+                const bc = new BroadcastChannel('vault_activation_sync');
+                bc.postMessage({ email: pendingActivationEmail, verified: true, name: userName });
+            } catch(e) {}
+        }
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 1200);
+    }
 
     function showActivationPendingView(email, msg = '') {
         pendingActivationEmail = email || pendingActivationEmail;
@@ -1021,10 +1126,15 @@
         } else {
             statusMsg.style.display = 'none';
         }
+
+        if (pendingActivationEmail) {
+            startLiveActivationListener(pendingActivationEmail);
+        }
     }
 
     function showAuthSelectionView(e) {
         if (e) e.preventDefault();
+        stopLiveActivationListener();
         document.getElementById('activation-pending-view').style.display = 'none';
         document.getElementById('profile-select-view').style.display = 'block';
     }
@@ -1746,6 +1856,12 @@
                     try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
                     if (userEmail) {
                         try { await _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail); } catch(e) {}
+                    }
+                    if (window.BroadcastChannel) {
+                        try {
+                            const bc = new BroadcastChannel('vault_activation_sync');
+                            bc.postMessage({ email: userEmail, verified: true, name: firstName });
+                        } catch(e) {}
                     }
                 }
 

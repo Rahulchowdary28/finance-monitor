@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Virtual Vault | Premium Finance Terminal</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -118,7 +118,7 @@
         width: 100%;
         max-width: 1200px;
         margin: 0 auto;
-        padding: 20px 20px 160px 20px;
+        padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(160px, calc(160px + env(safe-area-inset-bottom))) max(16px, env(safe-area-inset-left));
         position: relative;
         z-index: 1;
     }
@@ -296,11 +296,36 @@
 
     select, input[type=text], input[type=number], input[type=date], input[type=password], input[type=email], textarea {
         background: var(--input); border: 1px solid var(--border);
-        color: var(--text); padding: 14px; border-radius: 12px;
-        font-size: 14px; outline: none; width: 100%; transition: border 0.3s, box-shadow 0.3s;
+        color: var(--text); padding: 12px 14px; border-radius: 12px;
+        font-size: 16px !important; outline: none; width: 100%; transition: border 0.3s, box-shadow 0.3s;
+        -webkit-appearance: none; -moz-appearance: none; appearance: none;
+        box-sizing: border-box !important; min-width: 0;
     }
     select, input[type=text], input[type=number], input[type=date], input[type=password], input[type=email] { height: 44px; }
     select:focus, input:focus, textarea:focus { border-color: var(--accent); box-shadow: var(--glow-accent); }
+    
+    /* Native iOS WebKit Datepicker Specific Fixes */
+    input[type="date"] {
+        color-scheme: dark;
+        line-height: 44px;
+    }
+    [data-theme="light"] input[type="date"] {
+        color-scheme: light;
+    }
+    input[type="date"]::-webkit-date-and-time-value {
+        text-align: left;
+        margin: 0;
+        line-height: 44px;
+        height: 44px;
+    }
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.85);
+        cursor: pointer;
+        opacity: 0.8;
+    }
+    [data-theme="light"] input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: none;
+    }
     
     .ibtn {
         background: var(--input); border: 1px solid var(--border); color: var(--text);
@@ -344,7 +369,7 @@
         transform: translateX(2px);
     }
     .menu-action-row select {
-        height: 28px; padding: 2px 6px; font-size: 0.7rem; font-weight: 700;
+        height: 28px; padding: 2px 6px; font-size: 0.7rem !important; font-weight: 700;
         background: var(--input); border: 1px solid var(--border); color: var(--lime);
         border-radius: 6px; outline: none; cursor: pointer; max-width: 110px;
     }
@@ -366,23 +391,24 @@
         100% { border-color: rgba(255, 77, 77, 0.3); box-shadow: 0 0 10px rgba(255, 77, 77, 0.2); }
     }
 
-    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px; }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; width: 100%; }
     .stat {
-        position: relative; background: var(--card); border-radius: var(--r); padding: 18px 16px; border: 1px solid var(--border);
-        transition: border-color 0.3s, box-shadow 0.3s;
+        position: relative; background: var(--card); border-radius: var(--r); padding: 16px 12px; border: 1px solid var(--border);
+        transition: border-color 0.3s, box-shadow 0.3s; min-width: 0; overflow: hidden;
     }
     
     .stat.balance { animation: pulseGlowAccent 3s infinite ease-in-out; }
     .stat.income { animation: pulseGlowGreen 3s infinite ease-in-out; animation-delay: 0.5s; }
     .stat.expenses { animation: pulseGlowRed 3s infinite ease-in-out; animation-delay: 1s; }
 
-    .stat small { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 8px; font-weight: 700; }
-    .stat b { font-size: 1.35rem; font-weight: 800; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .stat small { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat b { font-size: clamp(0.85rem, 3.5vw, 1.35rem); font-weight: 800; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 16px; margin-bottom: 16px; width: 100%; overflow: hidden; }
     .ctitle { font-size: 0.65rem; color: var(--dim); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 14px; }
 
-    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+    .fgrid > * { min-width: 0; box-sizing: border-box; }
     .fgrid .full { grid-column: 1/-1; }
     
     .btn-save {
@@ -431,12 +457,12 @@
     .tab { background: rgba(255,255,255,0.05); border: none; color: var(--dim); padding: 10px 16px; border-radius: 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; font-weight: 600; }
     .tab.active { background: var(--accent); color: #fff; box-shadow: var(--glow-accent); }
     
-    .view-limit-dropdown { width: 145px; height: 36px; padding: 0 10px; font-size: 0.75rem; border-radius: 8px; border-color: rgba(255,255,255,0.1); background: var(--input); color: var(--dim); font-weight: 700; cursor: pointer; }
+    .view-limit-dropdown { width: 145px; height: 36px; padding: 0 10px; font-size: 0.75rem !important; border-radius: 8px; border-color: rgba(255,255,255,0.1); background: var(--input); color: var(--dim); font-weight: 700; cursor: pointer; }
 
-    .twrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { width: 100%; border-collapse: collapse; min-width: 450px; }
-    th { font-size: 0.7rem; color: var(--dim); padding: 10px; border-bottom: 1px solid var(--border); font-weight: 700; text-align: left; text-transform: uppercase; }
-    td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+    .twrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+    table { width: 100%; border-collapse: collapse; min-width: 100%; }
+    th { font-size: 0.7rem; color: var(--dim); padding: 10px 8px; border-bottom: 1px solid var(--border); font-weight: 700; text-align: left; text-transform: uppercase; white-space: nowrap; }
+    td { padding: 12px 8px; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; white-space: nowrap; }
 
     .converted { font-size: 1.6rem; font-weight: 900; color: var(--green); text-align: center; margin-top: 12px; text-shadow: var(--glow-green); }
     
@@ -452,7 +478,7 @@
 
     .bottom-nav-mask-container {
         position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg);
-        padding: 12px 20px 24px 20px; z-index: 9999; border-top: 1px solid rgba(255,255,255,0.03);
+        padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 12px)) 20px; z-index: 9999; border-top: 1px solid rgba(255,255,255,0.03);
         display: flex; flex-direction: column; gap: 12px; align-items: center;
         box-shadow: 0 -15px 30px var(--bg);
     }
@@ -472,9 +498,9 @@
     .bottom-nav-btn.active { color: var(--lime); text-shadow: var(--glow-green); }
 
     @media (max-width: 767px) {
-        .stats { gap: 8px; }
+        .stats { gap: 6px; }
         .stat { padding: 12px 8px; }
-        .stat b { font-size: 0.95rem; } 
+        .stat small { font-size: 0.58rem; letter-spacing: 0px; }
         .desktop-only-wm { display: none; }
         .utility-dropdown-container { width: 100%; position: relative; }
         .utility-dropdown-menu {
@@ -1505,12 +1531,13 @@
                             .from('users_list')
                             .update({ user_id: currentUserId, email: session.user.email || profile.email })
                             .eq('id', profile.id);
-
-                        await _supabase
-                            .from('transactions')
-                            .update({ user_id: currentUserId })
-                            .ilike('user_name', currentUser);
                     }
+
+                    // Auto-link any transactions belonging to user by name to their authenticated user_id
+                    await _supabase
+                        .from('transactions')
+                        .update({ user_id: currentUserId })
+                        .or(`user_name.ilike.${currentUser},user_name.ilike.${firstName}`);
 
                     if (profile.is_hold) {
                         alert("Access Revoked: Account has been suspended by administration.");
@@ -1686,6 +1713,14 @@
                     uniqueRows.push(row);
                 }
             });
+
+            // Strictly sort descending by timestamp (newest first)
+            uniqueRows.sort((a, b) => {
+                const dA = new Date(a.created_at || a.date || 0).getTime();
+                const dB = new Date(b.created_at || b.date || 0).getTime();
+                return dB - dA;
+            });
+
             allTransactions = uniqueRows;
         } catch (err) {
             console.error("Database fetch exception:", err);
@@ -1789,22 +1824,32 @@
         if(!currentUser && !currentUserId) return;
         
         let bal = 0, cred = 0, deb = 0, saved = 0;
-        let fil = allTransactions.filter(t => (currentUserId && String(t.user_id) === String(currentUserId)) || String(t.user_name).toLowerCase() === String(currentUser).toLowerCase());
+        let userFirstName = (currentUser || '').split(' ')[0].toLowerCase();
+        
+        let fil = allTransactions.filter(t => {
+            if (currentUserId && t.user_id && String(t.user_id) === String(currentUserId)) return true;
+            if (!t.user_name) return false;
+            let tName = String(t.user_name).toLowerCase();
+            let cName = String(currentUser || '').toLowerCase();
+            if (tName === cName) return true;
+            if (cName && tName.includes(cName)) return true;
+            if (tName && cName.includes(tName)) return true;
+            if (userFirstName && tName.split(' ')[0] === userFirstName) return true;
+            return false;
+        });
+
+        // Always sort descending by date (newest first)
+        fil.sort((a, b) => {
+            const dA = new Date(a.created_at || a.date || 0).getTime();
+            const dB = new Date(b.created_at || b.date || 0).getTime();
+            return dB - dA;
+        });
         
         if (mf === 'recent') {
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            let recentFil = fil.filter(t => {
-                const d = new Date(t.created_at);
-                return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-            });
-            if (recentFil.length < 5) {
-                recentFil = fil.slice(0, 10);
-            }
-            fil = recentFil;
+            // Show up to 15 latest transactions sorted descending
+            fil = fil.slice(0, 15);
         } else if (mf !== 'all') {
-            fil = fil.filter(t => new Date(t.created_at).getMonth() === parseInt(mf));
+            fil = fil.filter(t => new Date(t.created_at || t.date).getMonth() === parseInt(mf));
         }
         
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];

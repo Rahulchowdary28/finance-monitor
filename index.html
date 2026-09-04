@@ -1243,6 +1243,9 @@
                 }
 
                 isExplicitSignupInProgress = true;
+                if (email) {
+                    localStorage.removeItem('vault_email_verified_email_' + email.toLowerCase());
+                }
 
                 const { data, error } = await _supabase.auth.signUp({
                     email,
@@ -1253,6 +1256,9 @@
                     }
                 });
                 if (error) throw error;
+                if (data && data.user) {
+                    localStorage.removeItem('vault_email_verified_' + data.user.id);
+                }
 
                 if (data && data.user) {
                     try {
@@ -1919,15 +1925,6 @@
                     profile = p2;
                 }
 
-                if (!profile && firstName) {
-                    const { data: p3 } = await _supabase
-                        .from('users_list')
-                        .select('*')
-                        .ilike('name', firstName)
-                        .maybeSingle();
-                    profile = p3;
-                }
-
                 const isVerifiedInProfile = profile && profile.is_email_verified === true;
 
                 let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal || isVerifiedInProfile;
@@ -2461,11 +2458,11 @@
         let totalDebit = 0;
         let totalBalance = 0;
 
-        let csvContent = "data:text/csv;charset=utf-8,ID,Date,Description,Amount,Type,Category\n";
-        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        let csvLines = ["ID,Date,Description,Amount,Type,Category"];
+        const toBaseFactor = (liveRates && liveRates[currentBaseCurrency] && liveRates['AED']) ? (liveRates[currentBaseCurrency] / liveRates['AED']) : 1;
         
         userRecords.forEach(t => {
-            const a = parseFloat(t.amount) * toBaseFactor;
+            const a = parseFloat(t.amount || 0) * toBaseFactor;
             if(t.type === 'credit') {
                 totalCredit += a;
                 totalBalance += a;
@@ -2486,21 +2483,33 @@
                 t.type, 
                 t.category
             ];
-            csvContent += row.join(",") + "\n";
+            csvLines.push(row.join(","));
         });
         
-        csvContent += "\n";
-        csvContent += `,,,Influx (${currentBaseCurrency}),${totalCredit.toFixed(2)},\n`;
-        csvContent += `,,,Outflow (${currentBaseCurrency}),${totalDebit.toFixed(2)},\n`;
-        csvContent += `,,,Net Balance (${currentBaseCurrency}),${totalBalance.toFixed(2)},\n`;
+        csvLines.push("");
+        csvLines.push(`,,,Influx (${currentBaseCurrency}),${totalCredit.toFixed(2)},`);
+        csvLines.push(`,,,Outflow (${currentBaseCurrency}),${totalDebit.toFixed(2)},`);
+        csvLines.push(`,,,Net Balance (${currentBaseCurrency}),${totalBalance.toFixed(2)},`);
 
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `Ledger_${currentUser}_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const csvString = "\uFEFF" + csvLines.join("\r\n"); // UTF-8 BOM for Excel compatibility
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const fileName = `Ledger_${currentUser}_${new Date().toISOString().slice(0,10)}.csv`;
+
+        if (navigator.msSaveBlob) {
+            navigator.msSaveBlob(blob, fileName);
+        } else {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            link.setAttribute("target", "_blank");
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => {
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            }, 500);
+        }
     }
 
     function toggleSavingsInclude(){

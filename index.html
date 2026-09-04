@@ -1732,22 +1732,29 @@
                                              curHash.includes('type=magiclink') ||
                                              curSearch.includes('code=');
 
-                if (isFromMagicLinkClick && session.user.id) {
-                    isExplicitSignupInProgress = false;
-                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
-                    try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
-                    try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
-                }
-
-                const isVerifiedInMeta = session.user.user_metadata?.is_email_verified === true;
-                const isVerifiedInLocal = localStorage.getItem('vault_email_verified_' + session.user.id) === 'true';
-
-                let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal;
-
                 let userEmail = session.user.email ? session.user.email.toLowerCase() : '';
                 let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
                 let firstName = googleFullName ? googleFullName.split(' ')[0] : (session.user.email?.split('@')[0] || 'User');
-                
+
+                const isConfirmedInSupabase = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
+
+                if ((isFromMagicLinkClick || isConfirmedInSupabase) && session.user.id) {
+                    isExplicitSignupInProgress = false;
+                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                    if (userEmail) localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
+                    try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
+                    try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
+                    if (userEmail) {
+                        try { await _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail); } catch(e) {}
+                    }
+                }
+
+                const isVerifiedInMeta = session.user.user_metadata?.is_email_verified === true;
+                const isVerifiedInLocal = (session.user.id && localStorage.getItem('vault_email_verified_' + session.user.id) === 'true') ||
+                                          (userEmail && localStorage.getItem('vault_email_verified_email_' + userEmail) === 'true');
+
+                let isVerified = isGoogleUser || isFromMagicLinkClick || isConfirmedInSupabase || isVerifiedInMeta || isVerifiedInLocal;
+
                 let profile = null;
 
                 if (session.user.id) {
@@ -1780,13 +1787,14 @@
                 if (profile && profile.is_email_verified === true) {
                     isVerified = true;
                     localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                    if (userEmail) localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
                 }
 
-                if (profile && profile.is_email_verified === false && !isFromMagicLinkClick) {
+                if (profile && profile.is_email_verified === false && !isFromMagicLinkClick && !isConfirmedInSupabase && !isVerifiedInLocal && !isVerifiedInMeta) {
                     isVerified = false;
                 }
 
-                if (isExplicitSignupInProgress && !isFromMagicLinkClick) {
+                if (isExplicitSignupInProgress && !isFromMagicLinkClick && !isConfirmedInSupabase) {
                     isVerified = false;
                 }
 

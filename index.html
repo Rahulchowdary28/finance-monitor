@@ -815,8 +815,8 @@
                         <button class="tab" onclick="filterData('saving',this)">Savings</button>
                     </div>
                     <select id="view-limit-select" class="view-limit-dropdown" onchange="updateUI()">
+                        <option value="5" selected>View: Latest 5 Only</option>
                         <option value="all">View: All Records</option>
-                        <option value="5">View: Latest 5 Only</option>
                     </select>
                 </div>
                 <input type="text" id="ledger-search-bar" placeholder="🔍 Search ledger by description, category, or amount..." oninput="updateUI()" style="margin-bottom:12px; height:38px; font-size:0.8rem;">
@@ -1564,6 +1564,7 @@
                 currentUserSession = session;
                 currentUserId = session.user.id;
                 
+                document.getElementById('view-limit-select').value = '5';
                 document.getElementById('active-user-badge').innerText = 'Syncing...';
                 document.getElementById('auth-portal').style.display = 'none';
 

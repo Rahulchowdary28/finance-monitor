@@ -938,12 +938,23 @@
     let currentUser = null;
     let authMode = 'signin'; // 'signin' or 'signup'
 
-    // Capture Password Recovery Hash BEFORE supabase-js parses and strips it from URL
-    const isRecoveryURL = Boolean(window.location.hash && (
-        window.location.hash.includes('type=recovery') || 
-        window.location.hash.includes('reset-password') ||
-        (window.location.hash.includes('access_token') && window.location.hash.includes('type=recovery'))
+    // Capture URL tokens BEFORE supabase-js parses and strips them from the address bar
+    const _INITIAL_HASH = window.location.hash || '';
+    const _INITIAL_SEARCH = window.location.search || '';
+
+    const isRecoveryURL = Boolean(_INITIAL_HASH && (
+        _INITIAL_HASH.includes('type=recovery') || 
+        _INITIAL_HASH.includes('reset-password') ||
+        (_INITIAL_HASH.includes('access_token') && _INITIAL_HASH.includes('type=recovery'))
     ));
+
+    const _IS_MAGIC_LINK_CALLBACK = Boolean(
+        _INITIAL_HASH.includes('access_token=') || 
+        _INITIAL_HASH.includes('type=signup') || 
+        _INITIAL_HASH.includes('type=magiclink') ||
+        _INITIAL_HASH.includes('type=email_change') ||
+        _INITIAL_SEARCH.includes('code=')
+    );
 
     const PUBLIC_VAPID_KEY = 'BHaR2ys29miH921MBJ3so73X3LT8MDeYGiRS5l8f1sTD4x8rtQQcSR-CbvfxAjLFi607nQ_Xq239UHuiMX3xA3k';
     const SUPABASE_URL = 'https://kfbtsoszcfnoovjvomir.supabase.co';
@@ -1713,11 +1724,16 @@
 
             if (session && session.user) {
                 const isGoogleUser = session.user.app_metadata?.provider === 'google';
-                const isFromMagicLinkClick = window.location.hash.includes('access_token=') || 
-                                             window.location.hash.includes('type=signup') || 
-                                             window.location.hash.includes('type=magiclink');
+                const curHash = window.location.hash || '';
+                const curSearch = window.location.search || '';
+                const isFromMagicLinkClick = _IS_MAGIC_LINK_CALLBACK || 
+                                             curHash.includes('access_token=') || 
+                                             curHash.includes('type=signup') || 
+                                             curHash.includes('type=magiclink') ||
+                                             curSearch.includes('code=');
 
                 if (isFromMagicLinkClick && session.user.id) {
+                    isExplicitSignupInProgress = false;
                     localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
                     try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
                     try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}

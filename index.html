@@ -991,6 +991,7 @@
     }
 
     let pendingActivationEmail = '';
+    let isExplicitSignupInProgress = false;
 
     function showActivationPendingView(email, msg = '') {
         pendingActivationEmail = email || pendingActivationEmail;
@@ -1087,11 +1088,13 @@
                     return;
                 }
 
+                isExplicitSignupInProgress = true;
+
                 const { data, error } = await _supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        data: { full_name: name },
+                        data: { full_name: name, is_email_verified: false },
                         emailRedirectTo: window.location.origin
                     }
                 });
@@ -1128,13 +1131,6 @@
                     password
                 });
                 if (error) throw error;
-
-                const isConfirmed = loginData.user?.email_confirmed_at != null || loginData.user?.app_metadata?.provider === 'google';
-                if (!isConfirmed) {
-                    await _supabase.auth.signOut();
-                    showActivationPendingView(email, "Your account is not activated yet. Please click the activation link in your email to unlock your Vault.");
-                    return;
-                }
             }
         } catch (err) {
             showAuthError(err.message);
@@ -1695,14 +1691,21 @@
             }
 
             if (session && session.user) {
+                const isGoogleUser = session.user.app_metadata?.provider === 'google';
                 const isFromMagicLinkClick = window.location.hash.includes('access_token=') || 
                                              window.location.hash.includes('type=signup') || 
-                                             window.location.hash.includes('type=magiclink') ||
-                                             session.user.app_metadata?.provider === 'google';
+                                             window.location.hash.includes('type=magiclink');
 
                 if (isFromMagicLinkClick && session.user.id) {
+                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                    await _supabase.auth.updateUser({ data: { is_email_verified: true } }).catch(() => {});
                     await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id).catch(() => {});
                 }
+
+                const isVerifiedInMeta = session.user.user_metadata?.is_email_verified === true;
+                const isVerifiedInLocal = localStorage.getItem('vault_email_verified_' + session.user.id) === 'true';
+
+                let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal;
 
                 let userEmail = session.user.email ? session.user.email.toLowerCase() : '';
                 let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
@@ -1737,10 +1740,23 @@
                     profile = p3;
                 }
 
-                // If user registered manually and has not clicked magic link, block access
+                if (profile && profile.is_email_verified === true) {
+                    isVerified = true;
+                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                }
+
                 if (profile && profile.is_email_verified === false && !isFromMagicLinkClick) {
+                    isVerified = false;
+                }
+
+                if (isExplicitSignupInProgress && !isFromMagicLinkClick) {
+                    isVerified = false;
+                }
+
+                // If user registered manually and has not clicked magic link, block access
+                if (!isVerified) {
                     await _supabase.auth.signOut();
-                    showActivationPendingView(session.user.email);
+                    showActivationPendingView(session.user.email || '');
                     return;
                 }
 

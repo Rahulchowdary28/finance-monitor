@@ -938,6 +938,12 @@
     let currentUser = null;
     let authMode = 'signin'; // 'signin' or 'signup'
 
+    // Real-Time Cross-Device Synchronization State
+    let lastDataChecksum = '';
+    let liveSyncChannel = null;
+    let localDataBc = null;
+    let syncPulseTimeout = null;
+
     // Capture URL tokens BEFORE supabase-js parses and strips them from the address bar
     const _INITIAL_HASH = window.location.hash || '';
     const _INITIAL_SEARCH = window.location.search || '';
@@ -960,6 +966,144 @@
     const SUPABASE_URL = 'https://kfbtsoszcfnoovjvomir.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ─── INSTANT REAL-TIME CROSS-DEVICE SYNC ENGINE ───
+    function triggerSyncPulseBadge() {
+        const badge = document.getElementById('active-user-badge');
+        if (!badge) return;
+        
+        badge.style.transition = 'all 0.3s ease';
+        badge.style.boxShadow = '0 0 18px rgba(0, 255, 136, 0.9)';
+        badge.style.borderColor = 'var(--lime)';
+        badge.style.color = 'var(--lime)';
+        
+        if (syncPulseTimeout) clearTimeout(syncPulseTimeout);
+        syncPulseTimeout = setTimeout(() => {
+            badge.style.boxShadow = '';
+            badge.style.borderColor = '';
+            badge.style.color = '';
+        }, 1200);
+    }
+
+    async function fetchDataSilently() {
+        if (!currentUserId && !currentUser) return;
+        try {
+            let rawData = [];
+
+            if (currentUserId) {
+                const { data: byId } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', currentUserId)
+                    .order('created_at', { ascending: false });
+                if (byId && byId.length > 0) rawData = rawData.concat(byId);
+            }
+
+            if (currentUser) {
+                const { data: byName } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .ilike('user_name', currentUser)
+                    .order('created_at', { ascending: false });
+                if (byName && byName.length > 0) rawData = rawData.concat(byName);
+
+                const firstName = currentUser.split(' ')[0];
+                if (firstName !== currentUser) {
+                    const { data: byFirstName } = await _supabase
+                        .from('transactions')
+                        .select('*')
+                        .ilike('user_name', firstName)
+                        .order('created_at', { ascending: false });
+                    if (byFirstName && byFirstName.length > 0) rawData = rawData.concat(byFirstName);
+                }
+            }
+
+            if (rawData.length === 0) {
+                const { data: allData } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                const targetName = currentUser ? currentUser.toLowerCase() : '';
+                const targetFirstName = targetName.split(' ')[0];
+
+                rawData = (allData || []).filter(t => {
+                    const rowName = (t.user_name || '').toLowerCase();
+                    const rowId = String(t.user_id || '');
+                    return (currentUserId && rowId === String(currentUserId)) ||
+                           (targetName && rowName.includes(targetName)) ||
+                           (targetFirstName && rowName.includes(targetFirstName));
+                });
+            }
+
+            const uniqueRows = [];
+            const seenIds = new Set();
+            rawData.forEach(row => {
+                const idKey = String(row.id);
+                if (!seenIds.has(idKey)) {
+                    seenIds.add(idKey);
+                    uniqueRows.push(row);
+                }
+            });
+
+            uniqueRows.sort((a, b) => {
+                const dA = new Date(a.created_at || a.date || 0).getTime();
+                const dB = new Date(b.created_at || b.date || 0).getTime();
+                return dB - dA;
+            });
+
+            const newChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.description}_${r.created_at}`).join('|');
+            if (newChecksum !== lastDataChecksum) {
+                lastDataChecksum = newChecksum;
+                allTransactions = uniqueRows;
+                updateUI();
+                triggerSyncPulseBadge();
+            }
+        } catch (e) {
+            console.error("Silent sync error:", e);
+        }
+    }
+
+    function notifyDataUpdatedLocally() {
+        if (localDataBc) {
+            try { localDataBc.postMessage({ type: 'tx_update', userId: currentUserId, ts: Date.now() }); } catch(e) {}
+        }
+    }
+
+    function setupRealtimeTransactionSync() {
+        if (window.BroadcastChannel && !localDataBc) {
+            try {
+                localDataBc = new BroadcastChannel('vault_data_live_sync');
+                localDataBc.onmessage = (evt) => {
+                    if (evt && evt.data && evt.data.type === 'tx_update') {
+                        fetchDataSilently();
+                    }
+                };
+            } catch(e) {}
+        }
+
+        if (liveSyncChannel) return;
+
+        try {
+            liveSyncChannel = _supabase
+                .channel('public:transactions_realtime')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, payload => {
+                    console.log('Realtime change detected in transactions:', payload);
+                    fetchDataSilently();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'users_list' }, payload => {
+                    console.log('Realtime change detected in users_list:', payload);
+                    fetchDataSilently();
+                })
+                .subscribe((status) => {
+                    console.log('Supabase Realtime Channel Status:', status);
+                });
+        } catch(e) {
+            console.error("Realtime subscription failed:", e);
+        }
+
+        setInterval(fetchDataSilently, 3000);
+    }
 
     // ─── AUTHENTICATION FLOW HANDLERS ───
     function switchAuthTab(mode) {
@@ -1987,6 +2131,7 @@
                 populateCategoryDropdown();
                 renderUserCatBadges();
                 await fetchData();
+                setupRealtimeTransactionSync();
             } else {
                 currentUserSession = null;
                 currentUserId = null;
@@ -2150,6 +2295,7 @@
             });
 
             allTransactions = uniqueRows;
+            lastDataChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.description}_${r.created_at}`).join('|');
         } catch (err) {
             console.error("Database fetch exception:", err);
         }
@@ -2401,6 +2547,7 @@
         document.getElementById('amt').value = '';
         document.getElementById('txn-date').value = '';
         await fetchData();
+        notifyDataUpdatedLocally();
     }
 
     function editTransaction(id) {
@@ -2426,6 +2573,7 @@
         if(confirm("Permanently purge this ledger log transaction entry?")) {
             await _supabase.from('transactions').delete().eq('id', id);
             await fetchData();
+            notifyDataUpdatedLocally();
         }
     }
 

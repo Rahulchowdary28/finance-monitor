@@ -663,7 +663,7 @@
             <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin:0; font-size:1.05rem;"><i class="fas fa-shield-alt"></i> Verify Email Security OTP</h3>
             <button onclick="closeOtpModal()" style="background:none; border:none; color:var(--dim); font-size:1.1rem; cursor:pointer;"><i class="fas fa-times"></i></button>
         </div>
-        <p style="color:var(--dim); font-size:0.78rem; margin-bottom:18px;">Enter the 6-digit verification code dispatched to <strong id="otp-email-target" style="color:var(--cyan);">user@domain.com</strong> to authorize your new account vault.</p>
+        <p style="color:var(--dim); font-size:0.78rem; margin-bottom:18px;">Enter the 6-digit OTP code sent to <strong id="otp-email-target" style="color:var(--cyan);">user@domain.com</strong>, or click the secure link in your email to authorize your vault.</p>
         
         <form onsubmit="handleVerifyOTP(event)" style="display:flex; flex-direction:column; gap:16px; align-items:center;">
             <div style="width:100%; position:relative;">
@@ -1741,7 +1741,19 @@
 
         // Listen for Auth Changes (Login, Logout, OAuth Callback)
         _supabase.auth.onAuthStateChange(async (event, session) => {
-            if (isOtpVerificationPending) return;
+            const hasAuthTokenInHash = window.location.hash.includes('access_token=') || 
+                                       window.location.hash.includes('type=signup') || 
+                                       window.location.hash.includes('type=magiclink') ||
+                                       window.location.hash.includes('type=recovery');
+
+            if (isOtpVerificationPending && !hasAuthTokenInHash) {
+                return;
+            }
+
+            if (hasAuthTokenInHash) {
+                isOtpVerificationPending = false;
+                closeOtpModal();
+            }
 
             if (event === 'PASSWORD_RECOVERY' || isRecoveryURL) {
                 setTimeout(openUpdatePasswordModal, 100);

@@ -1017,24 +1017,54 @@
             try { _supabase.removeChannel(activationChannel); } catch(e) {}
         }
 
-        // 1. Multi-tab BroadcastChannel listener
+        const handleSuccessSignal = (userName) => {
+            if (!isLiveActivationTriggered) {
+                clearInterval(liveActivationPollInterval);
+                onLiveActivationSuccess(userName || targetEmail.split('@')[0]);
+            }
+        };
+
+        // 1. Instant Multi-Tab Storage Event Listener
+        const storageHandler = (e) => {
+            if (e.key === 'vault_activation_signal' || e.key === ('vault_email_verified_email_' + targetEmail)) {
+                let uName = targetEmail.split('@')[0];
+                if (e.newValue) {
+                    try {
+                        const parsed = JSON.parse(e.newValue);
+                        if (parsed && parsed.name) uName = parsed.name;
+                    } catch(err) {}
+                }
+                handleSuccessSignal(uName);
+            }
+        };
+        window.addEventListener('storage', storageHandler);
+
+        // 2. Multi-tab BroadcastChannel listener
         if (window.BroadcastChannel) {
             try {
                 const bc = new BroadcastChannel('vault_activation_sync');
                 bc.onmessage = (evt) => {
                     if (evt.data && evt.data.email === targetEmail && evt.data.verified) {
-                        onLiveActivationSuccess(evt.data.name || targetEmail.split('@')[0]);
+                        handleSuccessSignal(evt.data.name);
                     }
                 };
             } catch(e) {}
         }
 
-        // 2. Realtime Heartbeat Poll every 2 seconds
+        // 3. Heartbeat Poll every 1 second (checking LocalStorage & Supabase DB)
         liveActivationPollInterval = setInterval(async () => {
             if (isLiveActivationTriggered) {
                 clearInterval(liveActivationPollInterval);
                 return;
             }
+
+            // Check LocalStorage directly
+            if (localStorage.getItem('vault_email_verified_email_' + targetEmail) === 'true') {
+                handleSuccessSignal(targetEmail.split('@')[0]);
+                return;
+            }
+
+            // Check Supabase DB
             try {
                 const { data } = await _supabase
                     .from('users_list')
@@ -1043,13 +1073,12 @@
                     .maybeSingle();
 
                 if (data && data.is_email_verified === true) {
-                    clearInterval(liveActivationPollInterval);
-                    onLiveActivationSuccess(data.name || targetEmail.split('@')[0]);
+                    handleSuccessSignal(data.name || targetEmail.split('@')[0]);
                 }
             } catch (e) {}
-        }, 2000);
+        }, 1000);
 
-        // 3. Supabase Realtime Postgres Changes Listener
+        // 4. Supabase Realtime Postgres Changes Listener
         try {
             const cleanEmail = targetEmail.replace(/[^a-z0-9]/g, '');
             activationChannel = _supabase.channel('act-listen-' + cleanEmail)
@@ -1059,8 +1088,7 @@
                     table: 'users_list'
                 }, (payload) => {
                     if (payload.new && payload.new.email && payload.new.email.toLowerCase() === targetEmail && payload.new.is_email_verified === true) {
-                        clearInterval(liveActivationPollInterval);
-                        onLiveActivationSuccess(payload.new.name || targetEmail.split('@')[0]);
+                        handleSuccessSignal(payload.new.name || targetEmail.split('@')[0]);
                     }
                 })
                 .subscribe();
@@ -1851,7 +1879,10 @@
                 if ((isFromMagicLinkClick || isConfirmedInSupabase) && session.user.id) {
                     isExplicitSignupInProgress = false;
                     localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
-                    if (userEmail) localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
+                    if (userEmail) {
+                        localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
+                        localStorage.setItem('vault_activation_signal', JSON.stringify({ email: userEmail, name: firstName, ts: Date.now() }));
+                    }
                     try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
                     try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
                     if (userEmail) {

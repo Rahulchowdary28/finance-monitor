@@ -983,6 +983,11 @@
         }
     }
 
+    let isOtpVerificationPending = false;
+    let pendingSignupEmail = '';
+    let pendingSignupName = '';
+    let pendingSignupPassword = '';
+
     async function handleEmailAuth(e) {
         if (e) e.preventDefault();
         clearAuthError();
@@ -1008,6 +1013,12 @@
                     submitBtn.innerText = "Register & Create Vault";
                     return;
                 }
+
+                isOtpVerificationPending = true;
+                pendingSignupEmail = email;
+                pendingSignupName = name;
+                pendingSignupPassword = password;
+
                 const { data, error } = await _supabase.auth.signUp({
                     email,
                     password,
@@ -1015,14 +1026,24 @@
                         data: { full_name: name }
                     }
                 });
-                if (error) throw error;
-
-                if (data.session) {
-                    // Logged in automatically
-                } else {
-                    // Launch 6-digit OTP Verification Modal
-                    openOtpModal(email, name);
+                if (error) {
+                    isOtpVerificationPending = false;
+                    throw error;
                 }
+
+                // If Supabase auto-logged in, sign out immediately to enforce OTP verification
+                if (data.session) {
+                    await _supabase.auth.signOut();
+                }
+
+                // Dispatch 6-digit OTP email code to user's address
+                let otpSendRes = await _supabase.auth.signInWithOtp({ email });
+                if (otpSendRes.error) {
+                    await _supabase.auth.resend({ type: 'signup', email });
+                }
+
+                // Launch 6-digit OTP Verification Modal
+                openOtpModal(email, name);
             } else {
                 const { error } = await _supabase.auth.signInWithPassword({
                     email,
@@ -1031,15 +1052,13 @@
                 if (error) throw error;
             }
         } catch (err) {
+            isOtpVerificationPending = false;
             showAuthError(err.message);
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = authMode === 'signup' ? "Register & Create Vault" : "Sign In to Vault";
         }
     }
-
-    let pendingSignupEmail = '';
-    let pendingSignupName = '';
 
     function openOtpModal(email, name) {
         pendingSignupEmail = email;
@@ -1052,6 +1071,7 @@
     }
 
     function closeOtpModal() {
+        isOtpVerificationPending = false;
         document.getElementById('otp-verification-modal').style.display = 'none';
     }
 
@@ -1065,16 +1085,13 @@
         statusMsg.innerText = 'Resending verification code...';
 
         try {
-            const { error } = await _supabase.auth.resend({
-                type: 'signup',
-                email: pendingSignupEmail
-            });
-            if (error) {
-                const { error: err2 } = await _supabase.auth.resend({
+            let res = await _supabase.auth.signInWithOtp({ email: pendingSignupEmail });
+            if (res.error) {
+                res = await _supabase.auth.resend({
                     type: 'signup',
                     email: pendingSignupEmail
                 });
-                if (err2) throw err2;
+                if (res.error) throw res.error;
             }
 
             statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
@@ -1112,20 +1129,31 @@
             let verifyRes = await _supabase.auth.verifyOtp({
                 email: pendingSignupEmail,
                 token: otpCode,
-                type: 'signup'
+                type: 'email'
             });
 
             if (verifyRes.error) {
                 verifyRes = await _supabase.auth.verifyOtp({
                     email: pendingSignupEmail,
                     token: otpCode,
-                    type: 'email'
+                    type: 'signup'
                 });
             }
 
             if (verifyRes.error) throw verifyRes.error;
 
-            const session = verifyRes.data.session;
+            isOtpVerificationPending = false;
+
+            let session = verifyRes.data.session;
+            if (!session && pendingSignupPassword) {
+                const loginRes = await _supabase.auth.signInWithPassword({
+                    email: pendingSignupEmail,
+                    password: pendingSignupPassword
+                });
+                if (loginRes.error) throw loginRes.error;
+                session = loginRes.data.session;
+            }
+
             if (session && session.user) {
                 currentUserId = session.user.id;
                 currentUser = pendingSignupName || session.user.user_metadata?.full_name || pendingSignupEmail.split('@')[0];
@@ -1151,9 +1179,9 @@
                     document.getElementById('auth-portal').style.display = 'none';
                     document.getElementById('active-user-badge').innerText = currentUser;
                     fetchData();
-                }, 1000);
+                }, 800);
             } else {
-                throw new Error("Verification completed, but session could not be established.");
+                throw new Error("Verification succeeded but user session could not be established.");
             }
         } catch (err) {
             statusMsg.style.display = 'block';
@@ -1713,6 +1741,8 @@
 
         // Listen for Auth Changes (Login, Logout, OAuth Callback)
         _supabase.auth.onAuthStateChange(async (event, session) => {
+            if (isOtpVerificationPending) return;
+
             if (event === 'PASSWORD_RECOVERY' || isRecoveryURL) {
                 setTimeout(openUpdatePasswordModal, 100);
             }

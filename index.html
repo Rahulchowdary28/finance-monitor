@@ -1007,10 +1007,16 @@
     let activationChannel = null;
     let isLiveActivationTriggered = false;
 
-    function startLiveActivationListener(email) {
+    function startLiveActivationListener(email, userId = '') {
         if (!email) return;
         const targetEmail = email.toLowerCase().trim();
+        const listenerStartTime = Date.now();
         isLiveActivationTriggered = false;
+
+        // Wipe stale activation signals for this email & userId
+        localStorage.removeItem('vault_activation_signal');
+        localStorage.removeItem('vault_email_verified_email_' + targetEmail);
+        if (userId) localStorage.removeItem('vault_email_verified_' + userId);
 
         if (liveActivationPollInterval) clearInterval(liveActivationPollInterval);
         if (activationChannel) {
@@ -1019,6 +1025,7 @@
 
         const handleSuccessSignal = (userName) => {
             if (!isLiveActivationTriggered) {
+                isLiveActivationTriggered = true;
                 clearInterval(liveActivationPollInterval);
                 onLiveActivationSuccess(userName || targetEmail.split('@')[0]);
             }
@@ -1026,15 +1033,13 @@
 
         // 1. Instant Multi-Tab Storage Event Listener
         const storageHandler = (e) => {
-            if (e.key === 'vault_activation_signal' || e.key === ('vault_email_verified_email_' + targetEmail)) {
-                let uName = targetEmail.split('@')[0];
-                if (e.newValue) {
-                    try {
-                        const parsed = JSON.parse(e.newValue);
-                        if (parsed && parsed.name) uName = parsed.name;
-                    } catch(err) {}
-                }
-                handleSuccessSignal(uName);
+            if (e.key === 'vault_activation_signal' && e.newValue) {
+                try {
+                    const parsed = JSON.parse(e.newValue);
+                    if (parsed && parsed.email === targetEmail && parsed.ts >= listenerStartTime) {
+                        handleSuccessSignal(parsed.name || targetEmail.split('@')[0]);
+                    }
+                } catch(err) {}
             }
         };
         window.addEventListener('storage', storageHandler);
@@ -1044,55 +1049,47 @@
             try {
                 const bc = new BroadcastChannel('vault_activation_sync');
                 bc.onmessage = (evt) => {
-                    if (evt.data && evt.data.email === targetEmail && evt.data.verified) {
+                    if (evt.data && evt.data.email === targetEmail && evt.data.verified && evt.data.ts >= listenerStartTime) {
                         handleSuccessSignal(evt.data.name);
                     }
                 };
             } catch(e) {}
         }
 
-        // 3. Heartbeat Poll every 1 second (checking LocalStorage & Supabase DB)
+        // 3. Heartbeat Poll every 1.5 seconds
         liveActivationPollInterval = setInterval(async () => {
             if (isLiveActivationTriggered) {
                 clearInterval(liveActivationPollInterval);
                 return;
             }
 
-            // Check LocalStorage directly
-            if (localStorage.getItem('vault_email_verified_email_' + targetEmail) === 'true') {
-                handleSuccessSignal(targetEmail.split('@')[0]);
-                return;
+            // Check LocalStorage for fresh signal
+            const signalStr = localStorage.getItem('vault_activation_signal');
+            if (signalStr) {
+                try {
+                    const parsed = JSON.parse(signalStr);
+                    if (parsed && parsed.email === targetEmail && parsed.ts >= listenerStartTime) {
+                        handleSuccessSignal(parsed.name || targetEmail.split('@')[0]);
+                        return;
+                    }
+                } catch(err) {}
             }
 
-            // Check Supabase DB
-            try {
-                const { data } = await _supabase
-                    .from('users_list')
-                    .select('name, is_email_verified, user_id')
-                    .ilike('email', targetEmail)
-                    .maybeSingle();
+            // Check Supabase DB by userId
+            if (userId) {
+                try {
+                    const { data } = await _supabase
+                        .from('users_list')
+                        .select('name, is_email_verified, user_id')
+                        .eq('user_id', userId)
+                        .maybeSingle();
 
-                if (data && data.is_email_verified === true) {
-                    handleSuccessSignal(data.name || targetEmail.split('@')[0]);
-                }
-            } catch (e) {}
-        }, 1000);
-
-        // 4. Supabase Realtime Postgres Changes Listener
-        try {
-            const cleanEmail = targetEmail.replace(/[^a-z0-9]/g, '');
-            activationChannel = _supabase.channel('act-listen-' + cleanEmail)
-                .on('postgres_changes', {
-                    event: 'UPDATE',
-                    schema: 'public',
-                    table: 'users_list'
-                }, (payload) => {
-                    if (payload.new && payload.new.email && payload.new.email.toLowerCase() === targetEmail && payload.new.is_email_verified === true) {
-                        handleSuccessSignal(payload.new.name || targetEmail.split('@')[0]);
+                    if (data && data.is_email_verified === true) {
+                        handleSuccessSignal(data.name || targetEmail.split('@')[0]);
                     }
-                })
-                .subscribe();
-        } catch (e) {}
+                } catch (e) {}
+            }
+        }, 1500);
     }
 
     function stopLiveActivationListener() {
@@ -1137,7 +1134,7 @@
         }, 1200);
     }
 
-    function showActivationPendingView(email, msg = '') {
+    function showActivationPendingView(email, msg = '', userId = '') {
         pendingActivationEmail = email || pendingActivationEmail;
         document.getElementById('activation-email-target').innerText = pendingActivationEmail || 'your email';
         document.getElementById('profile-select-view').style.display = 'none';
@@ -1156,7 +1153,7 @@
         }
 
         if (pendingActivationEmail) {
-            startLiveActivationListener(pendingActivationEmail);
+            startLiveActivationListener(pendingActivationEmail, userId);
         }
     }
 
@@ -1299,7 +1296,7 @@
                     } catch(e) {}
                 }
 
-                showActivationPendingView(email);
+                showActivationPendingView(email, '', data?.user?.id);
                 return;
             } else {
                 const { data: loginData, error } = await _supabase.auth.signInWithPassword({
@@ -1941,7 +1938,7 @@
                 // If user registered manually and has not clicked magic link, block access
                 if (!isVerified) {
                     await _supabase.auth.signOut();
-                    showActivationPendingView(session.user.email || '');
+                    showActivationPendingView(session.user.email || '', '', session.user.id);
                     return;
                 }
 

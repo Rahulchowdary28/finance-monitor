@@ -656,6 +656,32 @@
     </div>
 </div>
 
+<!-- ─── 6-DIGIT EMAIL OTP VERIFICATION MODAL ─── -->
+<div id="otp-verification-modal" style="display:none; position:fixed; inset:0; z-index:27000; background:rgba(2,4,10,0.95); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px;">
+    <div class="auth-container-card" style="max-width:420px; text-align:center; position:relative; z-index:27001;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin:0; font-size:1.05rem;"><i class="fas fa-shield-alt"></i> Verify Email Security OTP</h3>
+            <button onclick="closeOtpModal()" style="background:none; border:none; color:var(--dim); font-size:1.1rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        <p style="color:var(--dim); font-size:0.78rem; margin-bottom:18px;">Enter the 6-digit verification code dispatched to <strong id="otp-email-target" style="color:var(--cyan);">user@domain.com</strong> to authorize your new account vault.</p>
+        
+        <form onsubmit="handleVerifyOTP(event)" style="display:flex; flex-direction:column; gap:16px; align-items:center;">
+            <div style="width:100%; position:relative;">
+                <input type="text" id="otp-code-input" maxlength="6" pattern="[0-9]{6}" placeholder="• • • • • •" autocomplete="one-time-code" inputmode="numeric" required style="font-family:'Orbitron', monospace; font-size:1.6rem; letter-spacing:14px; text-align:center; padding:12px 14px; height:56px; border-color:var(--cyan); box-shadow:var(--glow-cyan); border-radius:14px; color:var(--lime);">
+            </div>
+            <button type="submit" class="auth-submit-btn" id="otp-submit-btn" style="margin-top:4px; background:var(--lime); color:#040612; box-shadow:0 0 20px rgba(0,255,136,0.5); width:100%;">
+                <i class="fas fa-check-circle"></i> Verify & Launch Vault
+            </button>
+        </form>
+        
+        <div id="otp-status-msg" class="auth-error-box" style="margin-top:14px;"></div>
+        
+        <div style="margin-top:20px; font-size:0.75rem; color:var(--dim);">
+            Didn't receive code? <a href="#" onclick="resendOtpCode(event)" style="color:var(--cyan); text-decoration:none; font-weight:700;">Resend OTP Code</a>
+        </div>
+    </div>
+</div>
+
 <!-- ─── STANDALONE ADMIN CONTROL CONSOLE MODAL ─── -->
 <div id="admin-modal" style="display:none; position:fixed; inset:0; z-index:20000; background:rgba(2,4,10,0.88); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
     <div class="auth-container-card" style="max-width:520px; text-align:left; position:relative; z-index:20001;">
@@ -990,10 +1016,12 @@
                     }
                 });
                 if (error) throw error;
+
                 if (data.session) {
                     // Logged in automatically
                 } else {
-                    showAuthError("Account registered successfully! Check your email for verification link.", false);
+                    // Launch 6-digit OTP Verification Modal
+                    openOtpModal(email, name);
                 }
             } else {
                 const { error } = await _supabase.auth.signInWithPassword({
@@ -1007,6 +1035,135 @@
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = authMode === 'signup' ? "Register & Create Vault" : "Sign In to Vault";
+        }
+    }
+
+    let pendingSignupEmail = '';
+    let pendingSignupName = '';
+
+    function openOtpModal(email, name) {
+        pendingSignupEmail = email;
+        pendingSignupName = name;
+        document.getElementById('otp-email-target').innerText = email;
+        document.getElementById('otp-code-input').value = '';
+        document.getElementById('otp-status-msg').style.display = 'none';
+        document.getElementById('otp-verification-modal').style.display = 'flex';
+        setTimeout(() => document.getElementById('otp-code-input').focus(), 150);
+    }
+
+    function closeOtpModal() {
+        document.getElementById('otp-verification-modal').style.display = 'none';
+    }
+
+    async function resendOtpCode(e) {
+        if (e) e.preventDefault();
+        const statusMsg = document.getElementById('otp-status-msg');
+        statusMsg.style.display = 'block';
+        statusMsg.style.background = 'rgba(99, 102, 241, 0.15)';
+        statusMsg.style.borderColor = 'var(--accent)';
+        statusMsg.style.color = '#a5b4fc';
+        statusMsg.innerText = 'Resending verification code...';
+
+        try {
+            const { error } = await _supabase.auth.resend({
+                type: 'signup',
+                email: pendingSignupEmail
+            });
+            if (error) {
+                const { error: err2 } = await _supabase.auth.resend({
+                    type: 'signup',
+                    email: pendingSignupEmail
+                });
+                if (err2) throw err2;
+            }
+
+            statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
+            statusMsg.style.borderColor = 'var(--lime)';
+            statusMsg.style.color = 'var(--lime)';
+            statusMsg.innerText = 'A new 6-digit OTP verification code has been sent to your email!';
+        } catch (err) {
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = err.message || 'Failed to resend OTP code.';
+        }
+    }
+
+    async function handleVerifyOTP(e) {
+        if (e) e.preventDefault();
+        const otpCode = document.getElementById('otp-code-input').value.trim();
+        const btn = document.getElementById('otp-submit-btn');
+        const statusMsg = document.getElementById('otp-status-msg');
+
+        if (!otpCode || otpCode.length < 6) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = 'Please enter the complete 6-digit verification code.';
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Verifying Code...`;
+        statusMsg.style.display = 'none';
+
+        try {
+            let verifyRes = await _supabase.auth.verifyOtp({
+                email: pendingSignupEmail,
+                token: otpCode,
+                type: 'signup'
+            });
+
+            if (verifyRes.error) {
+                verifyRes = await _supabase.auth.verifyOtp({
+                    email: pendingSignupEmail,
+                    token: otpCode,
+                    type: 'email'
+                });
+            }
+
+            if (verifyRes.error) throw verifyRes.error;
+
+            const session = verifyRes.data.session;
+            if (session && session.user) {
+                currentUserId = session.user.id;
+                currentUser = pendingSignupName || session.user.user_metadata?.full_name || pendingSignupEmail.split('@')[0];
+
+                // Ensure profile exists in users_list
+                await _supabase.from('users_list').upsert([{
+                    user_id: currentUserId,
+                    name: currentUser,
+                    email: pendingSignupEmail,
+                    role: 'User',
+                    is_hold: false,
+                    selected_currency: 'AED'
+                }], { onConflict: 'user_id' });
+
+                statusMsg.style.display = 'block';
+                statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
+                statusMsg.style.borderColor = 'var(--lime)';
+                statusMsg.style.color = 'var(--lime)';
+                statusMsg.innerText = 'OTP verified! Authorizing vault...';
+
+                setTimeout(() => {
+                    closeOtpModal();
+                    document.getElementById('auth-portal').style.display = 'none';
+                    document.getElementById('active-user-badge').innerText = currentUser;
+                    fetchData();
+                }, 1000);
+            } else {
+                throw new Error("Verification completed, but session could not be established.");
+            }
+        } catch (err) {
+            statusMsg.style.display = 'block';
+            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
+            statusMsg.style.borderColor = 'var(--red)';
+            statusMsg.style.color = '#ff8888';
+            statusMsg.innerText = err.message || 'Invalid or expired OTP code.';
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-check-circle"></i> Verify & Launch Vault`;
         }
     }
 

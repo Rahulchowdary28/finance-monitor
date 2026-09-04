@@ -1108,15 +1108,19 @@
                     }], { onConflict: 'user_id' }).catch(() => {});
                 }
 
-                if (data.session && data.user && data.user.email_confirmed_at) {
-                    // Account auto-confirmed
-                } else {
-                    if (data.session) {
-                        await _supabase.auth.signOut();
+                // Force sign out so user cannot access vault before clicking the email link
+                await _supabase.auth.signOut();
+
+                // Dispatch Magic Link email to guarantee activation email is sent to user inbox
+                await _supabase.auth.signInWithOtp({
+                    email,
+                    options: {
+                        emailRedirectTo: window.location.origin
                     }
-                    showActivationPendingView(email);
-                    return;
-                }
+                }).catch(() => {});
+
+                showActivationPendingView(email);
+                return;
             } else {
                 const { data: loginData, error } = await _supabase.auth.signInWithPassword({
                     email,

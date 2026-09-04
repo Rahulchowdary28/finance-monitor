@@ -589,9 +589,14 @@
                 Please check your inbox and click <strong style="color:var(--lime);">AUTHENTICATE & LAUNCH VAULT</strong> to activate your account.
             </p>
 
-            <div style="background: rgba(0,240,255,0.06); border: 1px dashed var(--cyan); border-radius: 12px; padding: 14px; margin-bottom: 20px; font-size: 0.75rem; color: var(--dim); text-align: left; line-height: 1.4;">
+            <div style="background: rgba(0,240,255,0.06); border: 1px dashed var(--cyan); border-radius: 12px; padding: 14px; margin-bottom: 12px; font-size: 0.75rem; color: var(--dim); text-align: left; line-height: 1.4;">
                 <i class="fas fa-shield-alt" style="color:var(--cyan); margin-right:6px;"></i>
                 Account activation is mandatory for manual registration. Once clicked, your vault dashboard will unlock automatically.
+            </div>
+
+            <div style="background: rgba(255, 170, 0, 0.08); border: 1px solid rgba(255, 170, 0, 0.3); border-radius: 12px; padding: 12px; margin-bottom: 20px; font-size: 0.73rem; color: #ffcc00; text-align: left; line-height: 1.4; display: flex; align-items: flex-start; gap: 8px;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 0.85rem; margin-top: 2px; flex-shrink: 0;"></i>
+                <span><strong>Check Spam / Junk Folder:</strong> Activation emails (from Supabase) may arrive in your <em>Junk Email</em> folder. If not found, click resend below.</span>
             </div>
 
             <button onclick="resendActivationEmail()" id="resend-activation-btn" class="auth-submit-btn" style="background:var(--accent); color:#fff; box-shadow:var(--glow-accent); width:100%;">
@@ -1028,34 +1033,39 @@
         statusMsg.style.display = 'none';
 
         try {
-            const { error } = await _supabase.auth.resend({
-                type: 'signup',
+            const { error: otpErr } = await _supabase.auth.signInWithOtp({
                 email: pendingActivationEmail,
                 options: {
                     emailRedirectTo: window.location.origin
                 }
             });
-            if (error) {
-                const { error: err2 } = await _supabase.auth.signInWithOtp({
+
+            if (otpErr) {
+                const { error: resendErr } = await _supabase.auth.resend({
+                    type: 'signup',
                     email: pendingActivationEmail,
                     options: {
                         emailRedirectTo: window.location.origin
                     }
                 });
-                if (err2) throw err2;
+                if (resendErr) throw resendErr;
             }
 
             statusMsg.style.display = 'block';
             statusMsg.style.background = 'rgba(0, 255, 136, 0.15)';
             statusMsg.style.borderColor = 'var(--lime)';
             statusMsg.style.color = 'var(--lime)';
-            statusMsg.innerText = 'A fresh activation link has been sent to ' + pendingActivationEmail + '!';
+            statusMsg.innerText = 'A fresh activation link has been dispatched to ' + pendingActivationEmail + '! Please check your Inbox and Junk/Spam folder.';
         } catch (err) {
             statusMsg.style.display = 'block';
-            statusMsg.style.background = 'rgba(255, 77, 77, 0.15)';
-            statusMsg.style.borderColor = 'var(--red)';
-            statusMsg.style.color = '#ff8888';
-            statusMsg.innerText = err.message || 'Failed to resend activation link.';
+            statusMsg.style.background = 'rgba(255, 170, 0, 0.15)';
+            statusMsg.style.borderColor = '#ffaa00';
+            statusMsg.style.color = '#ffcc00';
+            if (err.message && (err.message.includes('60 seconds') || err.status === 429)) {
+                statusMsg.innerText = 'Security rate limit: Please wait 60 seconds before resending. Also check your Spam/Junk folder!';
+            } else {
+                statusMsg.innerText = err.message || 'Failed to resend activation link. Please check your Spam/Junk folder.';
+            }
         } finally {
             btn.disabled = false;
             btn.innerHTML = `<i class="fas fa-paper-plane"></i> Resend Activation Link`;
@@ -1115,13 +1125,25 @@
                 // Force sign out so user cannot access vault before clicking the email link
                 await _supabase.auth.signOut();
 
-                // Dispatch Magic Link email to guarantee activation email is sent to user inbox
-                await _supabase.auth.signInWithOtp({
+                // Wait 1.5 seconds to bypass Supabase sub-second rate limit window, then send magic link email
+                await new Promise(r => setTimeout(r, 1500));
+
+                const { error: otpErr } = await _supabase.auth.signInWithOtp({
                     email,
                     options: {
                         emailRedirectTo: window.location.origin
                     }
-                }).catch(() => {});
+                });
+
+                if (otpErr) {
+                    await _supabase.auth.resend({
+                        type: 'signup',
+                        email: email,
+                        options: {
+                            emailRedirectTo: window.location.origin
+                        }
+                    }).catch(() => {});
+                }
 
                 showActivationPendingView(email);
                 return;

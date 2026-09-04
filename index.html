@@ -1874,9 +1874,8 @@
                 let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
                 let firstName = googleFullName ? googleFullName.split(' ')[0] : (session.user.email?.split('@')[0] || 'User');
 
-                const isConfirmedInSupabase = Boolean(session.user.email_confirmed_at || session.user.confirmed_at);
-
-                if ((isFromMagicLinkClick || isConfirmedInSupabase) && session.user.id) {
+                // If coming directly from Magic Link click, mark as verified across all layers
+                if (isFromMagicLinkClick && session.user.id) {
                     isExplicitSignupInProgress = false;
                     localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
                     if (userEmail) {
@@ -1899,8 +1898,6 @@
                 const isVerifiedInMeta = session.user.user_metadata?.is_email_verified === true;
                 const isVerifiedInLocal = (session.user.id && localStorage.getItem('vault_email_verified_' + session.user.id) === 'true') ||
                                           (userEmail && localStorage.getItem('vault_email_verified_email_' + userEmail) === 'true');
-
-                let isVerified = isGoogleUser || isFromMagicLinkClick || isConfirmedInSupabase || isVerifiedInMeta || isVerifiedInLocal;
 
                 let profile = null;
 
@@ -1931,17 +1928,16 @@
                     profile = p3;
                 }
 
-                if (profile && profile.is_email_verified === true) {
-                    isVerified = true;
-                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
-                    if (userEmail) localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
-                }
+                const isVerifiedInProfile = profile && profile.is_email_verified === true;
 
-                if (profile && profile.is_email_verified === false && !isFromMagicLinkClick && !isConfirmedInSupabase && !isVerifiedInLocal && !isVerifiedInMeta) {
+                let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal || isVerifiedInProfile;
+
+                // Explicit lockouts for new signups and unverified profiles
+                if (isExplicitSignupInProgress && !isFromMagicLinkClick) {
                     isVerified = false;
                 }
 
-                if (isExplicitSignupInProgress && !isFromMagicLinkClick && !isConfirmedInSupabase) {
+                if (profile && profile.is_email_verified === false && !isFromMagicLinkClick && !isVerifiedInLocal && !isVerifiedInMeta) {
                     isVerified = false;
                 }
 

@@ -2001,6 +2001,12 @@
             setTimeout(openUpdatePasswordModal, 150);
         }
 
+        // Instant visual check: If local session token exists, pre-hide auth portal to prevent login modal flickering
+        const hasLocalToken = Object.keys(localStorage).some(k => k.includes('auth-token') || k.startsWith('sb-'));
+        if (hasLocalToken && !isRecoveryURL) {
+            document.getElementById('auth-portal').style.display = 'none';
+        }
+
         // Listen for Auth Changes (Login, Logout, OAuth Callback)
         _supabase.auth.onAuthStateChange(async (event, session) => {
             if (event === 'PASSWORD_RECOVERY' || isRecoveryURL) {
@@ -2024,147 +2030,147 @@
                 let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
                 let firstName = googleFullName ? googleFullName.split(' ')[0] : (session.user.email?.split('@')[0] || 'User');
 
-                // If user authenticated via Google OAuth, automatically mark as verified across all layers
-                if (isGoogleUser && session.user.id) {
-                    isExplicitSignupInProgress = false;
-                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
-                    if (userEmail) {
-                        localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
-                    }
-                    try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
-                    try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
-                    if (userEmail) {
-                        try { await _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail); } catch(e) {}
-                    }
-                }
-
-                // If coming directly from Magic Link click, mark as verified across all layers
-                if (isFromMagicLinkClick && session.user.id) {
-                    isExplicitSignupInProgress = false;
-                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
-                    if (userEmail) {
-                        localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
-                        localStorage.setItem('vault_activation_signal', JSON.stringify({ email: userEmail, name: firstName, ts: Date.now() }));
-                    }
-                    try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
-                    try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
-                    if (userEmail) {
-                        try { await _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail); } catch(e) {}
-                    }
-                    if (window.BroadcastChannel) {
-                        try {
-                            const bc = new BroadcastChannel('vault_activation_sync');
-                            bc.postMessage({ email: userEmail, verified: true, name: firstName });
-                        } catch(e) {}
-                    }
-                }
-
                 const isVerifiedInMeta = session.user.user_metadata?.is_email_verified === true;
                 const isVerifiedInLocal = (session.user.id && localStorage.getItem('vault_email_verified_' + session.user.id) === 'true') ||
                                           (userEmail && localStorage.getItem('vault_email_verified_email_' + userEmail) === 'true');
 
-                let profile = null;
+                let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal;
 
-                if (session.user.id) {
-                    const { data: p1 } = await _supabase
-                        .from('users_list')
-                        .select('*')
-                        .eq('user_id', session.user.id)
-                        .maybeSingle();
-                    profile = p1;
-                }
-
-                if (!profile && userEmail) {
-                    const { data: p2 } = await _supabase
-                        .from('users_list')
-                        .select('*')
-                        .ilike('email', userEmail)
-                        .maybeSingle();
-                    profile = p2;
-                }
-
-                // If profile missing for Google user, create one automatically
-                if (!profile && isGoogleUser && session.user.id) {
-                    try {
-                        const { data: newP } = await _supabase.from('users_list').upsert([{
-                            user_id: session.user.id,
-                            name: googleFullName || firstName,
-                            email: userEmail,
-                            role: 'User',
-                            is_hold: false,
-                            is_email_verified: true,
-                            selected_currency: 'AED'
-                        }], { onConflict: 'user_id' }).select().maybeSingle();
-                        profile = newP;
-                    } catch(e) {}
-                }
-
-                const isVerifiedInProfile = profile && profile.is_email_verified === true;
-
-                let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal || isVerifiedInProfile;
-
-                // Explicit lockouts ONLY for manual signups that haven't verified and are NOT Google OAuth users
                 if (isExplicitSignupInProgress && !isFromMagicLinkClick && !isGoogleUser) {
                     isVerified = false;
                 }
 
-                if (profile && profile.is_email_verified === false && !isGoogleUser && !isFromMagicLinkClick && !isVerifiedInLocal && !isVerifiedInMeta) {
-                    isVerified = false;
+                // ⚡ INSTANT UNLOCK: Hide auth portal immediately (0ms delay) for verified users
+                if (isVerified) {
+                    currentUserSession = session;
+                    currentUserId = session.user.id;
+                    currentUser = firstName;
+                    
+                    document.getElementById('activation-pending-view').style.display = 'none';
+                    document.getElementById('profile-select-view').style.display = 'block';
+                    document.getElementById('view-limit-select').value = '5';
+                    document.getElementById('active-user-badge').innerText = currentUser;
+                    document.getElementById('auth-portal').style.display = 'none';
                 }
 
-                // If user registered manually and has not clicked magic link, block access
-                if (!isVerified) {
-                    await _supabase.auth.signOut();
-                    showActivationPendingView(session.user.email || '', '', session.user.id);
-                    return;
-                }
-
-                document.getElementById('activation-pending-view').style.display = 'none';
-                document.getElementById('profile-select-view').style.display = 'block';
-
-                currentUserSession = session;
-                currentUserId = session.user.id;
-                
-                document.getElementById('view-limit-select').value = '5';
-                document.getElementById('active-user-badge').innerText = 'Syncing...';
-                document.getElementById('auth-portal').style.display = 'none';
-
-                if (profile) {
-                    currentUser = profile.name || firstName;
-                    if (!profile.user_id || profile.user_id !== currentUserId) {
-                        await _supabase
-                            .from('users_list')
-                            .update({ user_id: currentUserId, email: session.user.email || profile.email })
-                            .eq('id', profile.id);
+                // Background Async Tasks (Profile Sync, DB Updates, Ledger Fetching)
+                (async () => {
+                    // Mark verified in local & DB for Google users
+                    if (isGoogleUser && session.user.id) {
+                        isExplicitSignupInProgress = false;
+                        localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                        if (userEmail) localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
+                        _supabase.auth.updateUser({ data: { is_email_verified: true } }).catch(() => {});
+                        _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id).catch(() => {});
+                        if (userEmail) _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail).catch(() => {});
                     }
 
-                    // Auto-link any transactions belonging to user by name to their authenticated user_id
-                    await _supabase
-                        .from('transactions')
-                        .update({ user_id: currentUserId })
-                        .or(`user_name.ilike.${currentUser},user_name.ilike.${firstName}`);
+                    // Mark verified in local & DB for Magic Link callbacks
+                    if (isFromMagicLinkClick && session.user.id) {
+                        isExplicitSignupInProgress = false;
+                        localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                        if (userEmail) {
+                            localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
+                            localStorage.setItem('vault_activation_signal', JSON.stringify({ email: userEmail, name: firstName, ts: Date.now() }));
+                        }
+                        _supabase.auth.updateUser({ data: { is_email_verified: true } }).catch(() => {});
+                        _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id).catch(() => {});
+                        if (userEmail) _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail).catch(() => {});
+                        if (window.BroadcastChannel) {
+                            try {
+                                const bc = new BroadcastChannel('vault_activation_sync');
+                                bc.postMessage({ email: userEmail, verified: true, name: firstName });
+                            } catch(e) {}
+                        }
+                    }
 
-                    if (profile.is_hold) {
-                        alert("Access Revoked: Account has been suspended by administration.");
-                        logout();
+                    let profile = null;
+                    if (session.user.id) {
+                        const { data: p1 } = await _supabase
+                            .from('users_list')
+                            .select('*')
+                            .eq('user_id', session.user.id)
+                            .maybeSingle();
+                        profile = p1;
+                    }
+
+                    if (!profile && userEmail) {
+                        const { data: p2 } = await _supabase
+                            .from('users_list')
+                            .select('*')
+                            .ilike('email', userEmail)
+                            .maybeSingle();
+                        profile = p2;
+                    }
+
+                    if (!profile && isGoogleUser && session.user.id) {
+                        try {
+                            const { data: newP } = await _supabase.from('users_list').upsert([{
+                                user_id: session.user.id,
+                                name: googleFullName || firstName,
+                                email: userEmail,
+                                role: 'User',
+                                is_hold: false,
+                                is_email_verified: true,
+                                selected_currency: 'AED'
+                            }], { onConflict: 'user_id' }).select().maybeSingle();
+                            profile = newP;
+                        } catch(e) {}
+                    }
+
+                    const isVerifiedInProfile = profile && profile.is_email_verified === true;
+                    if (isVerifiedInProfile) isVerified = true;
+
+                    if (profile && profile.is_email_verified === false && !isGoogleUser && !isFromMagicLinkClick && !isVerifiedInLocal && !isVerifiedInMeta) {
+                        isVerified = false;
+                    }
+
+                    // If unverified manual registration attempt, block access
+                    if (!isVerified) {
+                        await _supabase.auth.signOut();
+                        showActivationPendingView(session.user.email || '', '', session.user.id);
                         return;
                     }
 
-                    if (profile.selected_currency) {
-                        currentBaseCurrency = profile.selected_currency;
-                        localStorage.setItem('vault_base_currency', currentBaseCurrency);
-                        document.getElementById('base-currency-select').value = currentBaseCurrency;
+                    // Guarantee UI unlocked
+                    document.getElementById('activation-pending-view').style.display = 'none';
+                    document.getElementById('profile-select-view').style.display = 'block';
+                    document.getElementById('auth-portal').style.display = 'none';
+
+                    currentUserSession = session;
+                    currentUserId = session.user.id;
+
+                    if (profile) {
+                        currentUser = profile.name || firstName;
+                        document.getElementById('active-user-badge').innerText = currentUser;
+
+                        if (!profile.user_id || profile.user_id !== currentUserId) {
+                            _supabase.from('users_list').update({ user_id: currentUserId, email: session.user.email || profile.email }).eq('id', profile.id).catch(() => {});
+                        }
+
+                        _supabase.from('transactions').update({ user_id: currentUserId }).or(`user_name.ilike.${currentUser},user_name.ilike.${firstName}`).catch(() => {});
+
+                        if (profile.is_hold) {
+                            alert("Access Revoked: Account has been suspended by administration.");
+                            logout();
+                            return;
+                        }
+
+                        if (profile.selected_currency) {
+                            currentBaseCurrency = profile.selected_currency;
+                            localStorage.setItem('vault_base_currency', currentBaseCurrency);
+                            document.getElementById('base-currency-select').value = currentBaseCurrency;
+                        }
+                    } else {
+                        currentUser = firstName;
+                        document.getElementById('active-user-badge').innerText = currentUser;
                     }
-                } else {
-                    currentUser = firstName;
-                }
 
-                document.getElementById('active-user-badge').innerText = currentUser;
-
-                populateCategoryDropdown();
-                renderUserCatBadges();
-                await fetchData();
-                setupRealtimeTransactionSync();
+                    populateCategoryDropdown();
+                    renderUserCatBadges();
+                    await fetchData();
+                    setupRealtimeTransactionSync();
+                })();
             } else {
                 currentUserSession = null;
                 currentUserId = null;

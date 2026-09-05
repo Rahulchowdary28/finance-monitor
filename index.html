@@ -2044,16 +2044,21 @@
                 if (isVerified) {
                     currentUserSession = session;
                     currentUserId = session.user.id;
-                    currentUser = firstName;
+                    currentUser = googleFullName || firstName;
                     
                     document.getElementById('activation-pending-view').style.display = 'none';
                     document.getElementById('profile-select-view').style.display = 'block';
                     document.getElementById('view-limit-select').value = '5';
                     document.getElementById('active-user-badge').innerText = currentUser;
                     document.getElementById('auth-portal').style.display = 'none';
+                    
+                    populateCategoryDropdown();
+                    renderUserCatBadges();
+                    fetchData();
+                    setupRealtimeTransactionSync();
                 }
 
-                // Background Async Tasks (Profile Sync, DB Updates, Ledger Fetching)
+                // Background Async Tasks (Profile Sync, DB Updates, Ledger Link)
                 (async () => {
                     // Mark verified in local & DB for Google users
                     if (isGoogleUser && session.user.id) {
@@ -2140,15 +2145,17 @@
                     currentUserSession = session;
                     currentUserId = session.user.id;
 
+                    let nameChanged = false;
                     if (profile) {
-                        currentUser = profile.name || firstName;
+                        if (profile.name && profile.name !== currentUser) {
+                            currentUser = profile.name;
+                            nameChanged = true;
+                        }
                         document.getElementById('active-user-badge').innerText = currentUser;
 
                         if (!profile.user_id || profile.user_id !== currentUserId) {
                             _supabase.from('users_list').update({ user_id: currentUserId, email: session.user.email || profile.email }).eq('id', profile.id).catch(() => {});
                         }
-
-                        _supabase.from('transactions').update({ user_id: currentUserId }).or(`user_name.ilike.${currentUser},user_name.ilike.${firstName}`).catch(() => {});
 
                         if (profile.is_hold) {
                             alert("Access Revoked: Account has been suspended by administration.");
@@ -2161,15 +2168,19 @@
                             localStorage.setItem('vault_base_currency', currentBaseCurrency);
                             document.getElementById('base-currency-select').value = currentBaseCurrency;
                         }
-                    } else {
-                        currentUser = firstName;
-                        document.getElementById('active-user-badge').innerText = currentUser;
                     }
 
-                    populateCategoryDropdown();
-                    renderUserCatBadges();
-                    await fetchData();
-                    setupRealtimeTransactionSync();
+                    // Auto-link any transactions by user_name to this authenticated user_id
+                    try {
+                        const searchNames = [currentUser, firstName, googleFullName].filter(Boolean);
+                        for (const n of searchNames) {
+                            await _supabase.from('transactions').update({ user_id: currentUserId }).ilike('user_name', `%${n}%`);
+                        }
+                    } catch(e) {}
+
+                    if (nameChanged || allTransactions.length === 0) {
+                        await fetchData();
+                    }
                 })();
             } else {
                 currentUserSession = null;
@@ -2276,42 +2287,50 @@
                 if (byId && byId.length > 0) rawData = rawData.concat(byId);
             }
 
-            // 2. Fetch by user_name matching profile name or display name
+            // 2. Build name candidates array for flexible matching
+            const candidates = new Set();
             if (currentUser) {
-                const { data: byName } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .ilike('user_name', currentUser)
-                    .order('created_at', { ascending: false });
-                if (byName && byName.length > 0) rawData = rawData.concat(byName);
-
-                const firstName = currentUser.split(' ')[0];
-                if (firstName !== currentUser) {
-                    const { data: byFirstName } = await _supabase
-                        .from('transactions')
-                        .select('*')
-                        .ilike('user_name', firstName)
-                        .order('created_at', { ascending: false });
-                    if (byFirstName && byFirstName.length > 0) rawData = rawData.concat(byFirstName);
+                candidates.add(currentUser.trim());
+                candidates.add(currentUser.split(' ')[0].trim());
+            }
+            if (currentUserSession && currentUserSession.user) {
+                const meta = currentUserSession.user.user_metadata || {};
+                const gName = meta.full_name || meta.name;
+                if (gName) {
+                    candidates.add(gName.trim());
+                    candidates.add(gName.split(' ')[0].trim());
+                }
+                if (currentUserSession.user.email) {
+                    candidates.add(currentUserSession.user.email.split('@')[0]);
                 }
             }
 
-            // 3. Resilient Fallback: If rawData is empty, fetch all accessible transactions and filter client-side
+            for (const cand of candidates) {
+                if (!cand || cand.length < 2) continue;
+                const { data: byName } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .ilike('user_name', `%${cand}%`)
+                    .order('created_at', { ascending: false });
+                if (byName && byName.length > 0) {
+                    rawData = rawData.concat(byName);
+                }
+            }
+
+            // 3. Fallback: If rawData is empty or partial, fetch all accessible transactions and filter client-side
             if (rawData.length === 0) {
                 const { data: allData } = await _supabase
                     .from('transactions')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                const targetName = currentUser ? currentUser.toLowerCase() : '';
-                const targetFirstName = targetName.split(' ')[0];
+                const targetNames = Array.from(candidates).map(n => n.toLowerCase());
 
                 rawData = (allData || []).filter(t => {
                     const rowName = (t.user_name || '').toLowerCase();
                     const rowId = String(t.user_id || '');
                     return (currentUserId && rowId === String(currentUserId)) ||
-                           (targetName && rowName.includes(targetName)) ||
-                           (targetFirstName && rowName.includes(targetFirstName));
+                           targetNames.some(tn => tn && rowName.includes(tn));
                 });
             }
 
@@ -2442,12 +2461,15 @@
         let fil = allTransactions.filter(t => {
             if (currentUserId && t.user_id && String(t.user_id) === String(currentUserId)) return true;
             if (!t.user_name) return false;
-            let tName = String(t.user_name).toLowerCase();
-            let cName = String(currentUser || '').toLowerCase();
+            let tName = String(t.user_name).toLowerCase().trim();
+            let cName = String(currentUser || '').toLowerCase().trim();
+            let fName = userFirstName ? userFirstName.trim() : '';
+            let emailPrefix = (currentUserSession?.user?.email || '').split('@')[0].toLowerCase().trim();
+            
             if (tName === cName) return true;
-            if (cName && tName.includes(cName)) return true;
-            if (tName && cName.includes(tName)) return true;
-            if (userFirstName && tName.split(' ')[0] === userFirstName) return true;
+            if (cName && (tName.includes(cName) || cName.includes(tName))) return true;
+            if (fName && (tName.includes(fName) || fName.includes(tName))) return true;
+            if (emailPrefix && (tName.includes(emailPrefix) || emailPrefix.includes(tName))) return true;
             return false;
         });
 

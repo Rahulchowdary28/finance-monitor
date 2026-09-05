@@ -2008,7 +2008,10 @@
             }
 
             if (session && session.user) {
-                const isGoogleUser = session.user.app_metadata?.provider === 'google';
+                const isGoogleUser = session.user.app_metadata?.provider === 'google' || 
+                                     (session.user.app_metadata?.providers && session.user.app_metadata.providers.includes('google')) ||
+                                     (session.user.identities && session.user.identities.some(id => id.provider === 'google')) ||
+                                     (session.user.user_metadata?.iss && session.user.user_metadata.iss.includes('google'));
                 const curHash = window.location.hash || '';
                 const curSearch = window.location.search || '';
                 const isFromMagicLinkClick = _IS_MAGIC_LINK_CALLBACK || 
@@ -2020,6 +2023,20 @@
                 let userEmail = session.user.email ? session.user.email.toLowerCase() : '';
                 let googleFullName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
                 let firstName = googleFullName ? googleFullName.split(' ')[0] : (session.user.email?.split('@')[0] || 'User');
+
+                // If user authenticated via Google OAuth, automatically mark as verified across all layers
+                if (isGoogleUser && session.user.id) {
+                    isExplicitSignupInProgress = false;
+                    localStorage.setItem('vault_email_verified_' + session.user.id, 'true');
+                    if (userEmail) {
+                        localStorage.setItem('vault_email_verified_email_' + userEmail, 'true');
+                    }
+                    try { await _supabase.auth.updateUser({ data: { is_email_verified: true } }); } catch(e) {}
+                    try { await _supabase.from('users_list').update({ is_email_verified: true }).eq('user_id', session.user.id); } catch(e) {}
+                    if (userEmail) {
+                        try { await _supabase.from('users_list').update({ is_email_verified: true }).ilike('email', userEmail); } catch(e) {}
+                    }
+                }
 
                 // If coming directly from Magic Link click, mark as verified across all layers
                 if (isFromMagicLinkClick && session.user.id) {
@@ -2066,16 +2083,32 @@
                     profile = p2;
                 }
 
+                // If profile missing for Google user, create one automatically
+                if (!profile && isGoogleUser && session.user.id) {
+                    try {
+                        const { data: newP } = await _supabase.from('users_list').upsert([{
+                            user_id: session.user.id,
+                            name: googleFullName || firstName,
+                            email: userEmail,
+                            role: 'User',
+                            is_hold: false,
+                            is_email_verified: true,
+                            selected_currency: 'AED'
+                        }], { onConflict: 'user_id' }).select().maybeSingle();
+                        profile = newP;
+                    } catch(e) {}
+                }
+
                 const isVerifiedInProfile = profile && profile.is_email_verified === true;
 
                 let isVerified = isGoogleUser || isFromMagicLinkClick || isVerifiedInMeta || isVerifiedInLocal || isVerifiedInProfile;
 
-                // Explicit lockouts for new signups and unverified profiles
-                if (isExplicitSignupInProgress && !isFromMagicLinkClick) {
+                // Explicit lockouts ONLY for manual signups that haven't verified and are NOT Google OAuth users
+                if (isExplicitSignupInProgress && !isFromMagicLinkClick && !isGoogleUser) {
                     isVerified = false;
                 }
 
-                if (profile && profile.is_email_verified === false && !isFromMagicLinkClick && !isVerifiedInLocal && !isVerifiedInMeta) {
+                if (profile && profile.is_email_verified === false && !isGoogleUser && !isFromMagicLinkClick && !isVerifiedInLocal && !isVerifiedInMeta) {
                     isVerified = false;
                 }
 

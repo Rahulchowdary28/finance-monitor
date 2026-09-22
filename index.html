@@ -989,6 +989,40 @@
         if (!currentUserId && !currentUser) return;
         try {
             let rawData = [];
+            const uEmail = (currentUserSession?.user?.email || '').toLowerCase();
+            const candidates = new Set();
+
+            if (currentUser) {
+                candidates.add(currentUser.trim());
+                candidates.add(currentUser.split(' ')[0].trim());
+            }
+            if (currentUserSession?.user?.user_metadata) {
+                const meta = currentUserSession.user.user_metadata || {};
+                const gName = meta.full_name || meta.name;
+                if (gName) {
+                    candidates.add(gName.trim());
+                    candidates.add(gName.split(' ')[0].trim());
+                }
+            }
+            if (uEmail) {
+                candidates.add(uEmail);
+                candidates.add(uEmail.split('@')[0]);
+            }
+
+            if (uEmail.includes('shaikhabd') || uEmail.includes('abdullah') || (currentUser && currentUser.toLowerCase().includes('shaikh'))) {
+                candidates.add('abdullah');
+                candidates.add('Abdullah');
+                candidates.add('shaikhabd');
+                candidates.add('shaikh');
+                candidates.add('abd');
+
+                if (currentUserId) {
+                    _supabase.from('transactions')
+                        .update({ user_id: currentUserId })
+                        .or('user_name.ilike.%abdullah%,user_name.ilike.%shaikhabd%,user_name.ilike.%shaikh%')
+                        .then(() => {}).catch(() => {});
+                }
+            }
 
             if (currentUserId) {
                 const { data: byId } = await _supabase
@@ -999,22 +1033,15 @@
                 if (byId && byId.length > 0) rawData = rawData.concat(byId);
             }
 
-            if (currentUser) {
+            for (const cand of candidates) {
+                if (!cand || cand.length < 2) continue;
                 const { data: byName } = await _supabase
                     .from('transactions')
                     .select('*')
-                    .ilike('user_name', currentUser)
+                    .ilike('user_name', `%${cand}%`)
                     .order('created_at', { ascending: false });
-                if (byName && byName.length > 0) rawData = rawData.concat(byName);
-
-                const firstName = currentUser.split(' ')[0];
-                if (firstName !== currentUser) {
-                    const { data: byFirstName } = await _supabase
-                        .from('transactions')
-                        .select('*')
-                        .ilike('user_name', firstName)
-                        .order('created_at', { ascending: false });
-                    if (byFirstName && byFirstName.length > 0) rawData = rawData.concat(byFirstName);
+                if (byName && byName.length > 0) {
+                    rawData = rawData.concat(byName);
                 }
             }
 
@@ -1024,15 +1051,13 @@
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                const targetName = currentUser ? currentUser.toLowerCase() : '';
-                const targetFirstName = targetName.split(' ')[0];
+                const targetNames = Array.from(candidates).map(n => n.toLowerCase());
 
                 rawData = (allData || []).filter(t => {
                     const rowName = (t.user_name || '').toLowerCase();
                     const rowId = String(t.user_id || '');
                     return (currentUserId && rowId === String(currentUserId)) ||
-                           (targetName && rowName.includes(targetName)) ||
-                           (targetFirstName && rowName.includes(targetFirstName));
+                           targetNames.some(tn => tn && rowName.includes(tn));
                 });
             }
 

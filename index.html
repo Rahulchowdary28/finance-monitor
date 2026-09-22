@@ -2301,6 +2301,14 @@
                     candidates.add(gName.split(' ')[0].trim());
                 }
                 if (currentUserSession.user.email) {
+                    const uEmail = currentUserSession.user.email.toLowerCase();
+                    if (uEmail.includes('shaikhabd869') || uEmail.includes('abdullah')) {
+                        candidates.add('abdullah');
+                        candidates.add('Abdullah');
+                        candidates.add('shaikhabd');
+                        candidates.add('shaikh');
+                        _supabase.from('transactions').update({ user_id: currentUserId }).or('user_name.ilike.%abdullah%,user_name.ilike.%shaikhabd%').catch(() => {});
+                    }
                     candidates.add(currentUserSession.user.email.split('@')[0]);
                 }
             }
@@ -2470,6 +2478,7 @@
             if (cName && (tName.includes(cName) || cName.includes(tName))) return true;
             if (fName && (tName.includes(fName) || fName.includes(tName))) return true;
             if (emailPrefix && (tName.includes(emailPrefix) || emailPrefix.includes(tName))) return true;
+            if ((emailPrefix.includes('shaikhabd869') || cName.includes('shaikh') || cName.includes('abd')) && (tName.includes('abdullah') || tName.includes('shaikh') || tName.includes('abd'))) return true;
             return false;
         });
 

@@ -2313,33 +2313,6 @@
                 }
             }
 
-            // Fetch by user_id
-            if (currentUserId) {
-                const { data: byId } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('user_id', currentUserId)
-                    .order('created_at', { ascending: false });
-                if (byId && byId.length > 0) rawData = rawData.concat(byId);
-            }
-
-            // Fetch by all candidate names
-            for (const cand of candidates) {
-                if (!cand || cand.length < 2) continue;
-                const { data: byName } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .ilike('user_name', `%${cand}%`)
-                    .order('created_at', { ascending: false });
-                if (byName && byName.length > 0) {
-                    rawData = rawData.concat(byName);
-                }
-            }
-        if (!currentUserId && !currentUser) return;
-        
-        try {
-            let rawData = [];
-
             // 1. Fetch by user_id if logged in
             if (currentUserId) {
                 const { data: byId } = await _supabase
@@ -2350,32 +2323,7 @@
                 if (byId && byId.length > 0) rawData = rawData.concat(byId);
             }
 
-            // 2. Build name candidates array for flexible matching
-            const candidates = new Set();
-            if (currentUser) {
-                candidates.add(currentUser.trim());
-                candidates.add(currentUser.split(' ')[0].trim());
-            }
-            if (currentUserSession && currentUserSession.user) {
-                const meta = currentUserSession.user.user_metadata || {};
-                const gName = meta.full_name || meta.name;
-                if (gName) {
-                    candidates.add(gName.trim());
-                    candidates.add(gName.split(' ')[0].trim());
-                }
-                if (currentUserSession.user.email) {
-                    const uEmail = currentUserSession.user.email.toLowerCase();
-                    if (uEmail.includes('shaikhabd869') || uEmail.includes('abdullah')) {
-                        candidates.add('abdullah');
-                        candidates.add('Abdullah');
-                        candidates.add('shaikhabd');
-                        candidates.add('shaikh');
-                        _supabase.from('transactions').update({ user_id: currentUserId }).or('user_name.ilike.%abdullah%,user_name.ilike.%shaikhabd%').catch(() => {});
-                    }
-                    candidates.add(currentUserSession.user.email.split('@')[0]);
-                }
-            }
-
+            // 2. Fetch by all candidate names
             for (const cand of candidates) {
                 if (!cand || cand.length < 2) continue;
                 const { data: byName } = await _supabase

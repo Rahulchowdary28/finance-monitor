@@ -2276,6 +2276,69 @@
         
         try {
             let rawData = [];
+            const uEmail = (currentUserSession?.user?.email || '').toLowerCase();
+            const candidates = new Set();
+
+            if (currentUser) {
+                candidates.add(currentUser.trim());
+                candidates.add(currentUser.split(' ')[0].trim());
+            }
+            if (currentUserSession?.user?.user_metadata) {
+                const meta = currentUserSession.user.user_metadata || {};
+                const gName = meta.full_name || meta.name;
+                if (gName) {
+                    candidates.add(gName.trim());
+                    candidates.add(gName.split(' ')[0].trim());
+                }
+            }
+            if (uEmail) {
+                candidates.add(uEmail);
+                candidates.add(uEmail.split('@')[0]);
+            }
+
+            // Always include abdullah legacy aliases for shaikhabd869 / abdullah accounts
+            if (uEmail.includes('shaikhabd') || uEmail.includes('abdullah') || (currentUser && currentUser.toLowerCase().includes('shaikh'))) {
+                candidates.add('abdullah');
+                candidates.add('Abdullah');
+                candidates.add('shaikhabd');
+                candidates.add('shaikh');
+                candidates.add('abd');
+
+                // Permanently link legacy abdullah transactions in database to this user_id
+                if (currentUserId) {
+                    _supabase.from('transactions')
+                        .update({ user_id: currentUserId })
+                        .or('user_name.ilike.%abdullah%,user_name.ilike.%shaikhabd%,user_name.ilike.%shaikh%')
+                        .then(() => {}).catch(() => {});
+                }
+            }
+
+            // Fetch by user_id
+            if (currentUserId) {
+                const { data: byId } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', currentUserId)
+                    .order('created_at', { ascending: false });
+                if (byId && byId.length > 0) rawData = rawData.concat(byId);
+            }
+
+            // Fetch by all candidate names
+            for (const cand of candidates) {
+                if (!cand || cand.length < 2) continue;
+                const { data: byName } = await _supabase
+                    .from('transactions')
+                    .select('*')
+                    .ilike('user_name', `%${cand}%`)
+                    .order('created_at', { ascending: false });
+                if (byName && byName.length > 0) {
+                    rawData = rawData.concat(byName);
+                }
+            }
+        if (!currentUserId && !currentUser) return;
+        
+        try {
+            let rawData = [];
 
             // 1. Fetch by user_id if logged in
             if (currentUserId) {
@@ -2478,6 +2541,7 @@
             if (cName && (tName.includes(cName) || cName.includes(tName))) return true;
             if (fName && (tName.includes(fName) || fName.includes(tName))) return true;
             if (emailPrefix && (tName.includes(emailPrefix) || emailPrefix.includes(tName))) return true;
+            if ((emailPrefix.includes('shaikhabd') || emailPrefix.includes('abd') || cName.includes('shaikh') || cName.includes('abd')) && (tName.includes('abdullah') || tName.includes('shaikh') || tName.includes('abd'))) return true;
             if ((emailPrefix.includes('shaikhabd869') || cName.includes('shaikh') || cName.includes('abd')) && (tName.includes('abdullah') || tName.includes('shaikh') || tName.includes('abd'))) return true;
             return false;
         });

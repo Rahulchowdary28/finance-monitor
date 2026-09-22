@@ -1,5 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
-const { Resend } = require('resend');
+import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kfbtsoszcfnoovjvomir.supabase.co';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -9,10 +9,11 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const resend = new Resend(RESEND_API_KEY);
 
-module.exports = async function handler(req, res) {
-    const authHeader = req.headers.authorization;
+export default async function handler(req, res) {
+    const authHeader = req.headers?.authorization || (typeof req.headers?.get === 'function' ? req.headers.get('authorization') : null);
     if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-        return res.status(401).json({ error: 'Unauthorized cron execution' });
+        if (res && res.status) return res.status(401).json({ error: 'Unauthorized cron execution' });
+        return new Response(JSON.stringify({ error: 'Unauthorized cron execution' }), { status: 401 });
     }
 
     try {
@@ -46,7 +47,7 @@ module.exports = async function handler(req, res) {
             const hasTransactionsToday = todayTxns && todayTxns.length > 0;
 
             if (hasTransactionsToday) {
-                // ?? TRANSACTIONS EXIST TODAY -> Send Daily Financial Summary ONLY
+                // ?? TRANSACTIONS EXIST TODAY -> Send Daily Financial Summary (NO NUDGE)
                 let income = 0;
                 let expense = 0;
 
@@ -103,14 +104,24 @@ module.exports = async function handler(req, res) {
             }
         }
 
-        return res.status(200).json({
-            success: true,
-            summaryEmailsSent: summarySent,
-            reminderEmailsSent: nudgeSent
+        if (res && res.status) {
+            return res.status(200).json({
+                success: true,
+                summaryEmailsSent: summarySent,
+                reminderEmailsSent: nudgeSent
+            });
+        }
+
+        return new Response(JSON.stringify({ success: true, summaryEmailsSent: summarySent, reminderEmailsSent: nudgeSent }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
         });
 
     } catch (err) {
         console.error("Vercel Cron Execution Error:", err);
-        return res.status(500).json({ error: err.message });
+        if (res && res.status) {
+            return res.status(500).json({ error: err.message });
+        }
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
     }
-};
+}

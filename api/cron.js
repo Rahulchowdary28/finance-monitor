@@ -9,6 +9,8 @@ const CRON_SECRET = process.env.CRON_SECRET;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const resend = new Resend(RESEND_API_KEY);
 
+const SENDER_EMAIL = process.env.SENDER_EMAIL || process.env.RESEND_FROM_EMAIL || 'Vault Terminal <alerts@drivehouse.ae>';
+
 export default async function handler(req, res) {
     const authHeader = req.headers?.authorization || (typeof req.headers?.get === 'function' ? req.headers.get('authorization') : null);
     if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
@@ -86,19 +88,19 @@ export default async function handler(req, res) {
                         <p>Hello <strong>${uName}</strong>,</p>
                         <p>Here is your daily activity breakdown for today:</p>
                         <div style="background: rgba(255,255,255,0.05); padding: 16px; border-radius: 12px; margin: 16px 0;">
-                            <p style="margin: 6px 0;">?? <strong>Total Influx:</strong> AED ${income.toFixed(2)}</p>
-                            <p style="margin: 6px 0; color: #ff4d4d;">?? <strong>Total Outflow:</strong> AED ${expense.toFixed(2)}</p>
-                            <p style="margin: 6px 0; color: #00d4ff;">?? <strong>Net Balance Today:</strong> AED ${balance.toFixed(2)}</p>
-                            <p style="margin: 6px 0;">?? <strong>Logged Entries:</strong> ${todayTxns.length}</p>
+                            <p style="margin: 6px 0;">📊 <strong>Total Influx:</strong> AED ${income.toFixed(2)}</p>
+                            <p style="margin: 6px 0; color: #ff4d4d;">💸 <strong>Total Outflow:</strong> AED ${expense.toFixed(2)}</p>
+                            <p style="margin: 6px 0; color: #00d4ff;">💳 <strong>Net Balance Today:</strong> AED ${balance.toFixed(2)}</p>
+                            <p style="margin: 6px 0;">📝 <strong>Logged Entries:</strong> ${todayTxns.length}</p>
                         </div>
                         <p style="color: #94a3b8; font-size: 0.8rem;">Thank you for staying on top of your financial ledger!</p>
                     </div>
                 `;
 
                 const resendResult = await resend.emails.send({
-                    from: 'Virtual Vault <onboarding@resend.dev>',
+                    from: SENDER_EMAIL,
                     to: uEmail,
-                    subject: `?? Your Daily Finance Summary - ${now.toLocaleDateString()}`,
+                    subject: `📊 Your Daily Finance Summary - ${now.toLocaleDateString()}`,
                     html: summaryHtml
                 });
 
@@ -119,9 +121,9 @@ export default async function handler(req, res) {
                 `;
 
                 const resendResult = await resend.emails.send({
-                    from: 'Virtual Vault <onboarding@resend.dev>',
+                    from: SENDER_EMAIL,
                     to: uEmail,
-                    subject: `?? Quick Reminder: Record Today's Expenses`,
+                    subject: `📌 Quick Reminder: Record Today's Expenses`,
                     html: reminderHtml
                 });
 

@@ -30,24 +30,45 @@ export default async function handler(req, res) {
 
         let summarySent = 0;
         let nudgeSent = 0;
+        let logs = [];
 
         for (const user of users) {
             if (!user.email) continue;
 
-            const uEmail = user.email.toLowerCase();
-            const uName = user.name || uEmail.split('@')[0];
+            const uEmail = user.email.toLowerCase().trim();
+            const uName = (user.name || uEmail.split('@')[0]).trim();
+            const firstName = uName.split(' ')[0];
 
-            const { data: todayTxns } = await supabase
-                .from('transactions')
-                .select('*')
-                .or(`user_id.eq.${user.user_id},user_name.ilike.%${uName}%`)
-                .gte('created_at', startOfDay)
-                .lt('created_at', endOfDay);
+            let todayTxns = [];
+            const seenTxnIds = new Set();
 
-            const hasTransactionsToday = todayTxns && todayTxns.length > 0;
+            if (user.user_id) {
+                const { data: byId } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', user.user_id)
+                    .gte('created_at', startOfDay)
+                    .lt('created_at', endOfDay);
+                if (byId) {
+                    byId.forEach(t => { if (!seenTxnIds.has(t.id)) { seenTxnIds.add(t.id); todayTxns.push(t); } });
+                }
+            }
+
+            if (firstName) {
+                const { data: byName } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .ilike('user_name', `%${firstName}%`)
+                    .gte('created_at', startOfDay)
+                    .lt('created_at', endOfDay);
+                if (byName) {
+                    byName.forEach(t => { if (!seenTxnIds.has(t.id)) { seenTxnIds.add(t.id); todayTxns.push(t); } });
+                }
+            }
+
+            const hasTransactionsToday = todayTxns.length > 0;
 
             if (hasTransactionsToday) {
-                // ?? TRANSACTIONS EXIST TODAY -> Send Daily Financial Summary (NO NUDGE)
                 let income = 0;
                 let expense = 0;
 
@@ -74,16 +95,20 @@ export default async function handler(req, res) {
                     </div>
                 `;
 
-                await resend.emails.send({
+                const resendResult = await resend.emails.send({
                     from: 'Virtual Vault <onboarding@resend.dev>',
                     to: uEmail,
                     subject: `?? Your Daily Finance Summary - ${now.toLocaleDateString()}`,
                     html: summaryHtml
                 });
 
-                summarySent++;
+                if (resendResult.error) {
+                    logs.push(`Summary Error for ${uEmail}: ${JSON.stringify(resendResult.error)}`);
+                } else {
+                    summarySent++;
+                    logs.push(`Summary Sent to ${uEmail}`);
+                }
             } else {
-                // ?? NO TRANSACTIONS TODAY -> Send "Add Expenses" Reminder
                 const reminderHtml = `
                     <div style="font-family: Arial, sans-serif; background: #040612; color: #fff; padding: 24px; border-radius: 16px; border: 1px solid rgba(0, 212, 255, 0.3);">
                         <h2 style="color: #00d4ff; margin-top: 0;">Record Today's Expenses</h2>
@@ -93,35 +118,36 @@ export default async function handler(req, res) {
                     </div>
                 `;
 
-                await resend.emails.send({
+                const resendResult = await resend.emails.send({
                     from: 'Virtual Vault <onboarding@resend.dev>',
                     to: uEmail,
                     subject: `?? Quick Reminder: Record Today's Expenses`,
                     html: reminderHtml
                 });
 
-                nudgeSent++;
+                if (resendResult.error) {
+                    logs.push(`Reminder Error for ${uEmail}: ${JSON.stringify(resendResult.error)}`);
+                } else {
+                    nudgeSent++;
+                    logs.push(`Reminder Sent to ${uEmail}`);
+                }
             }
         }
 
-        if (res && res.status) {
-            return res.status(200).json({
-                success: true,
-                summaryEmailsSent: summarySent,
-                reminderEmailsSent: nudgeSent
-            });
-        }
+        const responsePayload = {
+            success: true,
+            totalUsersProcessed: users.length,
+            summaryEmailsSent: summarySent,
+            reminderEmailsSent: nudgeSent,
+            logs: logs
+        };
 
-        return new Response(JSON.stringify({ success: true, summaryEmailsSent: summarySent, reminderEmailsSent: nudgeSent }), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json' }
-        });
+        if (res && res.status) return res.status(200).json(responsePayload);
+        return new Response(JSON.stringify(responsePayload), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
     } catch (err) {
         console.error("Vercel Cron Execution Error:", err);
-        if (res && res.status) {
-            return res.status(500).json({ error: err.message });
-        }
+        if (res && res.status) return res.status(500).json({ error: err.message });
         return new Response(JSON.stringify({ error: err.message }), { status: 500 });
     }
 }

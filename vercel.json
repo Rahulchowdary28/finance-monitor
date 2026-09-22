@@ -1,8 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/cron",
-      "schedule": "0 21 * * *"
+      "path": "/api/daily-summary",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/reminder",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/broadcast",
+      "schedule": "30 16 * * *"
     }
   ]
 }

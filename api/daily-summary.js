@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   try {
     const { data: users, error: userError } = await supabase
       .from('users_list')
-      .select('name, email, selected_currency')
+      .select('user_id, name, email, selected_currency')
       .eq('is_hold', false);
 
     if (userError) throw userError;
@@ -53,16 +53,34 @@ export default async function handler(req, res) {
       const userCurrency = user.selected_currency || 'AED';
       const userSymbol = currencySymbols[userCurrency] || 'AED ';
       const toBaseFactor = liveRates[userCurrency] / liveRates['AED'];
+      const uEmail = user.email.toLowerCase().trim();
+      const uName = (user.name || uEmail.split('@')[0]).trim();
+      const firstName = uName.split(' ')[0];
 
-      const { data: dailyTxns, error: txError } = await supabase
-        .from('transactions')
-        .select('description, amount, category')
-        .ilike('user_name', user.name)
-        .eq('type', 'debit')
-        .gte('created_at', `${uaeYesterdayStr}T00:00:00+04:00`)
-        .lte('created_at', `${uaeYesterdayStr}T23:59:59+04:00`);
+      let dailyTxns = [];
+      const seenTxnIds = new Set();
 
-      if (txError) throw txError;
+      if (user.user_id) {
+        const { data: byId } = await supabase
+          .from('transactions')
+          .select('id, description, amount, category')
+          .eq('user_id', user.user_id)
+          .eq('type', 'debit')
+          .gte('created_at', `${uaeYesterdayStr}T00:00:00+04:00`)
+          .lte('created_at', `${uaeYesterdayStr}T23:59:59+04:00`);
+        if (byId) byId.forEach(t => { if (!seenTxnIds.has(t.id)) { seenTxnIds.add(t.id); dailyTxns.push(t); } });
+      }
+
+      if (firstName) {
+        const { data: byName } = await supabase
+          .from('transactions')
+          .select('id, description, amount, category')
+          .ilike('user_name', `%${firstName}%`)
+          .eq('type', 'debit')
+          .gte('created_at', `${uaeYesterdayStr}T00:00:00+04:00`)
+          .lte('created_at', `${uaeYesterdayStr}T23:59:59+04:00`);
+        if (byName) byName.forEach(t => { if (!seenTxnIds.has(t.id)) { seenTxnIds.add(t.id); dailyTxns.push(t); } });
+      }
       if (!dailyTxns || dailyTxns.length === 0) continue;
 
       const { data: monthlyTxns, error: mTxError } = await supabase

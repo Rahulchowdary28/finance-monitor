@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   try {
     const { data: users, error: userError } = await supabase
       .from('users_list')
-      .select('name, email, selected_currency')
+      .select('user_id, name, email, selected_currency')
       .eq('is_hold', false);
 
     if (userError) throw userError;
@@ -43,21 +43,35 @@ export default async function handler(req, res) {
 
       const userCurrency = user.selected_currency || 'AED';
       const userSymbol = currencySymbols[userCurrency] || 'AED ';
+      const uEmail = user.email.toLowerCase().trim();
+      const uName = (user.name || uEmail.split('@')[0]).trim();
+      const firstName = uName.split(' ')[0];
 
-      const { data: dailyTxns, error: txError } = await supabase
-        .from('transactions')
-        .select('id')
-        .ilike('user_name', user.name)
-        .eq('type', 'debit')
-        .gte('created_at', `${uaeDateStr}T00:00:00+04:00`)
-        .lte('created_at', `${uaeDateStr}T23:59:59+04:00`);
+      let todayCount = 0;
+      if (user.user_id) {
+        const { data: byId } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('user_id', user.user_id)
+          .gte('created_at', `${uaeDateStr}T00:00:00+04:00`)
+          .lte('created_at', `${uaeDateStr}T23:59:59+04:00`);
+        if (byId && byId.length > 0) todayCount += byId.length;
+      }
 
-      if (txError) throw txError;
+      if (todayCount === 0 && firstName) {
+        const { data: byName } = await supabase
+          .from('transactions')
+          .select('id')
+          .ilike('user_name', `%${firstName}%`)
+          .gte('created_at', `${uaeDateStr}T00:00:00+04:00`)
+          .lte('created_at', `${uaeDateStr}T23:59:59+04:00`);
+        if (byName && byName.length > 0) todayCount += byName.length;
+      }
 
       // Skip users who already logged expenses today
-      if (dailyTxns && dailyTxns.length > 0) continue;
+      if (todayCount > 0) continue;
 
-      emailLog.push({ name: user.name, email: user.email, currency: userCurrency });
+      emailLog.push({ name: uName, email: uEmail, currency: userCurrency });
 
       if (!isDryRun && process.env.RESEND_API_KEY) {
         const emailHtmlContent = `

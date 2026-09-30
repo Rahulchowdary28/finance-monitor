@@ -2772,7 +2772,15 @@
     }
 
     async function fetchAdminUsersTable() {
-        const { data } = await _supabase.from('users_list').select('*').order('created_at', { ascending: false });
+        let { data, error } = await _supabase.from('users_list').select('*').order('id', { ascending: true });
+        if (error || !data) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/users_list?select=*&order=id.asc`, {
+                    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                });
+                if (res.ok) data = await res.json();
+            } catch(e) {}
+        }
         const tbody = document.getElementById('admin-users-tbody');
         tbody.innerHTML = '';
         (data || []).forEach(u => {
@@ -2783,7 +2791,7 @@
             tbody.innerHTML += `<tr>
                 <td style="padding:8px; font-size:0.8rem; font-weight:700;">${u.name || u.email}</td>
                 <td style="padding:8px; font-size:0.8rem; text-align:center;">
-                    <button onclick="adminToggleHoldStatus('${u.user_id || u.id}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
+                    <button onclick="adminToggleHoldStatus(${u.id}, '${u.user_id || ''}', ${u.is_hold})" style="background:none; border:1px solid var(--border); color:${statusColor}; padding:4px 8px; border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:700;">
                         <i class="fas ${toggleIcon}" style="margin-right:4px;"></i> ${statusLabel}
                     </button>
                 </td>
@@ -2794,9 +2802,13 @@
         });
     }
 
-    async function adminToggleHoldStatus(userId, currentHoldStatus) {
+    async function adminToggleHoldStatus(id, userId, currentHoldStatus) {
         const newHoldStatus = !currentHoldStatus;
-        await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('user_id', userId);
+        if (id) {
+            await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('id', id);
+        } else if (userId) {
+            await _supabase.from('users_list').update({ is_hold: newHoldStatus }).eq('user_id', userId);
+        }
         fetchAdminUsersTable();
     }
 
@@ -3843,6 +3855,8 @@
             let customDate = new Date(dateVal);
             customDate.setHours(12, 0, 0, 0);
             payload.created_at = customDate.toISOString();
+        } else if (!eid) {
+            payload.created_at = new Date().toISOString();
         }
 
         if(eid) {

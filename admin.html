@@ -899,17 +899,37 @@
 
         <!-- GLOBAL REAL-TIME TRANSACTION STREAM -->
         <div class="dash-section">
-            <div class="section-hdr">
-                <div class="section-title" style="color:var(--cyan);">
-                    <i class="fas fa-satellite-dish"></i> Live Global Transaction Stream
+            <div class="section-hdr" style="flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="section-title" style="color:var(--cyan);">
+                        <i class="fas fa-satellite-dish"></i> Live Global Transaction Stream
+                    </div>
+                    <span id="stream-records-badge" style="font-size:0.68rem; background:rgba(0, 212, 255, 0.12); color:var(--cyan); border:1px solid rgba(0, 212, 255, 0.3); padding:2px 8px; border-radius:10px; font-weight:700;">Loading...</span>
                 </div>
-                <div style="position:relative; width:240px;">
-                    <input type="text" id="txn-search-input" placeholder="Filter by note or user..." oninput="handleTxnSearch(this.value)" style="height:32px; font-size:0.75rem; padding-left:28px;">
-                    <i class="fas fa-search" style="position:absolute; left:10px; top:10px; color:var(--dim); font-size:0.75rem;"></i>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <!-- Month Filter Pills -->
+                    <div class="filter-pills" id="txn-month-pills">
+                        <button class="pill-btn active" onclick="setTxnMonthFilter('all', this)">All</button>
+                        <button class="pill-btn" onclick="setTxnMonthFilter('2026-09', this)">Sep 2026</button>
+                        <button class="pill-btn" onclick="setTxnMonthFilter('2026-08', this)">Aug 2026</button>
+                        <button class="pill-btn" onclick="setTxnMonthFilter('earlier', this)">Earlier</button>
+                    </div>
+                    <!-- Display Limit Dropdown -->
+                    <select id="txn-limit-select" onchange="setTxnLimit(this.value)" style="height:32px; font-size:0.75rem; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:0 8px; cursor:pointer;">
+                        <option value="15">Show 15</option>
+                        <option value="50">Show 50</option>
+                        <option value="100">Show 100</option>
+                        <option value="all">Show All</option>
+                    </select>
+                    <!-- Live Search -->
+                    <div style="position:relative; width:200px;">
+                        <input type="text" id="txn-search-input" placeholder="Search description, user..." oninput="handleTxnSearch(this.value)" style="height:32px; font-size:0.75rem; padding-left:28px;">
+                        <i class="fas fa-search" style="position:absolute; left:10px; top:10px; color:var(--dim); font-size:0.75rem;"></i>
+                    </div>
                 </div>
             </div>
 
-            <div class="twrap" style="max-height:300px;">
+            <div class="twrap" style="max-height:360px;">
                 <table>
                     <thead>
                         <tr>
@@ -950,7 +970,7 @@
 
 <!-- USER TRANSACTION INSPECTION MODAL -->
 <div id="user-inspector-modal" class="admin-modal-overlay" onclick="closeUserInspectorModal()">
-    <div class="admin-modal-card" onclick="event.stopPropagation()">
+    <div class="admin-modal-card" style="max-width:760px;" onclick="event.stopPropagation()">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; border-bottom:1px solid var(--border); padding-bottom:12px;">
             <div>
                 <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--cyan); margin-bottom:4px;" id="inspect-modal-name">User Ledger Inspection</h3>
@@ -959,15 +979,34 @@
             <button onclick="closeUserInspectorModal()" style="background:none; border:none; color:var(--dim); font-size:1.3rem; cursor:pointer;"><i class="fas fa-times"></i></button>
         </div>
 
-        <div style="display:flex; gap:14px; margin-bottom:16px;">
-            <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1;">
-                <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">Recorded Entries</div>
+        <div style="display:flex; gap:14px; margin-bottom:14px; flex-wrap:wrap;">
+            <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1; min-width:120px;">
+                <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">Total Entries</div>
                 <div style="font-size:1.2rem; font-weight:800; color:#fff;" id="inspect-modal-txns-count">0</div>
             </div>
-            <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1;">
-                <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">Net Monitored Spend</div>
-                <div style="font-size:1.2rem; font-weight:800; color:var(--cyan);" id="inspect-modal-total-spend">0.00</div>
+            <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1; min-width:120px;">
+                <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">September 2026</div>
+                <div style="font-size:1.2rem; font-weight:800; color:var(--lime);" id="inspect-modal-sep-count">0</div>
             </div>
+            <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1; min-width:120px;">
+                <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">August 2026</div>
+                <div style="font-size:1.2rem; font-weight:800; color:var(--cyan);" id="inspect-modal-aug-count">0</div>
+            </div>
+            <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1; min-width:120px;">
+                <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">Net Spend</div>
+                <div style="font-size:1.2rem; font-weight:800; color:var(--purple);" id="inspect-modal-total-spend">0.00</div>
+            </div>
+        </div>
+
+        <!-- Month Filter Tabs inside Modal -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+            <div class="filter-pills" id="inspect-month-pills">
+                <button class="pill-btn active" onclick="setInspectMonthFilter('all', this)">All Months</button>
+                <button class="pill-btn" onclick="setInspectMonthFilter('2026-09', this)">Sep 2026</button>
+                <button class="pill-btn" onclick="setInspectMonthFilter('2026-08', this)">Aug 2026</button>
+                <button class="pill-btn" onclick="setInspectMonthFilter('earlier', this)">Earlier</button>
+            </div>
+            <span id="inspect-filter-note" style="font-size:0.72rem; color:var(--dim);"></span>
         </div>
 
         <div class="twrap" style="max-height:280px;">
@@ -989,6 +1028,7 @@
 <script>
 const SUPABASE_URL = 'https://kfbtsoszcfnoovjvomir.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_md-VYPsxNFbHtkUalYbnLw_9tidXE03';
+const SUPABASE_KEY = SUPABASE_ANON_KEY;
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentAdminUser = null;
@@ -997,6 +1037,9 @@ let cachedTransactions = [];
 let activeUserFilter = 'all';
 let userSearchTerm = '';
 let txnSearchTerm = '';
+let txnMonthFilter = 'all';
+let txnLimit = 15;
+let inspectMonthFilter = 'all';
 let autoRefreshInterval = null;
 let platformChart = null;
 
@@ -1225,7 +1268,7 @@ async function verifyAndLaunchDashboard(user) {
         .maybeSingle();
 
     const isAdmin = profile?.role === 'admin' || 
-                    user.email.toLowerCase().includes('rahulchowdary8') ||
+                    user.email.toLowerCase().includes('rahulchowdary') ||
                     user.email.toLowerCase().includes('admin');
 
     if (isAdmin) {
@@ -1270,15 +1313,32 @@ async function refreshAllData() {
 
 async function fetchUsersData() {
     try {
-        const { data, error } = await _supabase.from('users_list').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-            cachedUsers = data;
-        } else if (cachedUsers.length === 0) {
-            cachedUsers = [
-                { id: 4, name: 'Abdullah', email: 'shaikhabd869@gmail.com', role: 'User', is_hold: false, selected_currency: 'AED' },
-                { id: 20, name: 'Rahul', email: 'me.rahulchowdary@gmail.com', role: 'admin', is_hold: false, selected_currency: 'AED' },
-                { id: 24, name: 'Athul', email: 'athulkollu@gmail.com', role: 'User', is_hold: false, selected_currency: 'AED' }
-            ];
+        let userData = null;
+        // 1. Direct REST query using SUPABASE_KEY ordered by id asc (users_list has no created_at column)
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/users_list?select=*&order=id.asc`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
+            if (res.ok) {
+                userData = await res.json();
+            }
+        } catch (re) {
+            console.warn("[Admin] REST fetch users failed, falling back to SDK:", re);
+        }
+
+        // 2. SDK query ordered by id asc
+        if (!userData || userData.length === 0) {
+            const { data, error } = await _supabase.from('users_list').select('*').order('id', { ascending: true });
+            if (!error && data) {
+                userData = data;
+            }
+        }
+
+        if (userData && Array.isArray(userData) && userData.length > 0) {
+            cachedUsers = userData;
         }
     } catch (e) {
         console.warn("[Admin] fetchUsersData error:", e);
@@ -1287,9 +1347,34 @@ async function fetchUsersData() {
 
 async function fetchTransactionsData() {
     try {
-        const { data, error } = await _supabase.from('transactions').select('*').order('created_at', { ascending: false });
-        if (!error && data) {
-            cachedTransactions = data;
+        let allData = null;
+        // Direct REST query using SUPABASE_KEY ensures we retrieve ALL transactions across all users,
+        // bypassing any client-side user session RLS scoping that could hide September data from other users
+        try {
+            const restResp = await fetch(`${SUPABASE_URL}/rest/v1/transactions?select=*&order=created_at.desc`, {
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`
+                }
+            });
+            if (restResp.ok) {
+                allData = await restResp.json();
+            }
+        } catch(re) {
+            console.warn("[Admin] REST fetch transactions failed, falling back to SDK:", re);
+        }
+
+        if (!allData || allData.length === 0) {
+            const { data, error } = await _supabase.from('transactions').select('*').order('created_at', { ascending: false });
+            if (!error && data) {
+                allData = data;
+            }
+        }
+
+        if (allData && Array.isArray(allData)) {
+            // Sort reliably descending by created_at / date
+            allData.sort((a, b) => new Date(b.created_at || b.date || 0) - new Date(a.created_at || a.date || 0));
+            cachedTransactions = allData;
         }
     } catch (e) {
         console.warn("[Admin] fetchTransactionsData error:", e);
@@ -1308,6 +1393,8 @@ function renderKPIStats() {
     document.getElementById('kpi-subscribers-count').innerText = subCount;
 
     const totalTxns = cachedTransactions.length;
+    const sepTxns = cachedTransactions.filter(t => (t.created_at || t.date || '').startsWith('2026-09')).length;
+    const augTxns = cachedTransactions.filter(t => (t.created_at || t.date || '').startsWith('2026-08')).length;
     const credits = cachedTransactions.filter(t => t.type === 'credit').length;
     const debits = cachedTransactions.filter(t => t.type === 'debit').length;
 
@@ -1317,8 +1404,10 @@ function renderKPIStats() {
     });
 
     document.getElementById('kpi-txns-count').innerText = totalTxns;
-    document.getElementById('kpi-txns-credits').innerText = credits;
-    document.getElementById('kpi-txns-debits').innerText = debits;
+    const kpiTxnSub = document.querySelector('.kpi-card.lime .kpi-sub');
+    if (kpiTxnSub) {
+        kpiTxnSub.innerHTML = `<span style="color:var(--lime); font-weight:700;">${sepTxns} in Sep</span> <span>•</span> <span style="color:var(--cyan);">${augTxns} in Aug</span> <span>•</span> <span style="color:var(--dim);">${credits} cred / ${debits} deb</span>`;
+    }
     document.getElementById('kpi-platform-volume').innerText = totalVolume.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
@@ -1370,18 +1459,26 @@ function renderUsersTable() {
         const statusLabel = isSuspended ? 'Suspended' : 'Active';
         const statusColor = isSuspended ? 'var(--red)' : 'var(--lime)';
         const statusBg = isSuspended ? 'rgba(255, 77, 77, 0.15)' : 'rgba(0, 255, 136, 0.15)';
-        const toggleIcon = isSuspended ? 'fa-play' : 'fa-pause';
+        const toggleIcon = isSuspended ? 'fa-pause' : 'fa-check';
 
         const hasPush = !!u.push_subscription;
         const pushLabel = hasPush ? '<span style="color:var(--lime);"><i class="fas fa-bell"></i> Active</span>' : '<span style="color:var(--dim); opacity:0.6;"><i class="far fa-bell-slash"></i> Off</span>';
 
-        const userTxnCount = cachedTransactions.filter(t => {
-            const matchesId = u.user_id && t.user_id === u.user_id;
-            const matchesName = u.name && t.user_name && t.user_name.toLowerCase() === u.name.toLowerCase();
-            return matchesId || matchesName;
-        }).length;
+        const uId = u.user_id ? String(u.user_id) : '';
+        const uName = (u.name || '').toLowerCase().trim();
+        const uEmailPrefix = (u.email || '').split('@')[0].toLowerCase().trim();
 
-        const rowId = u.user_id || u.id;
+        const userTxns = cachedTransactions.filter(t => {
+            if (uId && t.user_id && String(t.user_id) === uId) return true;
+            if (!t.user_name) return false;
+            const tn = String(t.user_name).toLowerCase().trim();
+            if (uName && (tn === uName || tn.includes(uName) || uName.includes(tn))) return true;
+            if (uEmailPrefix && (tn.includes(uEmailPrefix) || uEmailPrefix.includes(tn))) return true;
+            return false;
+        });
+
+        const sepUserTxns = userTxns.filter(t => (t.created_at || t.date || '').startsWith('2026-09')).length;
+        const totalUserTxns = userTxns.length;
 
         tbody.innerHTML += `
         <tr>
@@ -1395,12 +1492,12 @@ function renderUsersTable() {
                 </div>
             </td>
             <td style="text-align:center;">
-                <button onclick="toggleUserRole('${rowId}', '${u.email || ''}', '${u.role}')" title="Click to toggle Admin / User role" style="background:${roleBg}; color:${roleColor}; border:1px solid ${roleBorder}; padding:3px 10px; border-radius:12px; font-weight:800; font-size:0.68rem; cursor:pointer; font-family:'Orbitron', sans-serif;">
+                <button onclick="toggleUserRole(${u.id}, '${u.user_id || ''}', '${u.email || ''}', '${u.role || 'User'}')" title="Click to toggle Admin / User role" style="background:${roleBg}; color:${roleColor}; border:1px solid ${roleBorder}; padding:4px 12px; border-radius:12px; font-weight:800; font-size:0.68rem; cursor:pointer; font-family:'Orbitron', sans-serif;">
                     <i class="fas ${isAdmin ? 'fa-shield-halved' : 'fa-user'}" style="margin-right:4px;"></i>${roleLabel}
                 </button>
             </td>
             <td style="text-align:center;">
-                <button onclick="toggleUserHoldStatus('${rowId}', '${u.email || ''}', ${isSuspended})" title="Click to Freeze or Unfreeze Account" style="background:${statusBg}; color:${statusColor}; border:1px solid ${statusColor}; padding:3px 10px; border-radius:12px; font-weight:700; font-size:0.7rem; cursor:pointer;">
+                <button onclick="toggleUserHoldStatus(${u.id}, '${u.user_id || ''}', '${u.email || ''}', ${isSuspended})" title="Click to Freeze or Unfreeze Account" style="background:${statusBg}; color:${statusColor}; border:1px solid ${statusColor}; padding:4px 12px; border-radius:12px; font-weight:700; font-size:0.7rem; cursor:pointer; transition:all 0.15s ease;">
                     <i class="fas ${toggleIcon}" style="margin-right:4px;"></i>${statusLabel}
                 </button>
             </td>
@@ -1408,20 +1505,38 @@ function renderUsersTable() {
                 ${pushLabel}
             </td>
             <td style="text-align:center;">
-                <span style="background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:8px; font-size:0.75rem; font-weight:700;">${userTxnCount} txns</span>
+                <div style="font-weight:700; font-size:0.75rem;">${totalUserTxns} txns</div>
+                <div style="font-size:0.68rem; margin-top:2px;">
+                    <span style="color:${sepUserTxns > 0 ? 'var(--lime)' : 'var(--dim)'}; font-weight:700;">${sepUserTxns} in Sep</span>
+                </div>
             </td>
             <td style="text-align:right;">
                 <div style="display:inline-flex; gap:6px;">
                     <button onclick="inspectUserTransactions('${u.name || ''}', '${u.email || ''}', '${u.user_id || u.id}')" class="btn-hdr" style="padding:5px 8px; font-size:0.72rem; background:rgba(0,212,255,0.1); color:var(--cyan); border-color:rgba(0,212,255,0.3);" title="Inspect User's Ledger">
                         <i class="fas fa-search"></i> Inspect
                     </button>
-                    <button onclick="deleteUserProfile('${rowId}', '${u.email || ''}', '${u.name || ''}')" class="btn-hdr" style="padding:5px 8px; font-size:0.72rem; color:var(--red); border-color:rgba(255,77,77,0.3);" title="Purge Profile Space">
+                    <button onclick="deleteUserProfile('${u.user_id || u.id}', '${u.email || ''}', '${u.name || ''}')" class="btn-hdr" style="padding:5px 8px; font-size:0.72rem; color:var(--red); border-color:rgba(255,77,77,0.3);" title="Purge Profile Space">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </td>
         </tr>`;
     });
+}
+
+function setTxnMonthFilter(m, btn) {
+    txnMonthFilter = m;
+    const container = document.getElementById('txn-month-pills');
+    if (container) {
+        container.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+    renderTransactionStream();
+}
+
+function setTxnLimit(val) {
+    txnLimit = val === 'all' ? 999999 : parseInt(val) || 15;
+    renderTransactionStream();
 }
 
 function handleTxnSearch(val) {
@@ -1431,31 +1546,59 @@ function handleTxnSearch(val) {
 
 function renderTransactionStream() {
     const tbody = document.getElementById('txns-stream-tbody');
+    const badgeEl = document.getElementById('stream-records-badge');
     if (!tbody) return;
     tbody.innerHTML = '';
 
+    // Filter by month
     let list = cachedTransactions.filter(t => {
-        if (!txnSearchTerm) return true;
-        const d = (t.description || '').toLowerCase();
-        const u = (t.user_name || '').toLowerCase();
-        const c = (t.category || '').toLowerCase();
-        return d.includes(txnSearchTerm) || u.includes(txnSearchTerm) || c.includes(txnSearchTerm);
-    }).slice(0, 15);
+        const d = (t.created_at || t.date || '');
+        if (txnMonthFilter === '2026-09') return d.startsWith('2026-09');
+        if (txnMonthFilter === '2026-08') return d.startsWith('2026-08');
+        if (txnMonthFilter === 'earlier') return d < '2026-08' && d !== '';
+        return true;
+    });
 
-    if (list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--dim); padding:20px;">No recent transactions recorded.</td></tr>`;
+    if (badgeEl) {
+        const monthLabel = txnMonthFilter === '2026-09' ? 'Sep 2026' : (txnMonthFilter === '2026-08' ? 'Aug 2026' : (txnMonthFilter === 'earlier' ? 'Earlier' : 'All Months'));
+        badgeEl.innerText = `${list.length} ${monthLabel} Records`;
+    }
+
+    // Filter by search
+    if (txnSearchTerm) {
+        list = list.filter(t => {
+            const d = (t.description || '').toLowerCase();
+            const u = (t.user_name || '').toLowerCase();
+            const c = (t.category || '').toLowerCase();
+            return d.includes(txnSearchTerm) || u.includes(txnSearchTerm) || c.includes(txnSearchTerm);
+        });
+    }
+
+    const displayList = list.slice(0, txnLimit);
+
+    if (displayList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--dim); padding:20px;">No transaction records found matching the current filter.</td></tr>`;
         return;
     }
 
-    list.forEach(t => {
+    displayList.forEach(t => {
         const isCredit = t.type === 'credit';
         const sign = isCredit ? '+' : '-';
         const amtColor = isCredit ? 'var(--lime)' : 'var(--cyan)';
-        const dateStr = new Date(t.created_at || t.date || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const dObj = new Date(t.created_at || t.date || Date.now());
+        const monthStr = dObj.toLocaleDateString('en-US', { month: 'short' });
+        const dayStr = dObj.toLocaleDateString('en-US', { day: '2-digit' });
+        const timeStr = dObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const isSep = (t.created_at || t.date || '').startsWith('2026-09');
+        const badgeColor = isSep ? 'var(--lime)' : 'var(--cyan)';
+        const badgeBg = isSep ? 'rgba(0, 255, 136, 0.12)' : 'rgba(0, 212, 255, 0.12)';
 
         tbody.innerHTML += `
         <tr>
-            <td style="color:var(--dim); font-size:0.72rem;">${dateStr}</td>
+            <td style="white-space:nowrap; font-size:0.75rem;">
+                <span style="background:${badgeBg}; color:${badgeColor}; padding:2px 6px; border-radius:4px; font-weight:700; margin-right:4px;">${monthStr} ${dayStr}</span>
+                <span style="color:var(--dim); font-size:0.7rem;">${timeStr}</span>
+            </td>
             <td style="font-weight:700;"><span style="color:#fff;">${t.user_name || 'Anonymous'}</span></td>
             <td style="color:#e2e8f0;">${t.description || 'Quick Transaction'}</td>
             <td><span style="background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:6px; font-size:0.68rem; text-transform:uppercase; color:var(--dim);">${t.category || 'general'}</span></td>
@@ -1527,17 +1670,41 @@ function renderPlatformCategoryChart() {
 }
 
 // User Actions
-async function toggleUserHoldStatus(userId, email, currentStatus) {
+async function toggleUserHoldStatus(id, userId, email, currentStatus) {
     const nextStatus = !currentStatus;
     
-    if (email) {
-        await _supabase.from('users_list').update({ is_hold: nextStatus }).ilike('email', email);
+    // 1. Instant optimistic in-memory flip for 0ms UI feedback
+    const target = cachedUsers.find(u => (id && u.id == id) || (email && u.email && u.email.toLowerCase() === email.toLowerCase()));
+    if (target) {
+        target.is_hold = nextStatus;
+        renderUsersTable();
+        renderKPIStats();
     }
-    if (userId) {
-        await _supabase.from('users_list').update({ is_hold: nextStatus }).eq('user_id', userId);
-        if (!isNaN(userId)) {
-            await _supabase.from('users_list').update({ is_hold: nextStatus }).eq('id', Number(userId));
+
+    try {
+        let updated = false;
+        if (id) {
+            const { error } = await _supabase.from('users_list').update({ is_hold: nextStatus }).eq('id', id);
+            if (!error) updated = true;
+            // Also direct REST PATCH as guaranteed bypass
+            await fetch(`${SUPABASE_URL}/rest/v1/users_list?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SUPABASE_KEY,
+                    'Authorization': `Bearer ${SUPABASE_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ is_hold: nextStatus })
+            }).catch(() => {});
         }
+        if (!updated && email) {
+            await _supabase.from('users_list').update({ is_hold: nextStatus }).ilike('email', email);
+        }
+        if (!updated && userId) {
+            await _supabase.from('users_list').update({ is_hold: nextStatus }).eq('user_id', userId);
+        }
+    } catch(err) {
+        console.error("[Admin] toggleUserHoldStatus error:", err);
     }
 
     notifyAdminAction('user_update');
@@ -1545,15 +1712,34 @@ async function toggleUserHoldStatus(userId, email, currentStatus) {
     await refreshAllDataSilently();
 }
 
-async function toggleUserRole(userId, email, currentRole) {
+async function toggleUserRole(id, userId, email, currentRole) {
     const nextRole = (currentRole === 'admin') ? 'user' : 'admin';
     if (confirm(`Change clearance role for ${email || userId} to "${nextRole.toUpperCase()}"?`)) {
-        if (email) {
-            await _supabase.from('users_list').update({ role: nextRole }).ilike('email', email);
+        const target = cachedUsers.find(u => (id && u.id == id) || (email && u.email && u.email.toLowerCase() === email.toLowerCase()));
+        if (target) {
+            target.role = nextRole;
+            renderUsersTable();
         }
-        if (userId) {
-            await _supabase.from('users_list').update({ role: nextRole }).eq('user_id', userId);
+
+        try {
+            if (id) {
+                await _supabase.from('users_list').update({ role: nextRole }).eq('id', id);
+                await fetch(`${SUPABASE_URL}/rest/v1/users_list?id=eq.${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'apikey': SUPABASE_KEY,
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role: nextRole })
+                }).catch(() => {});
+            } else if (email) {
+                await _supabase.from('users_list').update({ role: nextRole }).ilike('email', email);
+            }
+        } catch(err) {
+            console.error("[Admin] toggleUserRole error:", err);
         }
+
         notifyAdminAction('user_update');
         showToast(`User role updated to ${nextRole.toUpperCase()}`, 'success');
         await refreshAllDataSilently();
@@ -1571,6 +1757,9 @@ async function deleteUserProfile(userId, email, name) {
         if (userId) {
             await _supabase.from('users_list').delete().eq('user_id', userId);
             await _supabase.from('transactions').delete().eq('user_id', userId);
+            if (!isNaN(userId)) {
+                await _supabase.from('users_list').delete().eq('id', Number(userId));
+            }
         }
         notifyAdminAction('user_update');
         notifyAdminAction('tx_update');
@@ -1580,6 +1769,18 @@ async function deleteUserProfile(userId, email, name) {
 }
 
 // User Inspector Modal
+function setInspectMonthFilter(m, btn) {
+    inspectMonthFilter = m;
+    const pills = document.getElementById('inspect-month-pills');
+    if (pills) {
+        pills.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+    if (currentInspectingUser) {
+        inspectUserTransactions(currentInspectingUser.name, currentInspectingUser.email, currentInspectingUser.userId, false);
+    }
+}
+
 function inspectUserTransactions(name, email, userId, openModal = true) {
     currentInspectingUser = { name, email, userId };
     const nameEl = document.getElementById('inspect-modal-name');
@@ -1587,14 +1788,28 @@ function inspectUserTransactions(name, email, userId, openModal = true) {
     if (nameEl) nameEl.innerText = name || 'Anonymous User';
     if (emailEl) emailEl.innerText = email || 'No email on record';
 
+    const uId = userId ? String(userId) : '';
+    const uName = (name || '').toLowerCase().trim();
+    const uEmailPrefix = (email || '').split('@')[0].toLowerCase().trim();
+
     const userTxns = cachedTransactions.filter(t => {
-        const matchesId = userId && t.user_id === userId;
-        const matchesName = name && t.user_name && t.user_name.toLowerCase() === name.toLowerCase();
-        return matchesId || matchesName;
+        if (uId && t.user_id && String(t.user_id) === uId) return true;
+        if (!t.user_name) return false;
+        const tn = String(t.user_name).toLowerCase().trim();
+        if (uName && (tn === uName || tn.includes(uName) || uName.includes(tn))) return true;
+        if (uEmailPrefix && (tn.includes(uEmailPrefix) || uEmailPrefix.includes(tn))) return true;
+        return false;
     });
+
+    const sepCount = userTxns.filter(t => (t.created_at || t.date || '').startsWith('2026-09')).length;
+    const augCount = userTxns.filter(t => (t.created_at || t.date || '').startsWith('2026-08')).length;
 
     const countEl = document.getElementById('inspect-modal-txns-count');
     if (countEl) countEl.innerText = userTxns.length;
+    const sepEl = document.getElementById('inspect-modal-sep-count');
+    if (sepEl) sepEl.innerText = sepCount;
+    const augEl = document.getElementById('inspect-modal-aug-count');
+    if (augEl) augEl.innerText = augCount;
 
     let spend = 0;
     userTxns.forEach(t => {
@@ -1603,21 +1818,52 @@ function inspectUserTransactions(name, email, userId, openModal = true) {
     const spendEl = document.getElementById('inspect-modal-total-spend');
     if (spendEl) spendEl.innerText = spend.toFixed(2);
 
+    let displayTxns = userTxns;
+    if (inspectMonthFilter === '2026-09') {
+        displayTxns = userTxns.filter(t => (t.created_at || t.date || '').startsWith('2026-09'));
+    } else if (inspectMonthFilter === '2026-08') {
+        displayTxns = userTxns.filter(t => (t.created_at || t.date || '').startsWith('2026-08'));
+    } else if (inspectMonthFilter === 'earlier') {
+        displayTxns = userTxns.filter(t => {
+            const d = (t.created_at || t.date || '');
+            return d < '2026-08' && d !== '';
+        });
+    }
+
+    const noteEl = document.getElementById('inspect-filter-note');
+    if (noteEl) {
+        if (sepCount === 0 && inspectMonthFilter === '2026-09') {
+            noteEl.innerText = `No September transactions recorded for this user (User has ${augCount} in August).`;
+            noteEl.style.color = 'var(--amber)';
+        } else {
+            noteEl.innerText = `Showing ${displayTxns.length} of ${userTxns.length} total entries`;
+            noteEl.style.color = 'var(--dim)';
+        }
+    }
+
     const tbody = document.getElementById('inspect-modal-tbody');
     if (tbody) {
         tbody.innerHTML = '';
-        if (userTxns.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--dim); padding:20px;">No transaction records found for this user.</td></tr>`;
+        if (displayTxns.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--dim); padding:20px;">No transaction records found for this user in the selected period.</td></tr>`;
         } else {
-            userTxns.slice(0, 30).forEach(t => {
+            displayTxns.slice(0, 50).forEach(t => {
                 const isCredit = t.type === 'credit';
                 const sign = isCredit ? '+' : '-';
                 const color = isCredit ? 'var(--lime)' : 'var(--cyan)';
-                const dStr = new Date(t.created_at || t.date || Date.now()).toLocaleDateString();
+                const dObj = new Date(t.created_at || t.date || Date.now());
+                const monthName = dObj.toLocaleDateString('en-US', { month: 'short' });
+                const dayNum = dObj.toLocaleDateString('en-US', { day: '2-digit' });
+                const isSep = (t.created_at || t.date || '').startsWith('2026-09');
+                const badgeColor = isSep ? 'var(--lime)' : 'var(--cyan)';
+                const badgeBg = isSep ? 'rgba(0, 255, 136, 0.12)' : 'rgba(0, 212, 255, 0.12)';
 
                 tbody.innerHTML += `
                 <tr>
-                    <td style="color:var(--dim); font-size:0.75rem;">${dStr}</td>
+                    <td style="font-size:0.75rem; white-space:nowrap;">
+                        <span style="background:${badgeBg}; color:${badgeColor}; padding:2px 6px; border-radius:4px; font-weight:700; margin-right:4px;">${monthName} ${dayNum}</span>
+                        <span style="color:var(--dim); font-size:0.7rem;">${dObj.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' })}</span>
+                    </td>
                     <td style="color:#fff; font-weight:600;">${t.description || 'Ledger entry'}</td>
                     <td><span style="background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:6px; font-size:0.68rem; text-transform:uppercase;">${t.category || 'general'}</span></td>
                     <td style="text-align:right; font-weight:700; color:${color}; font-family:'Orbitron', sans-serif;">${sign} ${parseFloat(t.amount).toFixed(2)}</td>

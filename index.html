@@ -1095,7 +1095,7 @@
             <h2 class="auth-brand">Virtual <span>Vault</span></h2>
             <p style="color:var(--dim); font-size:0.75rem; text-transform:uppercase; letter-spacing: 2px; margin-bottom: 4px;"> Premium Finance Terminal </p>
 
-            <button class="oauth-btn" onclick="loginWithGoogle()">
+            <button class="oauth-btn" type="button" onclick="loginWithGoogle()">
                 <i class="fab fa-google" style="color: #ea4335;"></i> Continue with Google OAuth
             </button>
 
@@ -1891,6 +1891,7 @@
 
     function showAuthError(msg, isError = true) {
         const box = document.getElementById('auth-error-box');
+        if (!box) return;
         box.style.display = 'block';
         box.style.background = isError ? 'rgba(255, 77, 77, 0.15)' : 'rgba(0, 255, 136, 0.15)';
         box.style.borderColor = isError ? 'var(--red)' : 'var(--green)';
@@ -1900,22 +1901,43 @@
 
     function clearAuthError() {
         const box = document.getElementById('auth-error-box');
+        if (!box) return;
         box.style.display = 'none';
         box.innerText = '';
     }
 
     async function loginWithGoogle() {
         clearAuthError();
+        const btn = document.querySelector('.oauth-btn');
+        const origHTML = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin" style="color:#00d4ff;"></i> Connecting to Google...`;
+        }
         try {
-            const { error } = await _supabase.auth.signInWithOAuth({
+            const redirectUrl = window.location.origin + window.location.pathname;
+            const { data, error } = await _supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin
+                    redirectTo: redirectUrl,
+                    queryParams: {
+                        prompt: 'select_account'
+                    }
                 }
             });
             if (error) throw error;
+            if (data?.url) {
+                window.location.href = data.url;
+            }
         } catch (err) {
-            showAuthError(err.message);
+            console.error("Google OAuth error:", err);
+            showAuthError("Google OAuth Error: " + (err.message || "Could not initiate Google login."));
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.innerHTML = origHTML || `<i class="fab fa-google" style="color: #ea4335;"></i> Continue with Google OAuth`;
+            }
         }
     }
 

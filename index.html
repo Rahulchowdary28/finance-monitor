@@ -1506,6 +1506,10 @@
             <h3 style="font-family:'Orbitron', sans-serif; font-weight:800; color:var(--lime); margin:0; font-size:1.1rem;"><i class="fas fa-user-shield"></i> Admin Control Console</h3>
             <button onclick="closeAdminModal()" style="background:none; border:none; color:var(--dim); font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
         </div>
+
+        <a href="/admin.html" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px; border-radius:10px; background:linear-gradient(135deg, rgba(0,212,255,0.2), rgba(168,85,247,0.2)); border:1px solid rgba(0,212,255,0.4); color:var(--cyan); font-weight:800; font-size:0.8rem; text-decoration:none; margin-bottom:14px; box-shadow:0 0 15px rgba(0,212,255,0.2);">
+            <i class="fas fa-up-right-from-square"></i> Open Fullscreen Command Center
+        </a>
         
         <div class="card" id="section-broadcast" style="border-top: 2px solid var(--cyan); margin-bottom: 16px; padding: 14px; background:var(--input);">
             <div class="ctitle" style="color: var(--cyan); display: flex; align-items: center; gap: 8px; font-size: 0.75rem; margin-bottom: 10px;">
@@ -2734,8 +2738,7 @@
         }
 
         if (profile && profile.role === 'admin') {
-            document.getElementById('admin-modal').style.display = 'flex';
-            fetchAdminUsersTable();
+            window.location.href = '/admin.html';
         } else {
             openAdminAuthModal(e);
         }

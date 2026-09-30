@@ -1191,13 +1191,31 @@
     </div>
 </div>
 
-<!-- ─── AETHER TOP NAVIGATION BAR ─── -->
+<!-- ─── TOP NAVIGATION BAR ─── -->
 <nav class="aether-top-nav">
-    <div class="aether-brand">
-        <span class="aether-logo-icon"><i class="fas fa-chart-line"></i></span>
-        <span class="aether-brand-text">FINANCE <span>MONITOR</span></span>
-        <span style="color: rgba(255,255,255,0.2); margin: 0 6px;">|</span>
-        <span class="aether-sub-title" id="aether-section-title">Dashboard</span>
+    <div class="aether-header-top-row">
+        <div class="aether-brand">
+            <span class="aether-logo-icon"><i class="fas fa-chart-line"></i></span>
+            <span class="aether-brand-text">FINANCE <span>MONITOR</span></span>
+            <span style="color: rgba(255,255,255,0.2); margin: 0 4px;">|</span>
+            <span class="aether-sub-title" id="aether-section-title">Overview</span>
+        </div>
+
+        <div class="aether-user-pill">
+            <div style="display:flex; align-items:center; gap: 8px;">
+                <div style="position:relative;">
+                    <span class="aether-bell-btn" onclick="enablePushNotifications()" title="Notifications"><i class="fas fa-bell"></i></span>
+                    <span style="position:absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #00d4ff; box-shadow: 0 0 8px #00d4ff;"></span>
+                </div>
+                <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:0.8rem; text-shadow:0 0 5px rgba(0,0,0,0.5);" id="aether-user-avatar-text">
+                    RC
+                </div>
+                <span class="aether-user-name" id="aether-user-name-text">User</span>
+                <span id="active-user-badge" style="display:none;">Locked</span>
+                <i class="fas fa-chevron-down" style="font-size: 0.65rem; color: var(--dim);"></i>
+            </div>
+            <button onclick="logout()" title="Sign Out" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:0.85rem; margin-left: 6px;"><i class="fas fa-power-off"></i></button>
+        </div>
     </div>
     
     <div class="aether-nav-links">
@@ -1205,129 +1223,170 @@
         <button class="aether-nav-btn" id="nav-btn-accounts" onclick="switchNavTab('accounts', this)"><i class="fas fa-wallet"></i> Accounts</button>
         <button class="aether-nav-btn" id="nav-btn-transactions" onclick="switchNavTab('transactions', this)"><i class="fas fa-exchange-alt"></i> Transactions</button>
         <button class="aether-nav-btn" id="nav-btn-budget" onclick="switchNavTab('budget', this)"><i class="fas fa-piggy-bank"></i> Budget</button>
-        <button class="aether-nav-btn" id="nav-btn-reports" onclick="switchNavTab('reports', this)"><i class="fas fa-chart-line"></i> Reports</button>
+        <button class="aether-nav-btn" id="nav-btn-reports" onclick="switchNavTab('reports', this)"><i class="fas fa-chart-bar"></i> Reports</button>
         <button class="aether-nav-btn" id="nav-btn-settings" onclick="switchNavTab('settings', this)"><i class="fas fa-cog"></i> Settings</button>
-    </div>
-
-    <div class="aether-user-pill">
-        <div style="display:flex; align-items:center; gap: 8px;">
-            <div style="position:relative;">
-                <span class="aether-bell-btn" onclick="enablePushNotifications()" title="Notifications"><i class="fas fa-bell"></i></span>
-                <span style="position:absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #00d4ff; box-shadow: 0 0 8px #00d4ff;"></span>
-            </div>
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:0.85rem; text-shadow:0 0 5px rgba(0,0,0,0.5);" id="aether-user-avatar-text">
-                SJ
-            </div>
-            <span class="aether-user-name" id="aether-user-name-text">Sarah J.</span>
-            <span id="active-user-badge" style="display:none;">Locked</span>
-            <i class="fas fa-chevron-down" style="font-size: 0.65rem; color: var(--dim);"></i>
-        </div>
-        <button onclick="logout()" title="Sign Out" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:0.85rem; margin-left: 6px;"><i class="fas fa-power-off"></i></button>
     </div>
 </nav>
 
-<div class="wrap" id="section-top" style="padding-top: 16px;">
+<div class="wrap" id="section-top" style="padding-top: 10px;">
     
-    <!-- DASHBOARD 2x2 GRID CONTAINER (OVERVIEW TAB) -->
-    <div class="dashboard-grid-2x2" id="nav-view-overview">
-        
-        <!-- CARD 1: TOTAL BALANCE (Top-Left) -->
-        <div class="dash-card">
-            <div class="dash-card-header">
-                <div class="dash-card-title">TOTAL BALANCE</div>
-                <div style="display:flex; align-items:center; gap: 8px;">
-                    <div id="live-clock" class="clock" style="font-size: 0.72rem; color: var(--dim);">00:00:00</div>
-                    <select id="month-filter" onchange="updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #00d4ff; border-radius: 12px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; outline: none; cursor: pointer;">
-                        <option value="all" selected>Full History</option>
-                        <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
-                        <option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option>
-                        <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
-                        <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="hero-balance-row">
-                <div>
-                    <div class="hero-balance-val" id="total-balance">AED 84,250.75</div>
-                    <div class="balance-sub-growth">
-                        Last 30 Days: <span class="growth-positive">+4.2%</span>
+    <!-- PAGE 1: OVERVIEW PAGE -->
+    <div class="tab-page-view" id="page-view-overview" style="display: block;">
+        <div class="dashboard-grid-2x2" id="nav-view-overview">
+            
+            <!-- CARD 1: TOTAL BALANCE (Top-Left) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">TOTAL BALANCE</div>
+                    <div style="display:flex; align-items:center; gap: 8px;">
+                        <div id="live-clock" class="clock" style="font-size: 0.72rem; color: var(--dim);">00:00:00</div>
+                        <select id="month-filter" onchange="updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #00d4ff; border-radius: 12px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; outline: none; cursor: pointer;">
+                            <option value="all" selected>Full History</option>
+                            <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+                            <option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option>
+                            <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
+                            <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
+                        </select>
                     </div>
                 </div>
-                <!-- Glowing Cyan SVG Sparkline Wave -->
-                <svg class="sparkline-svg" viewBox="0 0 140 50">
-                    <defs>
-                        <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.4"/>
-                            <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25 L 140,50 L 0,50 Z" fill="url(#sparklineGrad)" />
-                    <path d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25" fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" />
-                    <circle cx="140" cy="25" r="4" fill="#00d4ff"/>
-                </svg>
-            </div>
 
-            <div class="balance-mini-stats-row">
-                <div class="mini-stat-pill income-pill">
-                    <div class="mini-stat-icon"><i class="fas fa-arrow-down"></i></div>
-                    <div class="mini-stat-info">
-                        <small>INCOME</small>
-                        <strong id="total-income">AED 0.00</strong>
+                <div class="hero-balance-row">
+                    <div>
+                        <div class="hero-balance-val" id="total-balance">AED 0.00</div>
+                        <div class="balance-sub-growth">
+                            Last 30 Days: <span class="growth-positive">+4.2%</span>
+                        </div>
                     </div>
-                    <span class="mini-growth-badge">+6%</span>
+                    <!-- Glowing Cyan SVG Sparkline Wave -->
+                    <svg class="sparkline-svg" viewBox="0 0 140 50">
+                        <defs>
+                            <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.4"/>
+                                <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25 L 140,50 L 0,50 Z" fill="url(#sparklineGrad)" />
+                        <path d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25" fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" />
+                        <circle cx="140" cy="25" r="4" fill="#00d4ff"/>
+                    </svg>
                 </div>
-                <div class="mini-stat-pill expense-pill">
-                    <div class="mini-stat-icon"><i class="fas fa-arrow-up"></i></div>
-                    <div class="mini-stat-info">
-                        <small>EXPENSES</small>
-                        <strong id="total-expense">AED 0.00</strong>
+
+                <div class="balance-mini-stats-row">
+                    <div class="mini-stat-pill income-pill">
+                        <div class="mini-stat-icon"><i class="fas fa-arrow-down"></i></div>
+                        <div class="mini-stat-info">
+                            <small>INCOME</small>
+                            <strong id="total-income">AED 0.00</strong>
+                        </div>
+                        <span class="mini-growth-badge">+6%</span>
                     </div>
-                    <span class="mini-growth-badge negative">-2%</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- CARD 2: MONTHLY SPENDING (Top-Right) -->
-        <div class="dash-card">
-            <div class="dash-card-header">
-                <div class="dash-card-title">MONTHLY SPENDING</div>
-                <i class="fas fa-ellipsis-h" style="color: var(--dim); cursor: pointer;"></i>
-            </div>
-            <div class="chart-container-wrapper">
-                <canvas id="expenseChart"></canvas>
-            </div>
-        </div>
-
-        <!-- CARD 3: SPENDING OVERVIEW (WEEKLY) (Bottom-Left) -->
-        <div class="dash-card">
-            <div class="dash-card-header">
-                <div class="dash-card-title">SPENDING OVERVIEW</div>
-                <i class="fas fa-calendar-alt" style="color: var(--dim); cursor: pointer;"></i>
-            </div>
-            <div class="chart-container-wrapper">
-                <canvas id="spendingBarChart"></canvas>
-            </div>
-        </div>
-
-        <!-- CARD 4: RECENT TRANSACTIONS (Bottom-Right) -->
-        <div class="dash-card recent-transactions-card" id="section-ledger">
-            <div class="dash-card-header">
-                <div class="dash-card-title">RECENT TRANSACTIONS</div>
-                <div style="display:flex; align-items:center; gap: 10px;">
-                    <select id="view-limit-select" class="view-limit-dropdown" onchange="updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--dim); border-radius: 10px; padding: 2px 8px; font-size: 0.7rem;">
-                        <option value="5" selected>Latest 5</option>
-                        <option value="all">View All</option>
-                    </select>
-                    <a href="#" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions')); return false;" style="color: var(--cyan); font-size: 0.75rem; font-weight: 700; text-decoration: none;">See All</a>
+                    <div class="mini-stat-pill expense-pill">
+                        <div class="mini-stat-icon"><i class="fas fa-arrow-up"></i></div>
+                        <div class="mini-stat-info">
+                            <small>EXPENSES</small>
+                            <strong id="total-expense">AED 0.00</strong>
+                        </div>
+                        <span class="mini-growth-badge negative">-2%</span>
+                    </div>
                 </div>
             </div>
 
-            <div style="margin-bottom: 8px;">
-                <input type="text" id="ledger-search-bar" placeholder="🔍 Search description or category..." oninput="updateUI()" style="height:32px; font-size:0.75rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0 10px; color:#fff; width:100%;">
+            <!-- CARD 2: MONTHLY SPENDING (Top-Right) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">MONTHLY SPENDING</div>
+                    <i class="fas fa-ellipsis-h" style="color: var(--dim); cursor: pointer;"></i>
+                </div>
+                <div class="chart-container-wrapper">
+                    <canvas id="expenseChart"></canvas>
+                </div>
             </div>
 
-            <div class="twrap" style="max-height: 220px; overflow-y: auto;">
+            <!-- CARD 3: SPENDING OVERVIEW (WEEKLY) (Bottom-Left) -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">SPENDING OVERVIEW</div>
+                    <i class="fas fa-calendar-alt" style="color: var(--dim); cursor: pointer;"></i>
+                </div>
+                <div class="chart-container-wrapper">
+                    <canvas id="spendingBarChart"></canvas>
+                </div>
+            </div>
+
+            <!-- CARD 4: RECENT TRANSACTIONS (Bottom-Right) -->
+            <div class="dash-card recent-transactions-card" id="section-ledger">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">RECENT TRANSACTIONS</div>
+                    <div style="display:flex; align-items:center; gap: 10px;">
+                        <select id="view-limit-select" class="view-limit-dropdown" onchange="updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--dim); border-radius: 10px; padding: 2px 8px; font-size: 0.7rem;">
+                            <option value="5" selected>Latest 5</option>
+                            <option value="all">View All</option>
+                        </select>
+                        <a href="#" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions')); return false;" style="color: var(--cyan); font-size: 0.75rem; font-weight: 700; text-decoration: none;">See All</a>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 8px;">
+                    <input type="text" id="ledger-search-bar" placeholder="🔍 Search description or category..." oninput="updateUI()" style="height:32px; font-size:0.75rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0 10px; color:#fff; width:100%;">
+                </div>
+
+                <div class="twrap" style="max-height: 220px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>DATE</th>
+                                <th>DESCRIPTION</th>
+                                <th>CATEGORY</th>
+                                <th style="text-align:right;">AMOUNT</th>
+                                <th style="text-align:center;">STATUS</th>
+                                <th style="text-align:right;">ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Floating Action Button '+' for Quick Adding Transaction -->
+                <button class="card-fab-btn" onclick="switchNavTab('settings', document.getElementById('nav-btn-settings'))" title="Add Transaction">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PAGE 2: ACCOUNTS / CONVERTER PAGE -->
+    <div class="tab-page-view" id="page-view-accounts" style="display: none;">
+        <div class="card" id="section-converter" style="max-width: 600px; margin: 0 auto;">
+            <div class="ctitle"><i class="fas fa-exchange-alt" style="color:var(--cyan);"></i> Live Net Balance Converter</div>
+            <div style="display:flex; gap:10px; align-items:center; margin-bottom: 16px;">
+                <span style="font-size:0.8rem; color:var(--dim);">Convert Net Balance to:</span>
+                <select id="convert-to" onchange="updateUI()" style="height:38px; padding:0 12px; font-size:0.85rem; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:10px;">
+                    <option value="USD">USD ($)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="AED">AED (AED)</option>
+                </select>
+            </div>
+            <div class="converted" id="converted-val" style="font-size: 2.2rem; font-weight: 900; color: var(--cyan); text-align: center; margin: 20px 0;">$0.00</div>
+        </div>
+    </div>
+
+    <!-- PAGE 3: TRANSACTIONS / LEDGER PAGE -->
+    <div class="tab-page-view" id="page-view-transactions" style="display: none;">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                <div class="tabs">
+                    <button class="tab active" onclick="filterData('all',this)">All</button>
+                    <button class="tab" onclick="filterData('debit',this)">Expenses</button>
+                    <button class="tab" onclick="filterData('credit',this)">Income</button>
+                    <button class="tab" onclick="filterData('saving',this)">Savings</button>
+                </div>
+                <button onclick="exportCSV()" style="background: rgba(0, 255, 136, 0.15); border: 1px solid rgba(0, 255, 136, 0.3); color: var(--lime); padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
+                    <i class="fas fa-file-export"></i> Export CSV
+                </button>
+            </div>
+            <div class="twrap" style="max-height: 450px; overflow-y: auto;">
                 <table>
                     <thead>
                         <tr>
@@ -1339,127 +1398,126 @@
                             <th style="text-align:right;">ACTION</th>
                         </tr>
                     </thead>
-                    <tbody id="table-body"></tbody>
+                    <tbody id="full-table-body"></tbody>
                 </table>
             </div>
-
-            <!-- Floating Action Button '+' for Quick Adding Transaction -->
-            <button class="card-fab-btn" onclick="scrollToNewTxnForm()" title="Add Transaction">
-                <i class="fas fa-plus"></i>
-            </button>
-        </div>
-
-    </div>
-
-    <!-- QUICK TRANSACTION FORM CARD -->
-    <div class="card" id="section-form" style="margin-top: 24px; border-top: 2px solid var(--cyan);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <div class="ctitle" style="margin:0; color:var(--cyan);"><i class="fas fa-plus-circle"></i> Quick Transaction Entry</div>
-            <div class="utility-dropdown-container">
-                <div class="utility-select-trigger" onclick="toggleUtilityDropdown(event)" style="padding: 4px 10px; font-size: 0.72rem;">
-                    <span>SETTINGS</span>
-                    <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
-                </div>
-                <div class="utility-dropdown-menu" id="utilityMenu">
-                    <div class="menu-action-row" onclick="editDisplayName(); toggleUtilityDropdown(event);" style="color:var(--cyan);">
-                        <i class="fas fa-user-edit" style="color:var(--cyan)"></i>
-                        <span>Edit Display Name</span>
-                    </div>
-                    <div class="menu-action-row" onclick="enablePushNotifications(); toggleUtilityDropdown(event);" style="color:var(--cyan);">
-                        <i class="fas fa-bell" style="color:var(--cyan)"></i>
-                        <span>Enable Notifications</span>
-                    </div>
-                    <div class="menu-action-row" onclick="toggleSavingsInclude(); event.stopPropagation();">
-                        <i class="fas fa-piggy-bank" style="color:var(--cyan);"></i>
-                        <span id="savings-status">Savings Tracker: ON</span>
-                    </div>
-                    <div class="menu-action-row" onclick="event.stopPropagation();">
-                        <i class="fas fa-coins" style="color:var(--lime)"></i>
-                        <span style="margin-right:auto;">Base Currency:</span>
-                        <select id="base-currency-select" onchange="changeBaseCurrency(this.value)" style="color:var(--lime); border-color:rgba(0,255,136,0.25);">
-                            <option value="AED">AED (AED)</option>
-                            <option value="USD">USD ($)</option>
-                            <option value="INR">INR (₹)</option>
-                            <option value="EUR">EUR (€)</option>
-                        </select>
-                    </div>
-                    <div class="menu-action-row" onclick="toggleTheme(); toggleUtilityDropdown(event);">
-                        <i class="fas fa-adjust" style="color:var(--accent)"></i>
-                        <span>Toggle Visual Theme</span>
-                    </div>
-                    <div class="menu-action-row" onclick="exportCSV(); toggleUtilityDropdown(event);" style="color:var(--lime);">
-                        <i class="fas fa-file-export" style="color:var(--lime);"></i>
-                        <span>Export Ledger (.CSV)</span>
-                    </div>
-                    <div class="menu-action-row" onclick="purgeDuplicateTransactions(); toggleUtilityDropdown(event);" style="color:var(--red);">
-                        <i class="fas fa-broom" style="color:var(--red);"></i>
-                        <span>Clean Duplicate Entries</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div style="margin-bottom: 14px; position: relative;">
-            <input type="text" id="ai-msg-parser" placeholder="⚡ Paste transaction SMS / message alert here to auto-fill..." oninput="parseIncomingMessage(this.value)" style="border-color: var(--accent); box-shadow: rgba(99, 102, 241, 0.1) 0px 0px 8px;">
-        </div>
-        <div class="fgrid">
-            <input type="text" id="desc" placeholder="What was this for?" class="full">
-            <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
-            <input type="date" id="txn-date">
-            <select id="type">
-                <option value="debit">Expense</option>
-                <option value="credit">Income</option>
-                <option value="saving">Savings</option>
-            </select>
-            <div style="display:flex; gap:8px;">
-                <select id="cat" style="flex:1;"></select>
-                <button type="button" class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()" title="Manage Categories" style="width:auto; margin-top:0; padding:0 12px; height:44px; flex-shrink:0;">
-                    <i class="fas fa-tags"></i> <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size:0.65rem;"></i>
-                </button>
-            </div>
-        </div>
-        <input type="hidden" id="edit-id">
-        <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
-        
-        <div class="user-cat-drawer" id="user-cat-drawer">
-            <div style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                <span>Active Categories</span>
-                <span id="cat-count-badge" style="color:var(--cyan);">0 Tags</span>
-            </div>
-            <div class="cat-badge-container" id="user-cat-badges-grid"></div>
-            <div style="display:flex; gap:8px; margin-top:8px;">
-                <input type="text" id="user-new-cat-input" placeholder="Enter new category tag..." style="height:38px; font-size:0.8rem; border-color:rgba(0,212,255,0.25);">
-                <button onclick="userAddNewCategory()" style="background:var(--cyan); color:#000; border:none; padding:0 16px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 0 10px rgba(0,212,255,0.3);"><i class="fas fa-plus"></i> Add Tag</button>
-            </div>
         </div>
     </div>
 
-    <!-- OTHER TAB UTILITIES & GOALS -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 24px;">
-        <div class="card" id="section-converter">
-            <div class="ctitle"><i class="fas fa-exchange-alt" style="color:var(--cyan);"></i> Live Net Balance Converter</div>
-            <div style="display:flex; gap:10px; align-items:center;">
-                <span style="font-size:0.8rem; color:var(--dim);">Convert to:</span>
-                <select id="convert-to" onchange="updateUI()" style="height:36px; padding:0 10px; font-size:0.8rem; background:rgba(255,255,255,0.05); color:#fff; border:1px solid rgba(255,255,255,0.1); border-radius:10px;">
-                    <option value="USD">USD ($)</option>
-                    <option value="INR">INR (₹)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="AED">AED (AED)</option>
-                </select>
-            </div>
-            <div class="converted" id="converted-val">$0.00</div>
-        </div>
-
-        <div class="card" id="section-savings">
+    <!-- PAGE 4: BUDGET / GOALS PAGE -->
+    <div class="tab-page-view" id="page-view-budget" style="display: none;">
+        <div class="card" id="section-savings" style="max-width: 600px; margin: 0 auto;">
             <div class="ctitle"><i class="fas fa-bullseye" style="color:var(--lime);"></i> Target Savings Goal Tracker</div>
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; font-weight:700;">
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; margin-bottom: 8px;">
                 <span id="goal-name-display">Savings Goal</span>
                 <span id="goal-percent" style="color:var(--cyan);">0%</span>
             </div>
             <div class="gbar-bg"><div class="gbar" id="goal-bar"></div></div>
-            <div style="display:flex; gap:8px; margin-top:10px;">
-                <input type="text" id="goal-name-input" placeholder="Goal Title" style="height:36px; font-size:0.75rem;">
-                <input type="number" id="goal-amt" placeholder="Target Amt" style="height:36px; font-size:0.75rem;">
-                <button onclick="updateGoal()" style="background:var(--accent); color:#fff; border:none; padding:0 12px; border-radius:10px; font-weight:700; font-size:0.75rem; cursor:pointer;">Set Goal</button>
+            <div style="display:flex; gap:8px; margin-top:16px;">
+                <input type="text" id="goal-name-input" placeholder="Goal Title" style="height:40px; font-size:0.85rem;">
+                <input type="number" id="goal-amt" placeholder="Target Amt" style="height:40px; font-size:0.85rem;">
+                <button onclick="updateGoal()" style="background:var(--accent); color:#fff; border:none; padding:0 16px; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer;">Set Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 5: REPORTS / ANALYTICS PAGE -->
+    <div class="tab-page-view" id="page-view-reports" style="display: none;">
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <div class="dash-card-title">EXPENSE ALLOCATION & REPORTS</div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                <div style="height: 250px; position: relative;">
+                    <canvas id="expenseChartReports"></canvas>
+                </div>
+                <div style="height: 250px; position: relative;">
+                    <canvas id="spendingBarChartReports"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE 6: SETTINGS / NEW TRANSACTION PAGE -->
+    <div class="tab-page-view" id="page-view-settings" style="display: none;">
+        <div class="card" id="section-form" style="max-width: 650px; margin: 0 auto; border-top: 2px solid var(--cyan);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="ctitle" style="margin:0; color:var(--cyan);"><i class="fas fa-plus-circle"></i> Quick Transaction Entry & Settings</div>
+                <div class="utility-dropdown-container">
+                    <div class="utility-select-trigger" onclick="toggleUtilityDropdown(event)" style="padding: 4px 10px; font-size: 0.72rem;">
+                        <span>SYSTEM SETTINGS</span>
+                        <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
+                    </div>
+                    <div class="utility-dropdown-menu" id="utilityMenu">
+                        <div class="menu-action-row" onclick="editDisplayName(); toggleUtilityDropdown(event);" style="color:var(--cyan);">
+                            <i class="fas fa-user-edit" style="color:var(--cyan)"></i>
+                            <span>Edit Display Name</span>
+                        </div>
+                        <div class="menu-action-row" onclick="enablePushNotifications(); toggleUtilityDropdown(event);" style="color:var(--cyan);">
+                            <i class="fas fa-bell" style="color:var(--cyan)"></i>
+                            <span>Enable Notifications</span>
+                        </div>
+                        <div class="menu-action-row" onclick="toggleSavingsInclude(); event.stopPropagation();">
+                            <i class="fas fa-piggy-bank" style="color:var(--cyan);"></i>
+                            <span id="savings-status">Savings Tracker: ON</span>
+                        </div>
+                        <div class="menu-action-row" onclick="event.stopPropagation();">
+                            <i class="fas fa-coins" style="color:var(--lime)"></i>
+                            <span style="margin-right:auto;">Base Currency:</span>
+                            <select id="base-currency-select" onchange="changeBaseCurrency(this.value)" style="color:var(--lime); border-color:rgba(0,255,136,0.25);">
+                                <option value="AED">AED (AED)</option>
+                                <option value="USD">USD ($)</option>
+                                <option value="INR">INR (₹)</option>
+                                <option value="EUR">EUR (€)</option>
+                            </select>
+                        </div>
+                        <div class="menu-action-row" onclick="toggleTheme(); toggleUtilityDropdown(event);">
+                            <i class="fas fa-adjust" style="color:var(--accent)"></i>
+                            <span>Toggle Visual Theme</span>
+                        </div>
+                        <div class="menu-action-row" onclick="exportCSV(); toggleUtilityDropdown(event);" style="color:var(--lime);">
+                            <i class="fas fa-file-export" style="color:var(--lime);"></i>
+                            <span>Export Ledger (.CSV)</span>
+                        </div>
+                        <div class="menu-action-row" onclick="purgeDuplicateTransactions(); toggleUtilityDropdown(event);" style="color:var(--red);">
+                            <i class="fas fa-broom" style="color:var(--red);"></i>
+                            <span>Clean Duplicate Entries</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-bottom: 14px; position: relative;">
+                <input type="text" id="ai-msg-parser" placeholder="⚡ Paste transaction SMS / message alert here to auto-fill..." oninput="parseIncomingMessage(this.value)" style="border-color: var(--accent); box-shadow: rgba(99, 102, 241, 0.1) 0px 0px 8px;">
+            </div>
+            <div class="fgrid">
+                <input type="text" id="desc" placeholder="What was this for?" class="full">
+                <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
+                <input type="date" id="txn-date">
+                <select id="type">
+                    <option value="debit">Expense</option>
+                    <option value="credit">Income</option>
+                    <option value="saving">Savings</option>
+                </select>
+                <div style="display:flex; gap:8px;">
+                    <select id="cat" style="flex:1;"></select>
+                    <button type="button" class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()" title="Manage Categories" style="width:auto; margin-top:0; padding:0 12px; height:44px; flex-shrink:0;">
+                        <i class="fas fa-tags"></i> <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size:0.65rem;"></i>
+                    </button>
+                </div>
+            </div>
+            <input type="hidden" id="edit-id">
+            <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
+            
+            <div class="user-cat-drawer" id="user-cat-drawer">
+                <div style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>Active Categories</span>
+                    <span id="cat-count-badge" style="color:var(--cyan);">0 Tags</span>
+                </div>
+                <div class="cat-badge-container" id="user-cat-badges-grid"></div>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <input type="text" id="user-new-cat-input" placeholder="Enter new category tag..." style="height:38px; font-size:0.8rem; border-color:rgba(0,212,255,0.25);">
+                    <button onclick="userAddNewCategory()" style="background:var(--cyan); color:#000; border:none; padding:0 16px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 0 10px rgba(0,212,255,0.3);"><i class="fas fa-plus"></i> Add Tag</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1472,16 +1530,13 @@
 
 </div>
 
-<button class="fab-quick-add" onclick="scrollToNewTxnForm()" title="Quick Add Transaction">
-    <i class="fas fa-plus"></i>
-</button>
-
 <div class="bottom-nav-mask-container">
     <div class="bottom-nav-dock">
-        <button class="bottom-nav-btn active" onclick="navigateToSection('top', this)"><i class="fas fa-chart-pie"></i>Overview</button>
-        <button class="bottom-nav-btn" onclick="navigateToSection('section-form', this)"><i class="fas fa-plus-circle"></i>New Txn</button>
-        <button class="bottom-nav-btn" onclick="navigateToSection('section-ledger', this)"><i class="fas fa-list-alt"></i>Ledger</button>
-        <button class="bottom-nav-btn" onclick="navigateToSection('section-savings', this)"><i class="fas fa-piggy-bank"></i>Goals</button>
+        <button class="bottom-nav-btn active" id="dock-btn-overview" onclick="switchNavTab('overview', document.getElementById('nav-btn-overview'))"><i class="fas fa-chart-pie"></i>Overview</button>
+        <button class="bottom-nav-btn" id="dock-btn-accounts" onclick="switchNavTab('accounts', document.getElementById('nav-btn-accounts'))"><i class="fas fa-wallet"></i>Accounts</button>
+        <button class="bottom-nav-btn" id="dock-btn-transactions" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions'))"><i class="fas fa-list-alt"></i>Ledger</button>
+        <button class="bottom-nav-btn" id="dock-btn-budget" onclick="switchNavTab('budget', document.getElementById('nav-btn-budget'))"><i class="fas fa-piggy-bank"></i>Goals</button>
+        <button class="bottom-nav-btn" id="dock-btn-settings" onclick="switchNavTab('settings', document.getElementById('nav-btn-settings'))"><i class="fas fa-cog"></i>Settings</button>
     </div>
 </div>
 
@@ -1493,24 +1548,29 @@
 
     function switchNavTab(tabName, btn) {
         document.querySelectorAll('.aether-nav-btn').forEach(b => b.classList.remove('active'));
-        if (btn) btn.classList.add('active');
+        const topBtn = btn || document.getElementById('nav-btn-' + tabName);
+        if (topBtn) topBtn.classList.add('active');
         
+        document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.remove('active'));
+        const dockBtn = document.getElementById('dock-btn-' + tabName);
+        if (dockBtn) dockBtn.classList.add('active');
+
         const titleElem = document.getElementById('aether-section-title');
         if (titleElem) {
             titleElem.innerText = tabName.charAt(0).toUpperCase() + tabName.slice(1);
         }
 
-        if (tabName === 'overview') {
-            document.getElementById('nav-view-overview')?.scrollIntoView({ behavior: 'smooth' });
-        } else if (tabName === 'transactions') {
-            document.getElementById('section-ledger')?.scrollIntoView({ behavior: 'smooth' });
-        } else if (tabName === 'budget' || tabName === 'accounts') {
-            document.getElementById('section-savings')?.scrollIntoView({ behavior: 'smooth' });
-        } else if (tabName === 'reports') {
-            document.getElementById('expenseChart')?.scrollIntoView({ behavior: 'smooth' });
-        } else if (tabName === 'settings') {
-            document.getElementById('section-form')?.scrollIntoView({ behavior: 'smooth' });
+        document.querySelectorAll('.tab-page-view').forEach(view => {
+            view.style.display = 'none';
+        });
+
+        const targetView = document.getElementById('page-view-' + tabName);
+        if (targetView) {
+            targetView.style.display = 'block';
         }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        updateUI();
     }
     let savingsGoal = 5000;
     let includeSavingsInBalance = true;
@@ -3089,14 +3149,11 @@
         setTimeout(() => { document.getElementById('ai-msg-parser').value = ''; }, 1200);
     }
 
-    function updateUI(){
-        const sym = currencySymbols[currentBaseCurrency] || (currentBaseCurrency + " ");
-        const mf = document.getElementById('month-filter').value;
-        const limitView = document.getElementById('view-limit-select').value;
-        const searchQuery = document.getElementById('ledger-search-bar').value.toLowerCase().trim();
         const tbody = document.getElementById('table-body');
-        tbody.innerHTML = '';
-        
+        const fullTbody = document.getElementById('full-table-body');
+        if (tbody) tbody.innerHTML = '';
+        if (fullTbody) fullTbody.innerHTML = '';
+
         if(!currentUser && !currentUserId) return;
 
         // Update Top Navigation User Pill
@@ -3175,7 +3232,41 @@
             });
         }
 
-        if(limitView === '5') filteredRows = filteredRows.slice(0, 5);
+        const overviewRows = (limitView === '5') ? filteredRows.slice(0, 5) : filteredRows;
+
+        overviewRows.forEach(row => {
+            const isCredit = row.type === 'credit';
+            const isSaving = row.type === 'saving';
+            const col = isCredit ? '#00ff88' : isSaving ? '#00d4ff' : '#f43f5e';
+            const sign = isCredit ? '+' : isSaving ? '⚡ ' : '-';
+            const txtGlow = isCredit ? 'text-shadow:0 0 12px rgba(0,255,136,0.4);' : isSaving ? 'text-shadow:0 0 12px rgba(0,212,255,0.4);' : 'text-shadow:0 0 12px rgba(244,63,94,0.4);';
+            const dispAmt = (parseFloat(row.amount) * toBaseFactor).toFixed(2);
+
+            const catMap = {
+                'Food': { bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24', icon: 'fa-utensils' },
+                'Fuel': { bg: 'rgba(6, 182, 212, 0.12)', border: 'rgba(6, 182, 212, 0.3)', color: '#38bdf8', icon: 'fa-gas-pump' },
+                'Bills': { bg: 'rgba(139, 92, 246, 0.12)', border: 'rgba(139, 92, 246, 0.3)', color: '#c084fc', icon: 'fa-file-invoice-dollar' },
+                'Groceries': { bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.3)', color: '#34d399', icon: 'fa-shopping-basket' },
+                'Electronics': { bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.3)', color: '#60a5fa', icon: 'fa-laptop' },
+                'Entertainment': { bg: 'rgba(236, 72, 153, 0.12)', border: 'rgba(236, 72, 153, 0.3)', color: '#f472b6', icon: 'fa-gamepad' },
+                'Salary': { bg: 'rgba(16, 185, 129, 0.18)', border: 'rgba(16, 185, 129, 0.4)', color: '#00ff88', icon: 'fa-wallet' }
+            };
+            const cCfg = catMap[row.category] || { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)', color: 'var(--dim)', icon: 'fa-tag' };
+            const catBadge = `<span style="background:${cCfg.bg}; border:1px solid ${cCfg.border}; color:${cCfg.color}; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><i class="fas ${cCfg.icon}" style="font-size:0.65rem;"></i> ${row.category}</span>`;
+            
+            const trHTML = `<tr>
+                <td style="color:var(--dim); font-size:0.78rem; font-weight:600;">${new Date(row.created_at).toLocaleDateString()}</td>
+                <td style="font-weight:700; color:var(--text);">${row.description}</td>
+                <td>${catBadge}</td>
+                <td style="text-align:right; color:${col}; font-weight:800; font-family:'Courier New', monospace; ${txtGlow}">${sign}${sym}${dispAmt}</td>
+                <td style="text-align:center;"><span class="status-pill completed">Completed</span></td>
+                <td style="text-align:right;">
+                    <button onclick="editTransaction('${row.id}')" title="Edit entry" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:var(--accent); border-radius:8px; width:28px; height:28px; margin-right:4px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-pencil-alt" style="font-size:0.75rem;"></i></button>
+                    <button onclick="deleteTransaction('${row.id}')" title="Delete entry" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); color:var(--red); border-radius:8px; width:28px; height:28px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-trash" style="font-size:0.75rem;"></i></button>
+                </td>
+            </tr>`;
+            if (tbody) tbody.innerHTML += trHTML;
+        });
 
         filteredRows.forEach(row => {
             const isCredit = row.type === 'credit';
@@ -3197,7 +3288,7 @@
             const cCfg = catMap[row.category] || { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)', color: 'var(--dim)', icon: 'fa-tag' };
             const catBadge = `<span style="background:${cCfg.bg}; border:1px solid ${cCfg.border}; color:${cCfg.color}; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><i class="fas ${cCfg.icon}" style="font-size:0.65rem;"></i> ${row.category}</span>`;
             
-            tbody.innerHTML += `<tr>
+            const trHTML = `<tr>
                 <td style="color:var(--dim); font-size:0.78rem; font-weight:600;">${new Date(row.created_at).toLocaleDateString()}</td>
                 <td style="font-weight:700; color:var(--text);">${row.description}</td>
                 <td>${catBadge}</td>
@@ -3208,6 +3299,7 @@
                     <button onclick="deleteTransaction('${row.id}')" title="Delete entry" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); color:var(--red); border-radius:8px; width:28px; height:28px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-trash" style="font-size:0.75rem;"></i></button>
                 </td>
             </tr>`;
+            if (fullTbody) fullTbody.innerHTML += trHTML;
         });
 
         const convElem = document.getElementById('convert-to');

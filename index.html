@@ -1687,9 +1687,8 @@
                             <tr>
                                 <th>DATE</th>
                                 <th>DESCRIPTION</th>
-                                <th>CATEGORY</th>
                                 <th style="text-align:right;">AMOUNT</th>
-                                <th style="text-align:center;">STATUS</th>
+                                <th>CATEGORY</th>
                                 <th style="text-align:right;">ACTION</th>
                             </tr>
                         </thead>
@@ -1744,9 +1743,8 @@
                         <tr>
                             <th>DATE</th>
                             <th>DESCRIPTION</th>
-                            <th>CATEGORY</th>
                             <th style="text-align:right;">AMOUNT</th>
-                            <th style="text-align:center;">STATUS</th>
+                            <th>CATEGORY</th>
                             <th style="text-align:right;">ACTION</th>
                         </tr>
                     </thead>
@@ -3583,9 +3581,8 @@
             const trHTML = `<tr>
                 <td style="color:var(--dim); font-size:0.78rem; font-weight:600;">${new Date(row.created_at).toLocaleDateString()}</td>
                 <td style="font-weight:700; color:var(--text);">${row.description}</td>
-                <td>${catBadge}</td>
                 <td style="text-align:right; color:${col}; font-weight:800; font-family:'Courier New', monospace; ${txtGlow}">${sign}${sym}${dispAmt}</td>
-                <td style="text-align:center;"><span class="status-pill completed">Completed</span></td>
+                <td>${catBadge}</td>
                 <td style="text-align:right;">
                     <button onclick="editTransaction('${row.id}')" title="Edit entry" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:var(--accent); border-radius:8px; width:28px; height:28px; margin-right:4px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-pencil-alt" style="font-size:0.75rem;"></i></button>
                     <button onclick="deleteTransaction('${row.id}')" title="Delete entry" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); color:var(--red); border-radius:8px; width:28px; height:28px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-trash" style="font-size:0.75rem;"></i></button>
@@ -3617,9 +3614,8 @@
             const trHTML = `<tr>
                 <td style="color:var(--dim); font-size:0.78rem; font-weight:600;">${new Date(row.created_at).toLocaleDateString()}</td>
                 <td style="font-weight:700; color:var(--text);">${row.description}</td>
-                <td>${catBadge}</td>
                 <td style="text-align:right; color:${col}; font-weight:800; font-family:'Courier New', monospace; ${txtGlow}">${sign}${sym}${dispAmt}</td>
-                <td style="text-align:center;"><span class="status-pill completed">Completed</span></td>
+                <td>${catBadge}</td>
                 <td style="text-align:right;">
                     <button onclick="editTransaction('${row.id}')" title="Edit entry" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:var(--accent); border-radius:8px; width:28px; height:28px; margin-right:4px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-pencil-alt" style="font-size:0.75rem;"></i></button>
                     <button onclick="deleteTransaction('${row.id}')" title="Delete entry" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); color:var(--red); border-radius:8px; width:28px; height:28px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-trash" style="font-size:0.75rem;"></i></button>
@@ -3630,7 +3626,7 @@
 
         if (overviewRows.length === 0 && tbody) {
             tbody.innerHTML = `<tr>
-                <td colspan="6" style="text-align:center; padding: 28px 10px; color: var(--dim);">
+                <td colspan="5" style="text-align:center; padding: 28px 10px; color: var(--dim);">
                     <i class="fas fa-receipt" style="font-size: 1.5rem; color: rgba(0,212,255,0.4); margin-bottom: 6px; display:block;"></i>
                     <span style="font-size: 0.82rem; font-weight: 700; color: var(--text);">No transactions recorded yet</span>
                     <div style="font-size: 0.72rem; color: var(--dim); margin-top: 2px;">Use the + button or paste an SMS alert to add transactions</div>
@@ -3640,7 +3636,7 @@
 
         if (filteredRows.length === 0 && fullTbody) {
             fullTbody.innerHTML = `<tr>
-                <td colspan="6" style="text-align:center; padding: 36px 10px; color: var(--dim);">
+                <td colspan="5" style="text-align:center; padding: 36px 10px; color: var(--dim);">
                     <i class="fas fa-search" style="font-size: 1.8rem; color: rgba(0,212,255,0.4); margin-bottom: 8px; display:block;"></i>
                     <span style="font-size: 0.88rem; font-weight: 700; color: var(--text);">No matching transactions found</span>
                     <div style="font-size: 0.75rem; color: var(--dim); margin-top: 2px;">Try adjusting your search query or month filter</div>

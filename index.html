@@ -1446,12 +1446,13 @@
     <div class="tab-page-view" id="page-view-overview" style="display: block;">
         <div class="dashboard-grid-2x2" id="nav-view-overview">
             
-            <!-- CARD 1: TOTAL BALANCE (Top-Left) -->
+            <!-- CARD 1: DYNAMIC HERO FOCUS METRIC CARD (Top-Left) -->
             <div class="dash-card" id="hero-card-total-balance">
                 <div class="dash-card-header">
-                    <div class="dash-card-title" style="display:flex; align-items:center; gap:6px;">
-                        TOTAL BALANCE
-                        <span id="hero-focus-tag" style="display:none; font-size:0.6rem; font-weight:800; background:rgba(0,212,255,0.2); color:#00d4ff; padding:1px 6px; border-radius:8px;">FOCUS</span>
+                    <div class="dash-card-title" id="hero-card-title-text" style="display:flex; align-items:center; gap:8px;">
+                        <i id="hero-card-icon" class="fas fa-bullseye" style="color:var(--red);"></i>
+                        <span id="hero-card-title-span">TOTAL EXPENSES</span>
+                        <span id="hero-focus-tag" style="font-size:0.6rem; font-weight:800; background:rgba(244,63,94,0.25); color:#f43f5e; padding:1px 6px; border-radius:8px;">FOCUS</span>
                     </div>
                     <div style="display:flex; align-items:center; gap: 8px;">
                         <div id="live-clock" class="clock" style="font-size: 0.72rem; color: var(--dim);">00:00:00</div>
@@ -1467,43 +1468,43 @@
 
                 <div class="hero-balance-row">
                     <div>
-                        <div class="hero-balance-val" id="total-balance">AED 0.00</div>
-                        <div class="balance-sub-growth">
-                            Last 30 Days: <span class="growth-positive">+4.2%</span>
+                        <!-- Main Hero Big White Bold Figure -->
+                        <div class="hero-balance-val" id="total-balance" style="font-size: 2.2rem; font-weight: 900; color: #ffffff; font-family: 'Outfit', sans-serif; letter-spacing: -0.5px;">AED 0.00</div>
+                        <div class="balance-sub-growth" id="hero-sub-growth-container">
+                            <span id="hero-sub-label">Last 30 Days:</span> <span class="growth-positive" id="hero-sub-badge">+4.2%</span>
                         </div>
                     </div>
-                    <!-- Glowing Cyan SVG Sparkline Wave -->
-                    <svg class="sparkline-svg" viewBox="0 0 140 50">
+                    <!-- Dynamic Glowing SVG Sparkline Wave -->
+                    <svg id="hero-sparkline-svg" class="sparkline-svg" viewBox="0 0 140 50">
                         <defs>
                             <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#00d4ff" stop-opacity="0.4"/>
-                                <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+                                <stop id="sparklineStop0" offset="0%" stop-color="#f43f5e" stop-opacity="0.4"/>
+                                <stop id="sparklineStop100" offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
                             </linearGradient>
                         </defs>
-                        <path d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25 L 140,50 L 0,50 Z" fill="url(#sparklineGrad)" />
-                        <path d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25" fill="none" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" />
-                        <circle cx="140" cy="25" r="4" fill="#00d4ff"/>
+                        <path id="sparklineArea" d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25 L 140,50 L 0,50 Z" fill="url(#sparklineGrad)" />
+                        <path id="sparklinePath" d="M 0,35 Q 25,10 50,30 T 100,15 T 140,25" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round" />
+                        <circle id="sparklineDot" cx="140" cy="25" r="4" fill="#f43f5e"/>
                     </svg>
                 </div>
 
-                <div class="balance-mini-stats-row">
-                    <div class="mini-stat-pill income-pill" id="income-focus-pill">
-                        <div class="mini-stat-icon"><i class="fas fa-arrow-down"></i></div>
+                <!-- Mini-Stats Row: Displays the remaining 2 key metrics dynamically -->
+                <div class="balance-mini-stats-row" id="hero-mini-stats-row">
+                    <div class="mini-stat-pill" id="mini-pill-1" onclick="handleMiniPillClick(1)" style="cursor:pointer; transition:all 0.2s;">
+                        <div class="mini-stat-icon" id="mini-pill-1-icon" style="background:rgba(0,212,255,0.2); color:#00d4ff;"><i class="fas fa-wallet"></i></div>
                         <div class="mini-stat-info">
-                            <small>INCOME</small>
-                            <strong id="total-income">AED 0.00</strong>
+                            <small id="mini-pill-1-title">TOTAL BALANCE</small>
+                            <strong id="mini-pill-1-val">AED 0.00</strong>
                         </div>
-                        <span class="mini-growth-badge">+6%</span>
-                        <span id="income-focus-tag" style="display:none; font-size:0.58rem; font-weight:800; background:rgba(0,212,255,0.25); color:#00d4ff; padding:2px 5px; border-radius:8px; margin-left: auto;">FOCUS</span>
+                        <span class="mini-growth-badge" id="mini-pill-1-badge">+4.2%</span>
                     </div>
-                    <div class="mini-stat-pill expense-pill" id="expense-focus-pill">
-                        <div class="mini-stat-icon"><i class="fas fa-arrow-up"></i></div>
+                    <div class="mini-stat-pill" id="mini-pill-2" onclick="handleMiniPillClick(2)" style="cursor:pointer; transition:all 0.2s;">
+                        <div class="mini-stat-icon" id="mini-pill-2-icon" style="background:rgba(0,255,136,0.2); color:#00ff88;"><i class="fas fa-arrow-down"></i></div>
                         <div class="mini-stat-info">
-                            <small>EXPENSES</small>
-                            <strong id="total-expense">AED 0.00</strong>
+                            <small id="mini-pill-2-title">INCOME</small>
+                            <strong id="mini-pill-2-val">AED 0.00</strong>
                         </div>
-                        <span class="mini-growth-badge negative">-2%</span>
-                        <span id="expense-focus-tag" style="font-size:0.58rem; font-weight:800; background:rgba(244,63,94,0.25); color:#f43f5e; padding:2px 5px; border-radius:8px; margin-left: auto;">FOCUS</span>
+                        <span class="mini-growth-badge" id="mini-pill-2-badge">+6%</span>
                     </div>
                 </div>
             </div>
@@ -3497,9 +3498,10 @@
         if (goalPercentEl) goalPercentEl.innerText = Math.round(progress) + "%";
         if (goalBarEl) goalBarEl.style.width = progress + "%";
 
+        window.lastCalculatedBalances = { bal, cred, deb, saved, sym };
         updateChart(fil);
         updateSpendingBarChart(fil);
-        applyHomepageFocusHighlight();
+        applyHomepageFocusHighlight(window.lastCalculatedBalances);
         updateBellUnreadCount();
     }
 
@@ -3777,33 +3779,51 @@
         const ctx = canvas.getContext('2d');
         const cyanGrad = ctx.createLinearGradient(0, 0, 0, 200);
         cyanGrad.addColorStop(0, 'rgba(0, 212, 255, 0.95)');
-        cyanGrad.addColorStop(1, 'rgba(168, 85, 247, 0.3)');
+        cyanGrad.addColorStop(1, 'rgba(168, 85, 247, 0.4)');
+
+        const currencySymbols = { 'USD': '$', 'INR': '₹', 'EUR': '€', 'AED': 'AED ', 'GBP': '£' };
+        const sym = currencySymbols[currentBaseCurrency] || (currentBaseCurrency + ' ');
+
+        const displayData = hasData ? dayTotals : [15, 30, 45, 25, 60, 40, 20];
+        const barColors = hasData ? cyanGrad : 'rgba(0, 212, 255, 0.15)';
 
         return new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: days,
                 datasets: [{
-                    label: 'Daily Spend (' + currentBaseCurrency + ')',
-                    data: dayTotals,
-                    backgroundColor: hasData ? cyanGrad : 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: 6,
+                    label: 'Outflow (' + currentBaseCurrency + ')',
+                    data: displayData,
+                    backgroundColor: barColors,
+                    hoverBackgroundColor: 'rgba(0, 212, 255, 1)',
+                    borderRadius: 8,
                     borderSkipped: false
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                const val = context.parsed.y || 0;
+                                return ' Outflow: ' + sym + val.toFixed(2);
+                            }
+                        }
+                    }
+                },
                 scales: {
                     x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '700' } } },
-                    y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8', font: { size: 9 } } }
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', font: { size: 9 } } }
                 }
             }
         });
     }
 
-    /* ─── HOMEPAGE HERO FOCUS METRIC ENGINE ─── */
+    /* ─── DYNAMIC HOMEPAGE HERO FOCUS METRIC ENGINE ─── */
     let currentHomepageFocus = localStorage.getItem('vault_homepage_focus_metric') || 'expenses';
 
     function changeHomepageFocus(val) {
@@ -3811,41 +3831,157 @@
         localStorage.setItem('vault_homepage_focus_metric', val);
         const selectEl = document.getElementById('homepage-focus-select');
         if (selectEl) selectEl.value = val;
-        applyHomepageFocusHighlight();
+        if (window.lastCalculatedBalances) {
+            applyHomepageFocusHighlight(window.lastCalculatedBalances);
+        } else {
+            updateUI();
+        }
     }
 
-    function applyHomepageFocusHighlight() {
-        const focusVal = currentHomepageFocus || 'expenses';
-        const totalCard = document.getElementById('hero-card-total-balance');
-        const incomePill = document.getElementById('income-focus-pill');
-        const expensePill = document.getElementById('expense-focus-pill');
-        
-        const heroTag = document.getElementById('hero-focus-tag');
-        const incomeTag = document.getElementById('income-focus-tag');
-        const expenseTag = document.getElementById('expense-focus-tag');
+    function handleMiniPillClick(pillIndex) {
+        const pill1Title = document.getElementById('mini-pill-1-title')?.innerText || '';
+        const pill2Title = document.getElementById('mini-pill-2-title')?.innerText || '';
+        const targetTitle = pillIndex === 1 ? pill1Title : pill2Title;
 
+        if (targetTitle.includes('BALANCE')) {
+            changeHomepageFocus('total_balance');
+        } else if (targetTitle.includes('INCOME')) {
+            changeHomepageFocus('income');
+        } else if (targetTitle.includes('EXPENSES')) {
+            changeHomepageFocus('expenses');
+        } else if (targetTitle.includes('SAVINGS')) {
+            changeHomepageFocus('savings');
+        }
+    }
+
+    function applyHomepageFocusHighlight(balances) {
+        const focusVal = currentHomepageFocus || 'expenses';
         const selectEl = document.getElementById('homepage-focus-select');
         if (selectEl && selectEl.value !== focusVal) selectEl.value = focusVal;
 
-        if (totalCard) totalCard.classList.remove('hero-focused-card-total');
-        if (incomePill) incomePill.classList.remove('hero-focused-card-income');
-        if (expensePill) expensePill.classList.remove('hero-focused-card');
+        const { bal, cred, deb, saved, sym } = balances || window.lastCalculatedBalances || { bal: 0, cred: 0, deb: 0, saved: 0, sym: 'AED ' };
 
-        if (heroTag) heroTag.style.display = 'none';
-        if (incomeTag) incomeTag.style.display = 'none';
-        if (expenseTag) expenseTag.style.display = 'none';
+        const titleSpan = document.getElementById('hero-card-title-span');
+        const titleIcon = document.getElementById('hero-card-icon');
+        const focusTag = document.getElementById('hero-focus-tag');
+        const heroVal = document.getElementById('total-balance');
+        const heroGrowthLabel = document.getElementById('hero-sub-label');
+        const heroGrowthBadge = document.getElementById('hero-sub-badge');
+
+        const pill1Title = document.getElementById('mini-pill-1-title');
+        const pill1Val = document.getElementById('mini-pill-1-val');
+        const pill1Icon = document.getElementById('mini-pill-1-icon');
+        const pill1Badge = document.getElementById('mini-pill-1-badge');
+
+        const pill2Title = document.getElementById('mini-pill-2-title');
+        const pill2Val = document.getElementById('mini-pill-2-val');
+        const pill2Icon = document.getElementById('mini-pill-2-icon');
+        const pill2Badge = document.getElementById('mini-pill-2-badge');
+
+        const sparklinePath = document.getElementById('sparklinePath');
+        const sparklineDot = document.getElementById('sparklineDot');
+        const sparklineStop0 = document.getElementById('sparklineStop0');
+        const sparklineStop100 = document.getElementById('sparklineStop100');
+
+        const formattedBal = sym + bal.toLocaleString(undefined, { minimumFractionDigits: 2 });
+        const formattedCred = sym + cred.toLocaleString(undefined, { minimumFractionDigits: 2 });
+        const formattedDeb = sym + deb.toLocaleString(undefined, { minimumFractionDigits: 2 });
+        const formattedSaved = sym + saved.toLocaleString(undefined, { minimumFractionDigits: 2 });
+
+        function setSparklineColor(colorHex) {
+            if (sparklinePath) sparklinePath.setAttribute('stroke', colorHex);
+            if (sparklineDot) sparklineDot.setAttribute('fill', colorHex);
+            if (sparklineStop0) sparklineStop0.setAttribute('stop-color', colorHex);
+            if (sparklineStop100) sparklineStop100.setAttribute('stop-color', colorHex);
+        }
 
         if (focusVal === 'expenses') {
-            if (expensePill) expensePill.classList.add('hero-focused-card');
-            if (expenseTag) expenseTag.style.display = 'inline-block';
+            // Main Hero Displays EXPENSES on top!
+            if (titleSpan) titleSpan.innerText = 'TOTAL EXPENSES';
+            if (titleIcon) { titleIcon.className = 'fas fa-arrow-up'; titleIcon.style.color = '#f43f5e'; }
+            if (focusTag) { focusTag.style.background = 'rgba(244,63,94,0.25)'; focusTag.style.color = '#f43f5e'; focusTag.innerText = 'FOCUS'; }
+            if (heroVal) { heroVal.innerText = formattedDeb; heroVal.style.color = '#ffffff'; }
+            if (heroGrowthLabel) heroGrowthLabel.innerText = 'Last 30 Days Outflow:';
+            if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#f472b6'; heroGrowthBadge.innerText = '-2%'; }
+            setSparklineColor('#f43f5e');
+
+            // Pill 1: TOTAL BALANCE
+            if (pill1Title) pill1Title.innerText = 'TOTAL BALANCE';
+            if (pill1Val) pill1Val.innerText = formattedBal;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,212,255,0.2)'; pill1Icon.style.color = '#00d4ff'; pill1Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+4.2%'; }
+
+            // Pill 2: INCOME
+            if (pill2Title) pill2Title.innerText = 'INCOME';
+            if (pill2Val) pill2Val.innerText = formattedCred;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(0,255,136,0.2)'; pill2Icon.style.color = '#00ff88'; pill2Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge'; pill2Badge.innerText = '+6%'; }
+
         } else if (focusVal === 'income') {
-            if (incomePill) incomePill.classList.add('hero-focused-card-income');
-            if (incomeTag) incomeTag.style.display = 'inline-block';
+            // Main Hero Displays INCOME on top!
+            if (titleSpan) titleSpan.innerText = 'TOTAL INCOME';
+            if (titleIcon) { titleIcon.className = 'fas fa-arrow-down'; titleIcon.style.color = '#00ff88'; }
+            if (focusTag) { focusTag.style.background = 'rgba(0,255,136,0.25)'; focusTag.style.color = '#00ff88'; focusTag.innerText = 'FOCUS'; }
+            if (heroVal) { heroVal.innerText = formattedCred; heroVal.style.color = '#ffffff'; }
+            if (heroGrowthLabel) heroGrowthLabel.innerText = 'Last 30 Days Influx:';
+            if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#00ff88'; heroGrowthBadge.innerText = '+6%'; }
+            setSparklineColor('#00ff88');
+
+            // Pill 1: TOTAL BALANCE
+            if (pill1Title) pill1Title.innerText = 'TOTAL BALANCE';
+            if (pill1Val) pill1Val.innerText = formattedBal;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,212,255,0.2)'; pill1Icon.style.color = '#00d4ff'; pill1Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+4.2%'; }
+
+            // Pill 2: EXPENSES
+            if (pill2Title) pill2Title.innerText = 'EXPENSES';
+            if (pill2Val) pill2Val.innerText = formattedDeb;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(244,63,94,0.2)'; pill2Icon.style.color = '#f43f5e'; pill2Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge negative'; pill2Badge.innerText = '-2%'; }
+
         } else if (focusVal === 'total_balance') {
-            if (totalCard) totalCard.classList.add('hero-focused-card-total');
-            if (heroTag) heroTag.style.display = 'inline-block';
+            // Main Hero Displays TOTAL BALANCE on top!
+            if (titleSpan) titleSpan.innerText = 'TOTAL BALANCE';
+            if (titleIcon) { titleIcon.className = 'fas fa-wallet'; titleIcon.style.color = '#00d4ff'; }
+            if (focusTag) { focusTag.style.background = 'rgba(0,212,255,0.25)'; focusTag.style.color = '#00d4ff'; focusTag.innerText = 'FOCUS'; }
+            if (heroVal) { heroVal.innerText = formattedBal; heroVal.style.color = '#ffffff'; }
+            if (heroGrowthLabel) heroGrowthLabel.innerText = 'Net Account Ledger:';
+            if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#00d4ff'; heroGrowthBadge.innerText = '+4.2%'; }
+            setSparklineColor('#00d4ff');
+
+            // Pill 1: EXPENSES
+            if (pill1Title) pill1Title.innerText = 'EXPENSES';
+            if (pill1Val) pill1Val.innerText = formattedDeb;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(244,63,94,0.2)'; pill1Icon.style.color = '#f43f5e'; pill1Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge negative'; pill1Badge.innerText = '-2%'; }
+
+            // Pill 2: INCOME
+            if (pill2Title) pill2Title.innerText = 'INCOME';
+            if (pill2Val) pill2Val.innerText = formattedCred;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(0,255,136,0.2)'; pill2Icon.style.color = '#00ff88'; pill2Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge'; pill2Badge.innerText = '+6%'; }
+
         } else if (focusVal === 'savings') {
-            if (incomePill) incomePill.classList.add('hero-focused-card-savings');
+            // Main Hero Displays SAVINGS on top!
+            if (titleSpan) titleSpan.innerText = 'TOTAL SAVINGS';
+            if (titleIcon) { titleIcon.className = 'fas fa-piggy-bank'; titleIcon.style.color = '#a855f7'; }
+            if (focusTag) { focusTag.style.background = 'rgba(168,85,247,0.25)'; focusTag.style.color = '#a855f7'; focusTag.innerText = 'FOCUS'; }
+            if (heroVal) { heroVal.innerText = formattedSaved; heroVal.style.color = '#ffffff'; }
+            if (heroGrowthLabel) heroGrowthLabel.innerText = 'Vault Savings Goal:';
+            if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#a855f7'; heroGrowthBadge.innerText = 'Active'; }
+            setSparklineColor('#a855f7');
+
+            // Pill 1: TOTAL BALANCE
+            if (pill1Title) pill1Title.innerText = 'TOTAL BALANCE';
+            if (pill1Val) pill1Val.innerText = formattedBal;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,212,255,0.2)'; pill1Icon.style.color = '#00d4ff'; pill1Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+4.2%'; }
+
+            // Pill 2: EXPENSES
+            if (pill2Title) pill2Title.innerText = 'EXPENSES';
+            if (pill2Val) pill2Val.innerText = formattedDeb;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(244,63,94,0.2)'; pill2Icon.style.color = '#f43f5e'; pill2Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge negative'; pill2Badge.innerText = '-2%'; }
         }
     }
 

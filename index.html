@@ -1039,9 +1039,6 @@
             bottom: 12px;
             right: 12px;
         }
-        .clock {
-            display: none !important;
-        }
     }
     @media (min-width: 768px) {
         .hdr { flex-direction: row; align-items: center; justify-content: space-between; padding: 16px 24px; }
@@ -1431,6 +1428,10 @@
 
     <div class="aether-user-pill">
         <div style="display:flex; align-items:center; gap: 8px;">
+            <div id="live-clock" class="clock" style="font-size:0.7rem; font-weight:800; color:var(--cyan); background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.2); border-radius:10px; padding:3px 8px; display:flex; align-items:center; gap:5px;" title="Local Time">
+                <i class="far fa-clock" style="font-size:0.65rem; color:#00d4ff;"></i>
+                <span id="live-clock-text">00:00:00</span>
+            </div>
             <div style="position:relative; cursor:pointer;" onclick="openNotificationsModal()" title="Notifications & Cron Summaries">
                 <span class="aether-bell-btn"><i class="fas fa-bell"></i></span>
                 <span class="aether-bell-badge" id="aether-bell-badge" style="position:absolute; top: -5px; right: -6px; background: #f43f5e; color: #fff; border-radius: 10px; font-size: 0.62rem; font-weight: 800; padding: 1px 5px; box-shadow: 0 0 8px rgba(244,63,94,0.6); display: none;">0</span>
@@ -1460,9 +1461,8 @@
                         <span id="hero-focus-tag" style="font-size:0.6rem; font-weight:800; background:rgba(244,63,94,0.25); color:#f43f5e; padding:1px 6px; border-radius:8px;">FOCUS</span>
                     </div>
                     <div style="display:flex; align-items:center; gap: 8px;">
-                        <div id="live-clock" class="clock" style="font-size: 0.72rem; color: var(--dim);">00:00:00</div>
-                        <select id="month-filter" onchange="updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #00d4ff; border-radius: 12px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; outline: none; cursor: pointer;">
-                            <option value="all" selected>Full History</option>
+                        <select id="month-filter" onchange="sessionStorage.setItem('vault_user_changed_month','1'); updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #00d4ff; border-radius: 12px; padding: 4px 10px; font-size: 0.72rem; font-weight: 700; outline: none; cursor: pointer;">
+                            <option value="all">Full History</option>
                             <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
                             <option value="3">Apr</option><option value="4">May</option><option value="5">Jun</option>
                             <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
@@ -2791,7 +2791,13 @@
     }
     animateAuthBackground();
 
-    function updateClock(){document.getElementById('live-clock').innerText=new Date().toLocaleTimeString([],{hour12:false});}
+    function updateClock(){
+        const nowStr = new Date().toLocaleTimeString([],{hour12:false});
+        const txtEl = document.getElementById('live-clock-text');
+        const clockEl = document.getElementById('live-clock');
+        if (txtEl) txtEl.innerText = nowStr;
+        else if (clockEl) clockEl.innerText = nowStr;
+    }
     setInterval(updateClock,1000);updateClock();
 
     function toggleUtilityDropdown(event) {
@@ -2821,6 +2827,13 @@
         if(localStorage.getItem('vault_base_currency')) {
             currentBaseCurrency = localStorage.getItem('vault_base_currency');
             document.getElementById('base-currency-select').value = currentBaseCurrency;
+        }
+
+        // Default Month Filter to current running month on initial login/load
+        const monthSelect = document.getElementById('month-filter');
+        if (monthSelect && !sessionStorage.getItem('vault_user_changed_month')) {
+            const currentMonthIdx = new Date().getMonth();
+            monthSelect.value = String(currentMonthIdx);
         }
 
         // Safety Preloader Dismissal (fallback after 1.5s max)

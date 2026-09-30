@@ -2086,7 +2086,7 @@
             try {
                 localDataBc = new BroadcastChannel('vault_data_live_sync');
                 localDataBc.onmessage = (evt) => {
-                    if (evt && evt.data && evt.data.type === 'tx_update') {
+                    if (evt && evt.data && (evt.data.type === 'tx_update' || evt.data.type === 'user_update')) {
                         fetchDataSilently();
                     }
                 };
@@ -3476,6 +3476,7 @@
             }
             alert(`Successfully purged ${duplicateIds.length} duplicate entries!`);
             await fetchData();
+            notifyDataUpdatedLocally();
         }
     }
 

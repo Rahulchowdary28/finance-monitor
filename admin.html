@@ -126,6 +126,11 @@
         background: var(--cyan);
         box-shadow: 0 0 10px var(--cyan);
         animation: radarPulse 1.8s infinite;
+        transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.25s ease;
+    }
+    .radar-dot.pulse {
+        transform: scale(2.2) !important;
+        box-shadow: 0 0 18px var(--lime) !important;
     }
     @keyframes radarPulse {
         0%, 100% { opacity: 1; transform: scale(1); }
@@ -536,8 +541,8 @@
     <div class="admin-hdr">
         <div class="logo-group">
             <span class="logo"><i class="fas fa-shield-halved"></i> Virtual Vault</span>
-            <div class="telemetry-radar">
-                <span class="radar-dot"></span>
+            <div class="telemetry-radar" id="telemetry-radar-badge">
+                <span class="radar-dot" id="radar-dot"></span>
                 <span id="telemetry-status-text">ROOT TELEMETRY ACTIVE</span>
             </div>
         </div>
@@ -593,9 +598,9 @@
             </div>
             <div style="display:flex; align-items:center; gap:14px; color:var(--dim);">
                 <span><i class="far fa-clock"></i> <span id="admin-live-clock">00:00:00 UTC</span></span>
-                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;" title="Auto-refresh data every 15 seconds">
+                <label style="display:flex; align-items:center; gap:6px; cursor:pointer;" title="Continuous Realtime Auto-Sync">
                     <input type="checkbox" id="auto-refresh-check" onchange="toggleAutoRefresh(this.checked)" style="width:auto; cursor:pointer;" checked>
-                    <span>Auto-Poll (15s)</span>
+                    <span>Auto-Sync (Live)</span>
                 </label>
             </div>
         </div>
@@ -854,6 +859,14 @@ let txnSearchTerm = '';
 let autoRefreshInterval = null;
 let platformChart = null;
 
+// Realtime & Live Sync Engine variables
+let adminRealtimeChannel = null;
+let adminBroadcastChannel = null;
+let currentInspectingUser = null;
+let isSilentRefreshInProgress = false;
+let silentRefreshPending = false;
+let silentRefreshTimer = null;
+
 // Clock updates
 setInterval(() => {
     const clockEl = document.getElementById('admin-live-clock');
@@ -862,6 +875,168 @@ setInterval(() => {
         clockEl.innerText = now.toUTCString().split(' ')[4] + ' UTC';
     }
 }, 1000);
+
+function updateTelemetryStatus(text, theme = 'cyan') {
+    const statusEl = document.getElementById('telemetry-status-text');
+    const dot = document.getElementById('radar-dot');
+    const badge = document.getElementById('telemetry-radar-badge');
+    if (!statusEl) return;
+
+    statusEl.innerText = text;
+    if (theme === 'lime') {
+        if (dot) {
+            dot.style.background = 'var(--lime)';
+            dot.style.boxShadow = '0 0 12px var(--lime)';
+        }
+        if (badge) {
+            badge.style.color = 'var(--lime)';
+            badge.style.background = 'rgba(0, 255, 136, 0.1)';
+            badge.style.borderColor = 'rgba(0, 255, 136, 0.3)';
+        }
+    } else if (theme === 'amber') {
+        if (dot) {
+            dot.style.background = 'var(--amber)';
+            dot.style.boxShadow = '0 0 12px var(--amber)';
+        }
+        if (badge) {
+            badge.style.color = 'var(--amber)';
+            badge.style.background = 'rgba(245, 158, 11, 0.1)';
+            badge.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        }
+    } else if (theme === 'red') {
+        if (dot) {
+            dot.style.background = 'var(--red)';
+            dot.style.boxShadow = '0 0 12px var(--red)';
+        }
+        if (badge) {
+            badge.style.color = 'var(--red)';
+            badge.style.background = 'rgba(255, 77, 77, 0.1)';
+            badge.style.borderColor = 'rgba(255, 77, 77, 0.3)';
+        }
+    } else {
+        if (dot) {
+            dot.style.background = 'var(--cyan)';
+            dot.style.boxShadow = '0 0 12px var(--cyan)';
+        }
+        if (badge) {
+            badge.style.color = 'var(--cyan)';
+            badge.style.background = 'rgba(0, 212, 255, 0.1)';
+            badge.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+        }
+    }
+}
+
+function triggerSilentSyncPulse() {
+    const dot = document.getElementById('radar-dot');
+    if (dot) {
+        dot.classList.add('pulse');
+        setTimeout(() => {
+            if (dot) dot.classList.remove('pulse');
+        }, 400);
+    }
+}
+
+function notifyAdminAction(type = 'user_update') {
+    if (adminBroadcastChannel) {
+        try {
+            adminBroadcastChannel.postMessage({ type: type, ts: Date.now() });
+        } catch(e) {}
+    }
+}
+
+function setupAdminRealtimeSync() {
+    // 1. Cross-tab BroadcastChannel for 0ms latency sync across local browser tabs
+    if (window.BroadcastChannel && !adminBroadcastChannel) {
+        try {
+            adminBroadcastChannel = new BroadcastChannel('vault_data_live_sync');
+            adminBroadcastChannel.onmessage = (evt) => {
+                if (evt && evt.data && (evt.data.type === 'tx_update' || evt.data.type === 'user_update')) {
+                    console.log('[Admin] BroadcastChannel sync received:', evt.data);
+                    triggerSilentSyncPulse();
+                    debouncedRefreshAllDataSilently(100);
+                }
+            };
+        } catch (e) {
+            console.warn('[Admin] BroadcastChannel init error:', e);
+        }
+    }
+
+    // 2. Supabase Postgres Changes Subscription
+    if (adminRealtimeChannel) {
+        try { _supabase.removeChannel(adminRealtimeChannel); } catch(e) {}
+        adminRealtimeChannel = null;
+    }
+
+    try {
+        updateTelemetryStatus('CONNECTING LIVE...', 'cyan');
+        adminRealtimeChannel = _supabase
+            .channel('admin_console_live_feed')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, (payload) => {
+                console.log('[Admin] Realtime change detected in transactions:', payload);
+                triggerSilentSyncPulse();
+                debouncedRefreshAllDataSilently(150);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'users_list' }, (payload) => {
+                console.log('[Admin] Realtime change detected in users_list:', payload);
+                triggerSilentSyncPulse();
+                debouncedRefreshAllDataSilently(150);
+            })
+            .subscribe((status, err) => {
+                console.log('[Admin] Supabase Realtime channel status:', status, err);
+                if (status === 'SUBSCRIBED') {
+                    updateTelemetryStatus('REALTIME LIVE (WSS)', 'lime');
+                } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    updateTelemetryStatus('REALTIME ACTIVE (POLL)', 'amber');
+                } else if (status === 'CLOSED') {
+                    updateTelemetryStatus('DISCONNECTED', 'red');
+                }
+            });
+    } catch (err) {
+        console.warn('[Admin] Realtime subscription init failed:', err);
+        updateTelemetryStatus('REALTIME ACTIVE (POLL)', 'amber');
+    }
+}
+
+function debouncedRefreshAllDataSilently(delay = 200) {
+    if (silentRefreshTimer) clearTimeout(silentRefreshTimer);
+    silentRefreshTimer = setTimeout(() => {
+        refreshAllDataSilently();
+    }, delay);
+}
+
+async function refreshAllDataSilently() {
+    if (isSilentRefreshInProgress) {
+        silentRefreshPending = true;
+        return;
+    }
+    isSilentRefreshInProgress = true;
+    try {
+        await Promise.all([
+            fetchUsersData(),
+            fetchTransactionsData()
+        ]);
+        renderKPIStats();
+        renderUsersTable();
+        renderTransactionStream();
+        renderPlatformCategoryChart();
+        updateOpenInspectorModalIfAny();
+    } catch (e) {
+        console.warn('[Admin] Silent refresh warning:', e);
+    } finally {
+        isSilentRefreshInProgress = false;
+        if (silentRefreshPending) {
+            silentRefreshPending = false;
+            debouncedRefreshAllDataSilently(250);
+        }
+    }
+}
+
+function updateOpenInspectorModalIfAny() {
+    const modal = document.getElementById('user-inspector-modal');
+    if (modal && modal.style.display === 'flex' && currentInspectingUser) {
+        inspectUserTransactions(currentInspectingUser.name, currentInspectingUser.email, currentInspectingUser.userId, false);
+    }
+}
 
 // Auto-session check on load
 async function checkSession() {
@@ -920,6 +1095,7 @@ async function verifyAndLaunchDashboard(user) {
         document.getElementById('admin-main-container').classList.add('expanded');
         
         await refreshAllData();
+        setupAdminRealtimeSync();
         startAutoRefresh();
         showToast("Access Granted: Welcome to Root Command Console 🛡️", "success");
     } else {
@@ -942,6 +1118,7 @@ async function refreshAllData() {
     renderUsersTable();
     renderTransactionStream();
     renderPlatformCategoryChart();
+    updateOpenInspectorModalIfAny();
 
     if (refreshBtn) {
         setTimeout(() => refreshBtn.querySelector('i').classList.remove('fa-spin'), 600);
@@ -949,22 +1126,30 @@ async function refreshAllData() {
 }
 
 async function fetchUsersData() {
-    const { data, error } = await _supabase.from('users_list').select('*').order('created_at', { ascending: false });
-    if (!error && data) {
-        cachedUsers = data;
-    } else if (cachedUsers.length === 0) {
-        cachedUsers = [
-            { id: 4, name: 'Abdullah', email: 'shaikhabd869@gmail.com', role: 'User', is_hold: false, selected_currency: 'AED' },
-            { id: 20, name: 'Rahul', email: 'me.rahulchowdary@gmail.com', role: 'admin', is_hold: false, selected_currency: 'AED' },
-            { id: 24, name: 'Athul', email: 'athulkollu@gmail.com', role: 'User', is_hold: false, selected_currency: 'AED' }
-        ];
+    try {
+        const { data, error } = await _supabase.from('users_list').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+            cachedUsers = data;
+        } else if (cachedUsers.length === 0) {
+            cachedUsers = [
+                { id: 4, name: 'Abdullah', email: 'shaikhabd869@gmail.com', role: 'User', is_hold: false, selected_currency: 'AED' },
+                { id: 20, name: 'Rahul', email: 'me.rahulchowdary@gmail.com', role: 'admin', is_hold: false, selected_currency: 'AED' },
+                { id: 24, name: 'Athul', email: 'athulkollu@gmail.com', role: 'User', is_hold: false, selected_currency: 'AED' }
+            ];
+        }
+    } catch (e) {
+        console.warn("[Admin] fetchUsersData error:", e);
     }
 }
 
 async function fetchTransactionsData() {
-    const { data, error } = await _supabase.from('transactions').select('*').order('created_at', { ascending: false });
-    if (!error && data) {
-        cachedTransactions = data;
+    try {
+        const { data, error } = await _supabase.from('transactions').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+            cachedTransactions = data;
+        }
+    } catch (e) {
+        console.warn("[Admin] fetchTransactionsData error:", e);
     }
 }
 
@@ -1155,34 +1340,39 @@ function renderPlatformCategoryChart() {
         '#00d4ff', '#00ff88', '#a855f7', '#f59e0b', '#f43f5e', '#ec4899', '#3b82f6', '#10b981'
     ];
 
-    if (platformChart) platformChart.destroy();
-
     const chartData = labels.length > 0 ? dataVals : [30, 25, 20, 15, 10];
     const chartLabels = labels.length > 0 ? labels : ['FOOD', 'SHOPPING', 'TRANSPORT', 'BILLS', 'OTHER'];
 
-    platformChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: chartLabels,
-            datasets: [{
-                data: chartData,
-                backgroundColor: colors.slice(0, chartLabels.length),
-                borderWidth: 0,
-                hoverOffset: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: { color: '#94a3b8', font: { size: 10, weight: '700' } }
-                }
+    if (platformChart) {
+        platformChart.data.labels = chartLabels;
+        platformChart.data.datasets[0].data = chartData;
+        platformChart.data.datasets[0].backgroundColor = colors.slice(0, chartLabels.length);
+        platformChart.update('none');
+    } else {
+        platformChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: colors.slice(0, chartLabels.length),
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
             },
-            cutout: '70%'
-        }
-    });
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#94a3b8', font: { size: 10, weight: '700' } }
+                    }
+                },
+                cutout: '70%'
+            }
+        });
+    }
 
     const legendStats = document.getElementById('chart-legend-stats');
     if (legendStats && labels.length > 0) {
@@ -1207,8 +1397,9 @@ async function toggleUserHoldStatus(userId, email, currentStatus) {
         }
     }
 
+    notifyAdminAction('user_update');
     showToast(`Account status updated to ${nextStatus ? 'Suspended' : 'Active'}`, nextStatus ? 'warning' : 'success');
-    await refreshAllData();
+    await refreshAllDataSilently();
 }
 
 async function toggleUserRole(userId, email, currentRole) {
@@ -1220,8 +1411,9 @@ async function toggleUserRole(userId, email, currentRole) {
         if (userId) {
             await _supabase.from('users_list').update({ role: nextRole }).eq('user_id', userId);
         }
+        notifyAdminAction('user_update');
         showToast(`User role updated to ${nextRole.toUpperCase()}`, 'success');
-        await refreshAllData();
+        await refreshAllDataSilently();
     }
 }
 
@@ -1237,15 +1429,20 @@ async function deleteUserProfile(userId, email, name) {
             await _supabase.from('users_list').delete().eq('user_id', userId);
             await _supabase.from('transactions').delete().eq('user_id', userId);
         }
+        notifyAdminAction('user_update');
+        notifyAdminAction('tx_update');
         showToast(`Profile space purged successfully.`, 'warning');
-        await refreshAllData();
+        await refreshAllDataSilently();
     }
 }
 
 // User Inspector Modal
-function inspectUserTransactions(name, email, userId) {
-    document.getElementById('inspect-modal-name').innerText = name || 'Anonymous User';
-    document.getElementById('inspect-modal-email').innerText = email || 'No email on record';
+function inspectUserTransactions(name, email, userId, openModal = true) {
+    currentInspectingUser = { name, email, userId };
+    const nameEl = document.getElementById('inspect-modal-name');
+    const emailEl = document.getElementById('inspect-modal-email');
+    if (nameEl) nameEl.innerText = name || 'Anonymous User';
+    if (emailEl) emailEl.innerText = email || 'No email on record';
 
     const userTxns = cachedTransactions.filter(t => {
         const matchesId = userId && t.user_id === userId;
@@ -1253,40 +1450,49 @@ function inspectUserTransactions(name, email, userId) {
         return matchesId || matchesName;
     });
 
-    document.getElementById('inspect-modal-txns-count').innerText = userTxns.length;
+    const countEl = document.getElementById('inspect-modal-txns-count');
+    if (countEl) countEl.innerText = userTxns.length;
 
     let spend = 0;
     userTxns.forEach(t => {
         if (t.type === 'debit') spend += parseFloat(t.amount || 0);
     });
-    document.getElementById('inspect-modal-total-spend').innerText = spend.toFixed(2);
+    const spendEl = document.getElementById('inspect-modal-total-spend');
+    if (spendEl) spendEl.innerText = spend.toFixed(2);
 
     const tbody = document.getElementById('inspect-modal-tbody');
-    tbody.innerHTML = '';
-    if (userTxns.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--dim); padding:20px;">No transaction records found for this user.</td></tr>`;
-    } else {
-        userTxns.slice(0, 30).forEach(t => {
-            const isCredit = t.type === 'credit';
-            const sign = isCredit ? '+' : '-';
-            const color = isCredit ? 'var(--lime)' : 'var(--cyan)';
-            const dStr = new Date(t.created_at || t.date || Date.now()).toLocaleDateString();
+    if (tbody) {
+        tbody.innerHTML = '';
+        if (userTxns.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--dim); padding:20px;">No transaction records found for this user.</td></tr>`;
+        } else {
+            userTxns.slice(0, 30).forEach(t => {
+                const isCredit = t.type === 'credit';
+                const sign = isCredit ? '+' : '-';
+                const color = isCredit ? 'var(--lime)' : 'var(--cyan)';
+                const dStr = new Date(t.created_at || t.date || Date.now()).toLocaleDateString();
 
-            tbody.innerHTML += `
-            <tr>
-                <td style="color:var(--dim); font-size:0.75rem;">${dStr}</td>
-                <td style="color:#fff; font-weight:600;">${t.description || 'Ledger entry'}</td>
-                <td><span style="background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:6px; font-size:0.68rem; text-transform:uppercase;">${t.category || 'general'}</span></td>
-                <td style="text-align:right; font-weight:700; color:${color}; font-family:'Orbitron', sans-serif;">${sign} ${parseFloat(t.amount).toFixed(2)}</td>
-            </tr>`;
-        });
+                tbody.innerHTML += `
+                <tr>
+                    <td style="color:var(--dim); font-size:0.75rem;">${dStr}</td>
+                    <td style="color:#fff; font-weight:600;">${t.description || 'Ledger entry'}</td>
+                    <td><span style="background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:6px; font-size:0.68rem; text-transform:uppercase;">${t.category || 'general'}</span></td>
+                    <td style="text-align:right; font-weight:700; color:${color}; font-family:'Orbitron', sans-serif;">${sign} ${parseFloat(t.amount).toFixed(2)}</td>
+                </tr>`;
+            });
+        }
     }
 
-    document.getElementById('user-inspector-modal').style.display = 'flex';
+    if (openModal) {
+        const modal = document.getElementById('user-inspector-modal');
+        if (modal) modal.style.display = 'flex';
+    }
 }
 
 function closeUserInspectorModal() {
-    document.getElementById('user-inspector-modal').style.display = 'none';
+    currentInspectingUser = null;
+    const modal = document.getElementById('user-inspector-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 // Broadcast Studio
@@ -1428,28 +1634,33 @@ function flushLocalAuthCache() {
 function toggleAutoRefresh(enable) {
     if (enable) {
         startAutoRefresh();
-        showToast("Live polling enabled (every 15s).", "success");
+        showToast("Auto-sync active (continuous fast-poll + Realtime WSS).", "success");
     } else {
         if (autoRefreshInterval) clearInterval(autoRefreshInterval);
-        showToast("Live polling paused.", "warning");
+        showToast("Periodic background polling paused (Realtime WSS remains active).", "warning");
     }
 }
 
 function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(() => {
-        refreshAllData();
-    }, 15000);
+        refreshAllDataSilently();
+    }, 4000);
 }
 
 async function disconnectConsole() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+    if (adminRealtimeChannel) {
+        try { _supabase.removeChannel(adminRealtimeChannel); } catch(e) {}
+        adminRealtimeChannel = null;
+    }
     await _supabase.auth.signOut();
     document.getElementById('admin-dashboard-section').style.display = 'none';
     document.getElementById('admin-auth-section').style.display = 'block';
     document.getElementById('disconnect-btn').style.display = 'none';
     document.getElementById('admin-main-container').classList.remove('expanded');
     document.getElementById('admin-password').value = '';
+    updateTelemetryStatus('DISCONNECTED', 'red');
     showToast("Console disconnected securely.", "warning");
 }
 

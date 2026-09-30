@@ -1292,6 +1292,51 @@
     </div>
 </div>
 
+<!-- ─── QUICK TRANSACTION ENTRY MODAL ─── -->
+<div id="new-txn-modal" style="display:none; position:fixed; inset:0; z-index:22000; background:rgba(2,4,10,0.88); backdrop-filter:blur(25px); align-items:center; justify-content:center; padding:16px; overflow-y:auto;">
+    <div class="card" id="section-form" style="max-width: 580px; width: 100%; margin: 0 auto; border-top: 2px solid var(--cyan); position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.8);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+            <div class="ctitle" style="margin:0; color:var(--cyan);"><i class="fas fa-plus-circle"></i> Quick Transaction Entry</div>
+            <button onclick="closeNewTxnModal()" style="background:none; border:none; color:var(--dim); font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+        </div>
+        
+        <div style="margin-bottom: 14px; position: relative;">
+            <input type="text" id="ai-msg-parser" placeholder="⚡ Paste transaction SMS / message alert here to auto-fill..." oninput="parseIncomingMessage(this.value)" style="border-color: var(--accent); box-shadow: rgba(99, 102, 241, 0.1) 0px 0px 8px;">
+        </div>
+        
+        <div class="fgrid">
+            <input type="text" id="desc" placeholder="What was this for?" class="full">
+            <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
+            <input type="date" id="txn-date">
+            <select id="type">
+                <option value="debit">Expense</option>
+                <option value="credit">Income</option>
+                <option value="saving">Savings</option>
+            </select>
+            <div style="display:flex; gap:8px;">
+                <select id="cat" style="flex:1;"></select>
+                <button type="button" class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()" title="Manage Categories" style="width:auto; margin-top:0; padding:0 12px; height:44px; flex-shrink:0;">
+                    <i class="fas fa-tags"></i> <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size:0.65rem;"></i>
+                </button>
+            </div>
+        </div>
+        <input type="hidden" id="edit-id">
+        <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
+        
+        <div class="user-cat-drawer" id="user-cat-drawer">
+            <div style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                <span>Active Categories</span>
+                <span id="cat-count-badge" style="color:var(--cyan);">0 Tags</span>
+            </div>
+            <div class="cat-badge-container" id="user-cat-badges-grid"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <input type="text" id="user-new-cat-input" placeholder="Enter new category tag..." style="height:38px; font-size:0.8rem; border-color:rgba(0,212,255,0.25);">
+                <button onclick="userAddNewCategory()" style="background:var(--cyan); color:#000; border:none; padding:0 16px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 0 10px rgba(0,212,255,0.3);"><i class="fas fa-plus"></i> Add Tag</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ─── TOP NAVIGATION BAR ─── -->
 <nav class="aether-top-nav">
     <div class="aether-header-top-row">
@@ -1539,31 +1584,40 @@
         </div>
     </div>
 
-    <!-- PAGE 6: SETTINGS / NEW TRANSACTION PAGE -->
+    <!-- PAGE 6: SYSTEM SETTINGS PAGE -->
     <div class="tab-page-view" id="page-view-settings" style="display: none;">
-        <div class="card" id="section-form" style="max-width: 650px; margin: 0 auto; border-top: 2px solid var(--cyan);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                <div class="ctitle" style="margin:0; color:var(--cyan);"><i class="fas fa-plus-circle"></i> Quick Transaction Entry & Settings</div>
-                <div class="utility-dropdown-container">
-                    <div class="utility-select-trigger" onclick="toggleUtilityDropdown(event)" style="padding: 4px 10px; font-size: 0.72rem;">
-                        <span>SYSTEM SETTINGS</span>
-                        <i class="fas fa-chevron-down" style="font-size:0.65rem;"></i>
+        <div class="card" style="max-width: 650px; margin: 0 auto; border-top: 2px solid var(--accent);">
+            <div class="ctitle" style="color:var(--accent); margin-bottom: 20px; display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-cog"></i> System Configuration & Preferences
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                
+                <!-- SECTION 1: ACCOUNT PROFILE -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px;">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: var(--cyan); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-user-circle"></i> Account Identity & Profile
                     </div>
-                    <div class="utility-dropdown-menu" id="utilityMenu">
-                        <div class="menu-action-row" onclick="editDisplayName(); toggleUtilityDropdown(event);" style="color:var(--cyan);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <button class="menu-action-row" onclick="editDisplayName()" style="color:var(--cyan); border-radius: 12px; padding: 12px; width:100%; text-align:left; cursor:pointer;">
                             <i class="fas fa-user-edit" style="color:var(--cyan)"></i>
                             <span>Edit Display Name</span>
-                        </div>
-                        <div class="menu-action-row" onclick="enablePushNotifications(); toggleUtilityDropdown(event);" style="color:var(--cyan);">
+                        </button>
+                        <button class="menu-action-row" onclick="enablePushNotifications()" style="color:var(--cyan); border-radius: 12px; padding: 12px; width:100%; text-align:left; cursor:pointer;">
                             <i class="fas fa-bell" style="color:var(--cyan)"></i>
                             <span>Enable Notifications</span>
-                        </div>
-                        <div class="menu-action-row" onclick="toggleSavingsInclude(); event.stopPropagation();">
-                            <i class="fas fa-piggy-bank" style="color:var(--cyan);"></i>
-                            <span id="savings-status">Savings Tracker: ON</span>
-                        </div>
-                        <div class="menu-action-row" onclick="event.stopPropagation();">
-                            <i class="fas fa-coins" style="color:var(--lime)"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: FINANCIAL PREFERENCES -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px;">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: var(--lime); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-coins"></i> Financial & Currency Setup
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <div class="menu-action-row" style="border-radius: 12px; padding: 12px; display:flex; align-items:center;">
+                            <i class="fas fa-globe" style="color:var(--lime)"></i>
                             <span style="margin-right:auto;">Base Currency:</span>
                             <select id="base-currency-select" onchange="changeBaseCurrency(this.value)" style="color:var(--lime); border-color:rgba(0,255,136,0.25);">
                                 <option value="AED">AED (AED)</option>
@@ -1572,53 +1626,34 @@
                                 <option value="EUR">EUR (€)</option>
                             </select>
                         </div>
-                        <div class="menu-action-row" onclick="toggleTheme(); toggleUtilityDropdown(event);">
-                            <i class="fas fa-adjust" style="color:var(--accent)"></i>
-                            <span>Toggle Visual Theme</span>
-                        </div>
-                        <div class="menu-action-row" onclick="exportCSV(); toggleUtilityDropdown(event);" style="color:var(--lime);">
-                            <i class="fas fa-file-export" style="color:var(--lime);"></i>
-                            <span>Export Ledger (.CSV)</span>
-                        </div>
-                        <div class="menu-action-row" onclick="purgeDuplicateTransactions(); toggleUtilityDropdown(event);" style="color:var(--red);">
-                            <i class="fas fa-broom" style="color:var(--red);"></i>
-                            <span>Clean Duplicate Entries</span>
-                        </div>
+                        <button class="menu-action-row" onclick="toggleSavingsInclude()" style="border-radius: 12px; padding: 12px; width:100%; text-align:left; cursor:pointer;">
+                            <i class="fas fa-piggy-bank" style="color:var(--cyan);"></i>
+                            <span id="savings-status">Savings Tracker: ON</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div style="margin-bottom: 14px; position: relative;">
-                <input type="text" id="ai-msg-parser" placeholder="⚡ Paste transaction SMS / message alert here to auto-fill..." oninput="parseIncomingMessage(this.value)" style="border-color: var(--accent); box-shadow: rgba(99, 102, 241, 0.1) 0px 0px 8px;">
-            </div>
-            <div class="fgrid">
-                <input type="text" id="desc" placeholder="What was this for?" class="full">
-                <input type="number" id="amt" placeholder="Amount" inputmode="decimal">
-                <input type="date" id="txn-date">
-                <select id="type">
-                    <option value="debit">Expense</option>
-                    <option value="credit">Income</option>
-                    <option value="saving">Savings</option>
-                </select>
-                <div style="display:flex; gap:8px;">
-                    <select id="cat" style="flex:1;"></select>
-                    <button type="button" class="user-cat-manager-toggle" onclick="toggleUserCatDrawer()" title="Manage Categories" style="width:auto; margin-top:0; padding:0 12px; height:44px; flex-shrink:0;">
-                        <i class="fas fa-tags"></i> <i class="fas fa-chevron-down" id="cat-drawer-arrow" style="font-size:0.65rem;"></i>
-                    </button>
+
+                <!-- SECTION 3: VISUAL THEME & UTILITIES -->
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px;">
+                    <div style="font-size: 0.75rem; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-sliders-h"></i> System Utilities & Data Tools
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <button class="menu-action-row" onclick="toggleTheme()" style="border-radius: 12px; padding: 12px; width:100%; text-align:left; cursor:pointer;">
+                            <i class="fas fa-adjust" style="color:var(--accent)"></i>
+                            <span>Toggle Visual Theme</span>
+                        </button>
+                        <button class="menu-action-row" onclick="exportCSV()" style="color:var(--lime); border-radius: 12px; padding: 12px; width:100%; text-align:left; cursor:pointer;">
+                            <i class="fas fa-file-export" style="color:var(--lime);"></i>
+                            <span>Export Ledger (.CSV)</span>
+                        </button>
+                        <button class="menu-action-row" onclick="purgeDuplicateTransactions()" style="color:var(--red); border-radius: 12px; padding: 12px; width:100%; text-align:left; cursor:pointer;">
+                            <i class="fas fa-broom" style="color:var(--red);"></i>
+                            <span>Clean Duplicate Entries</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <input type="hidden" id="edit-id">
-            <button class="btn-save" id="save-btn" onclick="saveTransaction()">+ Save Transaction</button>
-            
-            <div class="user-cat-drawer" id="user-cat-drawer">
-                <div style="font-size:0.7rem; font-weight:700; color:var(--dim); text-transform:uppercase; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-                    <span>Active Categories</span>
-                    <span id="cat-count-badge" style="color:var(--cyan);">0 Tags</span>
-                </div>
-                <div class="cat-badge-container" id="user-cat-badges-grid"></div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <input type="text" id="user-new-cat-input" placeholder="Enter new category tag..." style="height:38px; font-size:0.8rem; border-color:rgba(0,212,255,0.25);">
-                    <button onclick="userAddNewCategory()" style="background:var(--cyan); color:#000; border:none; padding:0 16px; border-radius:10px; font-weight:800; font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:6px; white-space:nowrap; box-shadow:0 0 10px rgba(0,212,255,0.3);"><i class="fas fa-plus"></i> Add Tag</button>
-                </div>
+
             </div>
         </div>
     </div>
@@ -3468,13 +3503,20 @@
         updateSpendingBarChart(fil);
     }
 
+    function openNewTxnModal() {
+        const m = document.getElementById('new-txn-modal');
+        if (m) m.style.display = 'flex';
+    }
+
+    function closeNewTxnModal() {
+        const m = document.getElementById('new-txn-modal');
+        if (m) m.style.display = 'none';
+    }
+
     function scrollToNewTxnForm() {
-        const el = document.getElementById('section-form');
-        if (el) {
-            el.scrollIntoView({ behavior: 'smooth' });
-            const descInput = document.getElementById('desc');
-            if (descInput) descInput.focus();
-        }
+        openNewTxnModal();
+        const descInput = document.getElementById('desc');
+        if (descInput) descInput.focus();
     }
 
     async function saveTransaction(){
@@ -3530,6 +3572,7 @@
         document.getElementById('desc').value = '';
         document.getElementById('amt').value = '';
         document.getElementById('txn-date').value = '';
+        closeNewTxnModal();
         await fetchData();
         notifyDataUpdatedLocally();
     }
@@ -3550,7 +3593,7 @@
         }
         document.getElementById('edit-id').value = t.id;
         document.getElementById('save-btn').innerText = "Update Transaction Link";
-        navigateToSection('section-form', document.querySelector('.bottom-nav-dock .bottom-nav-btn:nth-child(2)'));
+        openNewTxnModal();
     }
 
     async function deleteTransaction(id) {

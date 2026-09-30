@@ -619,128 +619,113 @@
     .bottom-nav-btn i { font-size: 1.2rem; }
     .bottom-nav-btn.active { color: var(--lime); text-shadow: var(--glow-green); }
 
-    /* ─── AETHER TOP NAVIGATION HEADER ─── */
+    /* ─── TOP NAVIGATION HEADER ─── */
     .aether-top-nav {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 16px 24px;
-        background: rgba(14, 19, 44, 0.85);
+        padding: 14px 24px;
+        background: linear-gradient(135deg, rgba(16, 22, 47, 0.9) 0%, rgba(8, 11, 26, 0.95) 100%);
         backdrop-filter: blur(25px);
         -webkit-backdrop-filter: blur(25px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 20px;
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         gap: 16px;
-        flex-wrap: wrap;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
     }
-    .nav-brand-section {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .aether-logo-text {
-        font-family: 'Orbitron', sans-serif;
-        font-weight: 900;
-        font-size: 1.15rem;
-        letter-spacing: 2px;
-        color: #ffffff;
-    }
-    .nav-divider { color: var(--dim); opacity: 0.4; }
-    .nav-subtitle { color: var(--dim); font-size: 0.95rem; font-weight: 600; }
-
-    .nav-links-desktop {
+    .aether-brand {
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    .nav-link-btn {
-        background: none;
-        border: none;
-        color: var(--dim);
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding: 8px 16px;
-        border-radius: 10px;
-        cursor: pointer;
-        position: relative;
-        transition: all 0.25s ease;
+    .aether-logo-icon {
+        color: #00d4ff;
+        font-size: 1.1rem;
+        filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.6));
     }
-    .nav-link-btn:hover { color: #ffffff; }
-    .nav-link-btn.active {
+    .aether-brand-text {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 1.05rem;
+        letter-spacing: 1.5px;
         color: #ffffff;
     }
-    .nav-link-btn.active::after {
-        content: '';
-        position: absolute;
-        bottom: -6px;
-        left: 16px;
-        right: 16px;
-        height: 3px;
-        background: #00d4ff;
-        border-radius: 4px;
-        box-shadow: 0 0 10px #00d4ff;
+    .aether-brand-text span {
+        color: #00d4ff;
+    }
+    .aether-sub-title {
+        color: var(--dim);
+        font-size: 0.85rem;
+        font-weight: 600;
     }
 
-    .nav-user-actions {
+    .aether-nav-links {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 4px 0;
+        -webkit-overflow-scrolling: touch;
     }
-    .nav-profile-pill {
+    .aether-nav-links::-webkit-scrollbar { display: none; }
+
+    .aether-nav-btn {
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--dim);
+        font-size: 0.8rem;
+        font-weight: 700;
+        padding: 8px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .aether-nav-btn i { font-size: 0.85rem; }
+    .aether-nav-btn:hover {
+        color: #ffffff;
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.18);
+    }
+    .aether-nav-btn.active {
+        color: #ffffff;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.25) 0%, rgba(168, 85, 247, 0.25) 100%);
+        border-color: rgba(0, 212, 255, 0.5);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
+    }
+
+    .aether-user-pill {
         display: flex;
         align-items: center;
         gap: 10px;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 6px 14px 6px 8px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 6px 14px;
         border-radius: 30px;
-        cursor: pointer;
         transition: all 0.25s ease;
     }
-    .nav-profile-pill:hover {
-        border-color: var(--cyan);
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.25);
+    .aether-user-pill:hover {
+        border-color: rgba(0, 212, 255, 0.3);
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
     }
-    .nav-avatar-img {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        object-fit: cover;
+    .aether-bell-btn {
+        color: var(--dim);
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
     }
-    .nav-user-name {
+    .aether-bell-btn:hover { color: #00d4ff; }
+    .aether-user-name {
         font-size: 0.82rem;
         font-weight: 700;
         color: #ffffff;
-    }
-    .nav-icon-btn {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: var(--dim);
-        width: 38px;
-        height: 38px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        position: relative;
-        transition: all 0.25s ease;
-    }
-    .nav-icon-btn:hover {
-        color: #ffffff;
-        border-color: var(--cyan);
-    }
-    .notif-dot {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-        width: 7px;
-        height: 7px;
-        background: #f43f5e;
-        border-radius: 50%;
-        box-shadow: 0 0 6px #f43f5e;
+        white-space: nowrap;
     }
 
     /* ─── DASHBOARD 2x2 GRID ─── */
@@ -941,6 +926,46 @@
         .utility-dropdown-container { width: 100%; position: relative; }
         .utility-dropdown-menu {
             right: 0; left: 0; width: 100%; max-width: 100%;
+        }
+        .aether-top-nav {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 12px 14px;
+            gap: 10px;
+        }
+        .aether-brand {
+            justify-content: space-between;
+        }
+        .aether-nav-links {
+            justify-content: flex-start;
+            width: 100%;
+            padding-bottom: 2px;
+        }
+        .aether-nav-btn {
+            padding: 6px 12px;
+            font-size: 0.75rem;
+        }
+        .wrap {
+            padding-bottom: 120px !important;
+        }
+    }
+    @media (max-width: 480px) {
+        .balance-mini-stats-row {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+        .hero-balance-val {
+            font-size: 1.8rem;
+        }
+        .dash-card {
+            padding: 18px 14px;
+        }
+        .card-fab-btn {
+            width: 44px;
+            height: 44px;
+            font-size: 1rem;
+            bottom: 14px;
+            right: 14px;
         }
     }
     @media (min-width: 768px) {
@@ -1168,8 +1193,8 @@
 <!-- ─── AETHER TOP NAVIGATION BAR ─── -->
 <nav class="aether-top-nav">
     <div class="aether-brand">
-        <span class="aether-logo-icon"><i class="fas fa-shield-alt"></i></span>
-        <span class="aether-brand-text">AETHER <span>FINANCE</span></span>
+        <span class="aether-logo-icon"><i class="fas fa-chart-line"></i></span>
+        <span class="aether-brand-text">FINANCE <span>MONITOR</span></span>
         <span style="color: rgba(255,255,255,0.2); margin: 0 6px;">|</span>
         <span class="aether-sub-title" id="aether-section-title">Dashboard</span>
     </div>
@@ -3051,7 +3076,7 @@
     }
 
     function updateUI(){
-        const sym = (window.innerWidth <= 480 && currentBaseCurrency === 'AED') ? "Ð " : currencySymbols[currentBaseCurrency];
+        const sym = currencySymbols[currentBaseCurrency] || (currentBaseCurrency + " ");
         const mf = document.getElementById('month-filter').value;
         const limitView = document.getElementById('view-limit-select').value;
         const searchQuery = document.getElementById('ledger-search-bar').value.toLowerCase().trim();

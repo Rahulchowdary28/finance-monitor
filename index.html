@@ -3271,9 +3271,13 @@
         if (elCred) elCred.innerText = sym + cred.toLocaleString(undefined, {minimumFractionDigits:2});
         if (elDeb) elDeb.innerText = sym + deb.toLocaleString(undefined, {minimumFractionDigits:2});
         
-        let filteredRows = fil.filter(t => (currentFilter === 'all' || t.type === currentFilter));
+        const searchQuery = (document.getElementById('ledger-search-bar')?.value || '').toLowerCase().trim();
+        const limitView = document.getElementById('view-limit-select')?.value || '5';
+        const activeFilter = window.currentFilter || 'all';
+
+        let filteredRows = fil.filter(t => (activeFilter === 'all' || t.type === activeFilter));
         
-        if(searchQuery) {
+        if (searchQuery) {
             filteredRows = filteredRows.filter(t => {
                 const rowDate = new Date(t.created_at).toLocaleDateString().toLowerCase();
                 const rowDesc = (t.description || '').toLowerCase();

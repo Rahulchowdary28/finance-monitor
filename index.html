@@ -514,7 +514,7 @@
         padding: 22px 20px; 
         margin-bottom: 20px; 
         width: 100%; 
-        overflow: hidden; 
+        overflow: visible; 
         box-shadow: var(--card-shadow);
         transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
     }
@@ -748,6 +748,7 @@
         border-radius: 24px;
         padding: 24px;
         position: relative;
+        overflow: visible;
         box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45), 0 0 1px rgba(255, 255, 255, 0.1);
         display: flex;
         flex-direction: column;
@@ -2818,9 +2819,22 @@
 
     function navigateToSection(targetId, element) {
         document.querySelectorAll('.bottom-nav-btn').forEach(btn => btn.classList.remove('active'));
-        if(element) element.classList.add('active');
-        if (targetId === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
-        else document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (element) element.classList.add('active');
+        
+        if (targetId === 'top') {
+            switchNavTab('overview', document.getElementById('nav-btn-overview'));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (targetId === 'section-form') {
+            switchNavTab('settings', document.getElementById('nav-btn-settings'));
+            document.getElementById('section-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => { document.getElementById('desc')?.focus(); }, 400);
+        } else if (targetId === 'section-ledger') {
+            switchNavTab('transactions', document.getElementById('nav-btn-transactions'));
+            document.getElementById('section-ledger')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (targetId === 'section-savings') {
+            switchNavTab('budget', document.getElementById('nav-btn-budget'));
+            document.getElementById('section-savings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     function toggleUserCatDrawer() {

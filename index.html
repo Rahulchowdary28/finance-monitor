@@ -779,7 +779,7 @@
     .card-options-btn:hover { color: #ffffff; }
 
     /* TOTAL BALANCE HERO CARD DETAILS */
-    .balance-hero-body {
+    .hero-balance-row, .balance-hero-body {
         display: flex;
         align-items: flex-end;
         justify-content: space-between;
@@ -962,82 +962,115 @@
             right: 0; left: 0; width: 100%; max-width: 100%;
         }
         .aether-top-nav {
-            padding: 10px 14px;
+            padding: 10px 12px;
             margin-bottom: 14px;
             border-radius: 16px;
-            gap: 8px;
-        }
-        .aether-user-name {
-            display: none !important;
-        }
-        .wrap {
-            padding: 14px 12px 120px 12px !important;
-        }
-        .dash-card {
-            padding: 16px 14px;
-            border-radius: 20px;
-            overflow: visible;
-        }
-        .chart-container-wrapper {
-            height: 195px !important;
-        }
-        .balance-mini-stats-row {
-            grid-template-columns: 1fr;
-            gap: 8px;
-        }
-        .mini-stat-pill {
-            padding: 10px 12px;
-            gap: 8px;
+            gap: 6px;
             width: 100%;
             box-sizing: border-box;
         }
-        .mini-stat-info small {
-            font-size: 0.62rem;
+        .aether-brand-text { font-size: 0.8rem !important; }
+        .aether-logo-icon { font-size: 0.85rem !important; }
+        #live-clock { font-size: 0.65rem !important; margin-left: 4px !important; }
+        .aether-user-name { display: none !important; }
+        .aether-user-pill { padding: 4px 8px !important; gap: 6px !important; }
+
+        .wrap {
+            padding: 10px 10px 110px 10px !important;
         }
-        .mini-stat-info strong {
-            font-size: 0.85rem;
+        .dashboard-grid-2x2 {
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-bottom: 16px;
         }
-        .mini-growth-badge {
-            font-size: 0.65rem;
-            padding: 2px 6px;
-            margin-left: auto;
+        .dash-card {
+            padding: 14px 12px;
+            border-radius: 20px;
+            overflow: visible;
+            width: 100%;
+            box-sizing: border-box;
         }
-        .fab-quick-add {
-            bottom: 82px;
-            right: 18px;
-            width: 48px;
-            height: 48px;
-            font-size: 1.15rem;
-            z-index: 999;
+        .dash-card-header {
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
         }
-    }
-    @media (max-width: 480px) {
+        .dash-card-title {
+            font-size: 0.76rem !important;
+        }
+        .hero-balance-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .hero-balance-val {
+            font-size: 1.6rem !important;
+        }
+        .sparkline-svg {
+            width: 100px;
+            height: 40px;
+            flex-shrink: 0;
+        }
         .chart-container-wrapper {
             height: 190px !important;
         }
         .balance-mini-stats-row {
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 8px;
         }
         .mini-stat-pill {
-            padding: 10px 12px;
-            gap: 8px;
+            padding: 8px 10px;
+            gap: 6px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .mini-stat-icon {
+            width: 28px; height: 28px; font-size: 0.7rem; flex-shrink: 0;
+        }
+        .mini-stat-info small {
+            font-size: 0.58rem;
+        }
+        .mini-stat-info strong {
+            font-size: 0.78rem;
         }
         .mini-growth-badge {
-            display: inline-block !important;
-        }
-        .hero-balance-val {
-            font-size: 1.65rem;
-        }
-        .dash-card {
-            padding: 14px 12px;
+            font-size: 0.6rem;
+            padding: 2px 4px;
+            margin-left: auto;
         }
         .card-fab-btn {
-            width: 42px;
-            height: 42px;
-            font-size: 0.95rem;
-            bottom: 12px;
-            right: 12px;
+            position: fixed !important;
+            bottom: 82px !important;
+            right: 16px !important;
+            width: 48px !important;
+            height: 48px !important;
+            font-size: 1.1rem !important;
+            z-index: 9999 !important;
+            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.5), 0 0 15px rgba(168, 85, 247, 0.4);
+        }
+    }
+    @media (max-width: 480px) {
+        .hero-balance-val {
+            font-size: 1.45rem !important;
+        }
+        .dash-card {
+            padding: 12px 10px;
+        }
+        .balance-mini-stats-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .mini-stat-pill {
+            padding: 8px 6px;
+            gap: 4px;
+        }
+        .mini-stat-info strong {
+            font-size: 0.74rem;
+        }
+        .mini-growth-badge {
+            display: none !important;
         }
     }
     @media (min-width: 768px) {

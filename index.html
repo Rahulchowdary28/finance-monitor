@@ -737,7 +737,8 @@
     }
     @media (max-width: 991px) {
         .dashboard-grid-2x2 { grid-template-columns: 1fr; }
-        .nav-links-desktop { display: none; }
+        .aether-nav-links { display: none !important; }
+        .aether-divider-pipe, .aether-sub-title { display: none !important; }
     }
 
     .dash-card {
@@ -929,22 +930,11 @@
             right: 0; left: 0; width: 100%; max-width: 100%;
         }
         .aether-top-nav {
-            flex-direction: column;
-            align-items: stretch;
-            padding: 12px 14px;
-            gap: 10px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
         }
-        .aether-brand {
-            justify-content: space-between;
-        }
-        .aether-nav-links {
-            justify-content: flex-start;
-            width: 100%;
-            padding-bottom: 2px;
-        }
-        .aether-nav-btn {
-            padding: 6px 12px;
-            font-size: 0.75rem;
+        .aether-user-name {
+            display: none !important;
         }
         .wrap {
             padding-bottom: 120px !important;
@@ -1339,31 +1329,13 @@
 
 <!-- ─── TOP NAVIGATION BAR ─── -->
 <nav class="aether-top-nav">
-    <div class="aether-header-top-row">
-        <div class="aether-brand">
-            <span class="aether-logo-icon"><i class="fas fa-chart-line"></i></span>
-            <span class="aether-brand-text">FINANCE <span>MONITOR</span></span>
-            <span style="color: rgba(255,255,255,0.2); margin: 0 4px;">|</span>
-            <span class="aether-sub-title" id="aether-section-title">Overview</span>
-        </div>
-
-        <div class="aether-user-pill">
-            <div style="display:flex; align-items:center; gap: 8px;">
-                <div style="position:relative;">
-                    <span class="aether-bell-btn" onclick="enablePushNotifications()" title="Notifications"><i class="fas fa-bell"></i></span>
-                    <span style="position:absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #00d4ff; box-shadow: 0 0 8px #00d4ff;"></span>
-                </div>
-                <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:0.8rem; text-shadow:0 0 5px rgba(0,0,0,0.5);" id="aether-user-avatar-text">
-                    RC
-                </div>
-                <span class="aether-user-name" id="aether-user-name-text">User</span>
-                <span id="active-user-badge" style="display:none;">Locked</span>
-                <i class="fas fa-chevron-down" style="font-size: 0.65rem; color: var(--dim);"></i>
-            </div>
-            <button onclick="logout()" title="Sign Out" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:0.85rem; margin-left: 6px;"><i class="fas fa-power-off"></i></button>
-        </div>
+    <div class="aether-brand">
+        <span class="aether-logo-icon"><i class="fas fa-chart-line"></i></span>
+        <span class="aether-brand-text">FINANCE <span>MONITOR</span></span>
+        <span class="aether-divider-pipe">|</span>
+        <span class="aether-sub-title" id="aether-section-title">Overview</span>
     </div>
-    
+
     <div class="aether-nav-links">
         <button class="aether-nav-btn active" id="nav-btn-overview" onclick="switchNavTab('overview', this)"><i class="fas fa-th-large"></i> Overview</button>
         <button class="aether-nav-btn" id="nav-btn-accounts" onclick="switchNavTab('accounts', this)"><i class="fas fa-wallet"></i> Accounts</button>
@@ -1371,6 +1343,21 @@
         <button class="aether-nav-btn" id="nav-btn-budget" onclick="switchNavTab('budget', this)"><i class="fas fa-piggy-bank"></i> Budget</button>
         <button class="aether-nav-btn" id="nav-btn-reports" onclick="switchNavTab('reports', this)"><i class="fas fa-chart-bar"></i> Reports</button>
         <button class="aether-nav-btn" id="nav-btn-settings" onclick="switchNavTab('settings', this)"><i class="fas fa-cog"></i> Settings</button>
+    </div>
+
+    <div class="aether-user-pill">
+        <div style="display:flex; align-items:center; gap: 8px;">
+            <div style="position:relative;">
+                <span class="aether-bell-btn" onclick="enablePushNotifications()" title="Notifications"><i class="fas fa-bell"></i></span>
+                <span style="position:absolute; top: -2px; right: -2px; width: 8px; height: 8px; border-radius: 50%; background: #00d4ff; box-shadow: 0 0 8px #00d4ff;"></span>
+            </div>
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #00d4ff 0%, #a855f7 100%); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:0.8rem; text-shadow:0 0 5px rgba(0,0,0,0.5);" id="aether-user-avatar-text">
+                RC
+            </div>
+            <span class="aether-user-name" id="aether-user-name-text">User</span>
+            <span id="active-user-badge" style="display:none;">Locked</span>
+        </div>
+        <button onclick="logout()" title="Sign Out" style="background:none; border:none; color:var(--red); cursor:pointer; font-size:0.85rem; margin-left: 4px;"><i class="fas fa-power-off"></i></button>
     </div>
 </nav>
 
@@ -1776,20 +1763,24 @@
             const candidates = new Set();
 
             if (currentUser) {
-                candidates.add(currentUser.trim());
-                candidates.add(currentUser.split(' ')[0].trim());
+                const trimmed = currentUser.trim();
+                candidates.add(trimmed);
+                trimmed.split(/\s+/).forEach(p => { if (p.length >= 2) candidates.add(p); });
             }
             if (currentUserSession?.user?.user_metadata) {
                 const meta = currentUserSession.user.user_metadata || {};
                 const gName = meta.full_name || meta.name;
                 if (gName) {
-                    candidates.add(gName.trim());
-                    candidates.add(gName.split(' ')[0].trim());
+                    const trimmedG = gName.trim();
+                    candidates.add(trimmedG);
+                    trimmedG.split(/\s+/).forEach(p => { if (p.length >= 2) candidates.add(p); });
                 }
             }
             if (uEmail) {
                 candidates.add(uEmail);
-                candidates.add(uEmail.split('@')[0]);
+                const prefix = uEmail.split('@')[0];
+                candidates.add(prefix);
+                prefix.split(/[\._\-]/).forEach(p => { if (p.length >= 2) candidates.add(p); });
             }
 
             if (uEmail.includes('shaikhabd') || uEmail.includes('abdullah') || (currentUser && currentUser.toLowerCase().includes('shaikh'))) {
@@ -1837,10 +1828,10 @@
                 const targetNames = Array.from(candidates).map(n => n.toLowerCase());
 
                 rawData = (allData || []).filter(t => {
-                    const rowName = (t.user_name || '').toLowerCase();
+                    const rowName = (t.user_name || '').toLowerCase().trim();
                     const rowId = String(t.user_id || '');
                     return (currentUserId && rowId === String(currentUserId)) ||
-                           targetNames.some(tn => tn && rowName.includes(tn));
+                           targetNames.some(tn => tn && (rowName.includes(tn) || tn.includes(rowName)));
                 });
             }
 
@@ -3125,20 +3116,24 @@
             const candidates = new Set();
 
             if (currentUser) {
-                candidates.add(currentUser.trim());
-                candidates.add(currentUser.split(' ')[0].trim());
+                const trimmed = currentUser.trim();
+                candidates.add(trimmed);
+                trimmed.split(/\s+/).forEach(p => { if (p.length >= 2) candidates.add(p); });
             }
             if (currentUserSession?.user?.user_metadata) {
                 const meta = currentUserSession.user.user_metadata || {};
                 const gName = meta.full_name || meta.name;
                 if (gName) {
-                    candidates.add(gName.trim());
-                    candidates.add(gName.split(' ')[0].trim());
+                    const trimmedG = gName.trim();
+                    candidates.add(trimmedG);
+                    trimmedG.split(/\s+/).forEach(p => { if (p.length >= 2) candidates.add(p); });
                 }
             }
             if (uEmail) {
                 candidates.add(uEmail);
-                candidates.add(uEmail.split('@')[0]);
+                const prefix = uEmail.split('@')[0];
+                candidates.add(prefix);
+                prefix.split(/[\._\-]/).forEach(p => { if (p.length >= 2) candidates.add(p); });
             }
 
             // Always include abdullah legacy aliases for shaikhabd869 / abdullah accounts
@@ -3191,10 +3186,10 @@
                 const targetNames = Array.from(candidates).map(n => n.toLowerCase());
 
                 rawData = (allData || []).filter(t => {
-                    const rowName = (t.user_name || '').toLowerCase();
+                    const rowName = (t.user_name || '').toLowerCase().trim();
                     const rowId = String(t.user_id || '');
                     return (currentUserId && rowId === String(currentUserId)) ||
-                           targetNames.some(tn => tn && rowName.includes(tn));
+                           targetNames.some(tn => tn && (rowName.includes(tn) || tn.includes(rowName)));
                 });
             }
 

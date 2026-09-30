@@ -167,14 +167,56 @@
         transform: scale(1.1) rotate(90deg);
         box-shadow: 0 15px 40px rgba(0, 212, 255, 0.7), 0 0 30px rgba(0, 255, 136, 0.6);
     }
-    @media (max-width: 767px) {
-        .fab-quick-add {
-            bottom: 90px;
-            right: 18px;
-            width: 52px;
-            height: 52px;
-            font-size: 1.25rem;
-        }
+
+    /* ─── FLOATING "LOG HERE" TOOLTIP PROMPT ─── */
+    .fab-log-tooltip {
+        position: fixed;
+        bottom: 94px;
+        right: 20px;
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        gap: 7px;
+        background: linear-gradient(135deg, rgba(8, 14, 28, 0.96), rgba(15, 23, 42, 0.96));
+        border: 1.5px solid rgba(0, 212, 255, 0.75);
+        border-radius: 24px;
+        padding: 6px 12px 6px 10px;
+        color: #ffffff;
+        font-family: 'Inter', -apple-system, sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 212, 255, 0.35);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        cursor: pointer;
+        user-select: none;
+        animation: fabLogFloat 2.2s ease-in-out infinite alternate;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .fab-log-tooltip:hover {
+        border-color: rgba(0, 255, 136, 0.9);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 255, 136, 0.45);
+        transform: translateY(-2px) scale(1.03);
+    }
+    .fab-log-tooltip::after {
+        content: '';
+        position: absolute;
+        bottom: -7px;
+        right: 28px;
+        width: 0;
+        height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 7px solid rgba(0, 212, 255, 0.85);
+    }
+    @keyframes fabLogFloat {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-5px); }
+    }
+    @keyframes fabPulseGlow {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     /* ─── PORTAL LOGIN BACKDROP ANIMATION ─── */
@@ -1136,6 +1178,15 @@
             z-index: 9998 !important;
             display: flex !important;
             box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5), 0 0 15px rgba(0, 255, 136, 0.4) !important;
+        }
+        .fab-log-tooltip {
+            bottom: 134px !important;
+            right: 14px !important;
+            font-size: 0.74rem !important;
+            padding: 5px 10px 5px 9px !important;
+        }
+        .fab-log-tooltip::after {
+            right: 20px !important;
         }
 
         /* BOTTOM DOCK */
@@ -2594,6 +2645,7 @@
     }
 
     async function logout() {
+        dismissLogHerePrompt();
         await _supabase.auth.signOut();
         location.reload();
     }
@@ -3027,6 +3079,7 @@
                     renderUserCatBadges();
                     fetchData();
                     setupRealtimeTransactionSync();
+                    scheduleLogHereFloatingPrompt();
                 }
 
                 // Background Async Tasks (Profile Sync, DB Updates, Ledger Link)
@@ -3666,7 +3719,51 @@
         updateBellUnreadCount();
     }
 
+    /* ─── FLOATING "LOG HERE" PROMPT ENGINE ─── */
+    let logHerePromptTimer = null;
+    let logHereAutoDismissTimer = null;
+
+    function scheduleLogHereFloatingPrompt() {
+        if (logHerePromptTimer) clearTimeout(logHerePromptTimer);
+        logHerePromptTimer = setTimeout(() => {
+            showLogHereFloatingPrompt();
+        }, 2000);
+    }
+
+    function showLogHereFloatingPrompt() {
+        const tooltip = document.getElementById('fab-log-tooltip');
+        if (!tooltip) return;
+        
+        // Ensure user is on dashboard and login portal is not open
+        const authPortal = document.getElementById('auth-portal');
+        if (authPortal && authPortal.style.display !== 'none') return;
+
+        tooltip.style.display = 'flex';
+
+        if (logHereAutoDismissTimer) clearTimeout(logHereAutoDismissTimer);
+        logHereAutoDismissTimer = setTimeout(() => {
+            dismissLogHerePrompt();
+        }, 8000);
+    }
+
+    function dismissLogHerePrompt(e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const tooltip = document.getElementById('fab-log-tooltip');
+        if (tooltip) {
+            tooltip.style.display = 'none';
+        }
+        if (logHerePromptTimer) clearTimeout(logHerePromptTimer);
+        if (logHereAutoDismissTimer) clearTimeout(logHereAutoDismissTimer);
+    }
+
+    function handleLogTooltipClick(e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        dismissLogHerePrompt();
+        openNewTxnModal();
+    }
+
     function openNewTxnModal() {
+        dismissLogHerePrompt();
         const m = document.getElementById('new-txn-modal');
         if (m) m.style.display = 'flex';
     }
@@ -4505,6 +4602,13 @@
             <button onclick="closeNotificationsModal()" style="background:linear-gradient(135deg, #00d4ff 0%, #a855f7 100%); border:none; color:#fff; font-weight:800; padding:6px 16px; border-radius:10px; cursor:pointer;">Done</button>
         </div>
     </div>
+</div>
+
+<!-- Floating Log Prompt -->
+<div id="fab-log-tooltip" class="fab-log-tooltip" onclick="handleLogTooltipClick(event)" title="Click to log a transaction">
+    <span style="width: 7px; height: 7px; border-radius: 50%; background: #00ff88; box-shadow: 0 0 8px #00ff88; display: inline-block; flex-shrink: 0; animation: fabPulseGlow 1.4s ease-in-out infinite;"></span>
+    <span>Log here ✍️</span>
+    <span onclick="dismissLogHerePrompt(event)" title="Dismiss" style="margin-left: 3px; font-size: 0.95rem; line-height: 1; opacity: 0.55; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: all 0.2s;" onmouseover="this.style.opacity='1'; this.style.color='#f43f5e';" onmouseout="this.style.opacity='0.55'; this.style.color='';">&times;</span>
 </div>
 
 <button class="fab-quick-add" onclick="openNewTxnModal()" title="Add Quick Transaction">

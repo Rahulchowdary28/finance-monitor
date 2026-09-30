@@ -987,13 +987,14 @@
         width: 100vw;
         height: 100vh;
         background: #040612;
-        z-index: 999999;
+        z-index: 999;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.4s;
         overflow: hidden;
+        pointer-events: none;
     }
     #app-preloader.fade-out {
         opacity: 0;
@@ -2757,11 +2758,13 @@
     }
     function hidePreloader() {
         const loader = document.getElementById('app-preloader');
-        if (loader && !loader.classList.contains('fade-out')) {
+        if (loader) {
+            loader.style.opacity = '0';
+            loader.style.pointerEvents = 'none';
             loader.classList.add('fade-out');
             setTimeout(() => {
                 loader.style.display = 'none';
-            }, 500);
+            }, 300);
         }
     }
 
@@ -2778,8 +2781,8 @@
             document.getElementById('base-currency-select').value = currentBaseCurrency;
         }
 
-        // Safety Preloader Dismissal (fallback after 2.2s max)
-        setTimeout(hidePreloader, 2200);
+        // Safety Preloader Dismissal (fallback after 1.5s max)
+        setTimeout(hidePreloader, 1500);
 
         if (isRecoveryURL || window.location.hash.includes('type=recovery') || window.location.hash.includes('reset-password')) {
             setTimeout(openUpdatePasswordModal, 150);
@@ -2789,6 +2792,9 @@
         const hasLocalToken = Object.keys(localStorage).some(k => k.includes('auth-token') || k.startsWith('sb-'));
         if (hasLocalToken && !isRecoveryURL) {
             document.getElementById('auth-portal').style.display = 'none';
+        } else {
+            // Unauthenticated user -> hide preloader immediately so login portal is completely active and interactive
+            hidePreloader();
         }
 
         // Listen for Auth Changes (Login, Logout, OAuth Callback)

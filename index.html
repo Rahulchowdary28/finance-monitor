@@ -622,6 +622,7 @@
     .view-limit-dropdown { width: 155px; height: 38px; padding: 0 12px; font-size: 0.75rem !important; border-radius: 10px; border-color: rgba(255,255,255,0.12); background: var(--input); color: var(--dim); font-weight: 800; cursor: pointer; }
 
     .twrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; border-radius: 14px; }
+    .full-page-twrap { max-height: none !important; overflow-y: visible !important; }
     table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 100%; }
     th { font-size: 0.7rem; color: var(--dim); padding: 12px 10px; border-bottom: 1px solid var(--border); font-weight: 800; text-align: left; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
     td { padding: 14px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem; vertical-align: middle; white-space: nowrap; }
@@ -1149,10 +1150,17 @@
         /* TABLE */
         .twrap {
             width: 100% !important;
-            max-height: 220px !important;
             overflow-x: auto !important;
             -webkit-overflow-scrolling: touch !important;
             border-radius: 10px !important;
+        }
+        #section-ledger .twrap {
+            max-height: 220px !important;
+            overflow-y: auto !important;
+        }
+        .full-page-twrap {
+            max-height: none !important;
+            overflow-y: visible !important;
         }
         .twrap table {
             min-width: 480px !important;
@@ -1727,9 +1735,19 @@
 
             <!-- CARD 4: RECENT TRANSACTIONS (Bottom-Right) -->
             <div class="dash-card recent-transactions-card" id="section-ledger">
-                <div class="dash-card-header">
-                    <div class="dash-card-title">RECENT TRANSACTIONS</div>
+                <div class="dash-card-header" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions'))" style="cursor: pointer;" title="Open full transactions ledger">
+                    <div class="dash-card-title"><i class="fas fa-receipt" style="color:var(--cyan); margin-right:4px;"></i> RECENT TRANSACTIONS</div>
                     <a href="#" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions')); return false;" style="color: var(--cyan); font-size: 0.78rem; font-weight: 700; text-decoration: none; display:flex; align-items:center; gap:4px;">See All <i class="fas fa-chevron-right" style="font-size:0.65rem;"></i></a>
+                </div>
+
+                <!-- FILTER TABS NEAR THE LEDGER -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px; flex-wrap:wrap; gap:6px;">
+                    <div class="tabs" style="display:flex; gap:4px;">
+                        <button class="tab filter-tab active" data-filter="all" onclick="filterData('all',this)" style="padding:4px 10px; font-size:0.72rem; border-radius:8px;">All</button>
+                        <button class="tab filter-tab" data-filter="debit" onclick="filterData('debit',this)" style="padding:4px 10px; font-size:0.72rem; border-radius:8px;">Expenses</button>
+                        <button class="tab filter-tab" data-filter="credit" onclick="filterData('credit',this)" style="padding:4px 10px; font-size:0.72rem; border-radius:8px;">Income</button>
+                        <button class="tab filter-tab" data-filter="saving" onclick="filterData('saving',this)" style="padding:4px 10px; font-size:0.72rem; border-radius:8px;">Savings</button>
+                    </div>
                 </div>
 
                 <div style="margin-bottom: 8px;">
@@ -1749,6 +1767,13 @@
                         </thead>
                         <tbody id="table-body"></tbody>
                     </table>
+                </div>
+
+                <!-- QUICK FULL PAGE BUTTON -->
+                <div style="text-align:center; padding-top:8px; margin-top:6px; border-top:1px solid rgba(255,255,255,0.06);">
+                    <button onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions'))" style="background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.25); color:var(--cyan); padding:6px 12px; border-radius:8px; font-weight:700; font-size:0.73rem; cursor:pointer; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='rgba(0,212,255,0.18)'" onmouseout="this.style.background='rgba(0,212,255,0.08)'">
+                        <i class="fas fa-expand-arrows-alt"></i> Open Full Transactions Page
+                    </button>
                 </div>
             </div>
 
@@ -1777,10 +1802,10 @@
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
                 <div class="tabs">
-                    <button class="tab active" onclick="filterData('all',this)">All</button>
-                    <button class="tab" onclick="filterData('debit',this)">Expenses</button>
-                    <button class="tab" onclick="filterData('credit',this)">Income</button>
-                    <button class="tab" onclick="filterData('saving',this)">Savings</button>
+                    <button class="tab filter-tab active" data-filter="all" onclick="filterData('all',this)">All</button>
+                    <button class="tab filter-tab" data-filter="debit" onclick="filterData('debit',this)">Expenses</button>
+                    <button class="tab filter-tab" data-filter="credit" onclick="filterData('credit',this)">Income</button>
+                    <button class="tab filter-tab" data-filter="saving" onclick="filterData('saving',this)">Savings</button>
                 </div>
                 <button onclick="exportCSV()" style="background: rgba(0, 255, 136, 0.15); border: 1px solid rgba(0, 255, 136, 0.3); color: var(--lime); padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
                     <i class="fas fa-file-export"></i> Export CSV
@@ -1792,7 +1817,7 @@
                 <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--dim); font-size:0.8rem;"></i>
                 <input type="text" id="full-ledger-search-bar" placeholder="🔍 Search description, category, date or amount..." oninput="syncAndFilterLedgerSearch(this.value)" style="height:38px; font-size:0.82rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:0 12px 0 34px; color:#fff; width:100%;">
             </div>
-            <div class="twrap" style="max-height: 450px; overflow-y: auto;">
+            <div class="twrap full-page-twrap" style="max-height: none; overflow-y: visible; overflow-x: auto;">
                 <table>
                     <thead>
                         <tr>
@@ -1949,6 +1974,7 @@
 <script>
     let allTransactions = [];
     let currentFilter = 'all';
+    window.currentFilter = 'all';
     let expenseChart = null;
     let spendingBarChart = null;
 
@@ -3594,9 +3620,15 @@
         const searchInput1 = document.getElementById('ledger-search-bar');
         const searchInput2 = document.getElementById('full-ledger-search-bar');
         const searchQuery = (searchInput2?.value || searchInput1?.value || '').toLowerCase().trim();
-        const activeFilter = window.currentFilter || 'all';
+        const activeFilter = currentFilter || window.currentFilter || 'all';
 
-        let filteredRows = fil.filter(t => (activeFilter === 'all' || t.type === activeFilter));
+        let filteredRows = fil.filter(t => {
+            if (!activeFilter || activeFilter === 'all') return true;
+            if (activeFilter === 'debit') return t.type === 'debit' || t.type === 'expense';
+            if (activeFilter === 'credit') return t.type === 'credit' || t.type === 'income';
+            if (activeFilter === 'saving') return t.type === 'saving' || t.type === 'savings';
+            return t.type === activeFilter;
+        });
         
         if (searchQuery) {
             filteredRows = filteredRows.filter(t => {
@@ -3634,14 +3666,14 @@
             const cCfg = catMap[row.category] || { bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)', color: 'var(--dim)', icon: 'fa-tag' };
             const catBadge = `<span style="background:${cCfg.bg}; border:1px solid ${cCfg.border}; color:${cCfg.color}; padding:4px 10px; border-radius:20px; font-size:0.72rem; font-weight:700; display:inline-flex; align-items:center; gap:5px;"><i class="fas ${cCfg.icon}" style="font-size:0.65rem;"></i> ${row.category}</span>`;
             
-            const trHTML = `<tr>
+            const trHTML = `<tr onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions'))" style="cursor:pointer;" title="Click to open full page ledger">
                 <td style="color:var(--dim); font-size:0.78rem; font-weight:600;">${new Date(row.created_at).toLocaleDateString()}</td>
                 <td style="font-weight:700; color:var(--text);">${row.description}</td>
                 <td style="text-align:right; color:${col}; font-weight:800; font-family:'Courier New', monospace; ${txtGlow}">${sign}${sym}${dispAmt}</td>
                 <td>${catBadge}</td>
                 <td style="text-align:right;">
-                    <button onclick="editTransaction('${row.id}')" title="Edit entry" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:var(--accent); border-radius:8px; width:28px; height:28px; margin-right:4px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-pencil-alt" style="font-size:0.75rem;"></i></button>
-                    <button onclick="deleteTransaction('${row.id}')" title="Delete entry" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); color:var(--red); border-radius:8px; width:28px; height:28px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-trash" style="font-size:0.75rem;"></i></button>
+                    <button onclick="event.stopPropagation(); editTransaction('${row.id}')" title="Edit entry" style="background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.3); color:var(--accent); border-radius:8px; width:28px; height:28px; margin-right:4px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-pencil-alt" style="font-size:0.75rem;"></i></button>
+                    <button onclick="event.stopPropagation(); deleteTransaction('${row.id}')" title="Delete entry" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.3); color:var(--red); border-radius:8px; width:28px; height:28px; cursor:pointer; transition:all 0.2s;"><i class="fas fa-trash" style="font-size:0.75rem;"></i></button>
                 </td>
             </tr>`;
             if (tbody) tbody.innerHTML += trHTML;
@@ -3965,9 +3997,17 @@
     }
     
     function filterData(type, btn){
-        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
         currentFilter = type;
+        window.currentFilter = type;
+
+        document.querySelectorAll('.filter-tab').forEach(b => {
+            if (b.getAttribute('data-filter') === type) {
+                b.classList.add('active');
+            } else {
+                b.classList.remove('active');
+            }
+        });
+
         updateUI();
     }
 

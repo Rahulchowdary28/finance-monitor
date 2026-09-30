@@ -1480,7 +1480,7 @@
                 </div>
 
                 <!-- Floating Action Button '+' for Quick Adding Transaction -->
-                <button class="card-fab-btn" onclick="switchNavTab('settings', document.getElementById('nav-btn-settings'))" title="Add Transaction">
+                <button class="card-fab-btn" onclick="openNewTxnModal()" title="Add Transaction">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
@@ -1851,7 +1851,7 @@
                 return dB - dA;
             });
 
-            const newChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.description}_${r.created_at}`).join('|');
+            const newChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.type}_${r.category}_${r.user_id}_${r.user_name}_${r.description}_${r.created_at}`).join('|');
             if (newChecksum !== lastDataChecksum) {
                 lastDataChecksum = newChecksum;
                 allTransactions = uniqueRows;
@@ -3212,7 +3212,7 @@
             });
 
             allTransactions = uniqueRows;
-            lastDataChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.description}_${r.created_at}`).join('|');
+            lastDataChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.type}_${r.category}_${r.user_id}_${r.user_name}_${r.description}_${r.created_at}`).join('|');
         } catch (err) {
             console.error("Database fetch exception:", err);
         }
@@ -3810,5 +3810,8 @@
 
     initializeSystemFlow();
 </script>
+<button class="fab-quick-add" onclick="openNewTxnModal()" title="Add Quick Transaction">
+    <i class="fas fa-plus"></i>
+</button>
 </body>
 </html>

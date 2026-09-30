@@ -2826,7 +2826,8 @@
         }
         if(localStorage.getItem('vault_base_currency')) {
             currentBaseCurrency = localStorage.getItem('vault_base_currency');
-            document.getElementById('base-currency-select').value = currentBaseCurrency;
+            const bSelect = document.getElementById('base-currency-select');
+            if (bSelect) bSelect.value = currentBaseCurrency;
         }
 
         // Default Month Filter to current running month on initial login/load
@@ -2891,11 +2892,15 @@
                     currentUserId = session.user.id;
                     currentUser = googleFullName || firstName;
                     
-                    document.getElementById('activation-pending-view').style.display = 'none';
-                    document.getElementById('profile-select-view').style.display = 'block';
-                    document.getElementById('view-limit-select').value = '5';
-                    document.getElementById('active-user-badge').innerText = currentUser;
-                    document.getElementById('auth-portal').style.display = 'none';
+                    const viewAct = document.getElementById('activation-pending-view');
+                    const viewProf = document.getElementById('profile-select-view');
+                    const badgeUser = document.getElementById('active-user-badge');
+                    const authPortal = document.getElementById('auth-portal');
+
+                    if (viewAct) viewAct.style.display = 'none';
+                    if (viewProf) viewProf.style.display = 'block';
+                    if (badgeUser) badgeUser.innerText = currentUser;
+                    if (authPortal) authPortal.style.display = 'none';
                     
                     populateCategoryDropdown();
                     renderUserCatBadges();
@@ -2983,9 +2988,12 @@
                     }
 
                     // Guarantee UI unlocked
-                    document.getElementById('activation-pending-view').style.display = 'none';
-                    document.getElementById('profile-select-view').style.display = 'block';
-                    document.getElementById('auth-portal').style.display = 'none';
+                    const viewAct2 = document.getElementById('activation-pending-view');
+                    const viewProf2 = document.getElementById('profile-select-view');
+                    const authPortal2 = document.getElementById('auth-portal');
+                    if (viewAct2) viewAct2.style.display = 'none';
+                    if (viewProf2) viewProf2.style.display = 'block';
+                    if (authPortal2) authPortal2.style.display = 'none';
 
                     currentUserSession = session;
                     currentUserId = session.user.id;
@@ -2996,7 +3004,8 @@
                             currentUser = profile.name;
                             nameChanged = true;
                         }
-                        document.getElementById('active-user-badge').innerText = currentUser;
+                        const badgeUser = document.getElementById('active-user-badge');
+                        if (badgeUser) badgeUser.innerText = currentUser;
 
                         if (!profile.user_id || profile.user_id !== currentUserId) {
                             _supabase.from('users_list').update({ user_id: currentUserId, email: session.user.email || profile.email }).eq('id', profile.id).catch(() => {});
@@ -3011,7 +3020,8 @@
                         if (profile.selected_currency) {
                             currentBaseCurrency = profile.selected_currency;
                             localStorage.setItem('vault_base_currency', currentBaseCurrency);
-                            document.getElementById('base-currency-select').value = currentBaseCurrency;
+                            const bSelect = document.getElementById('base-currency-select');
+                            if (bSelect) bSelect.value = currentBaseCurrency;
                         }
                     }
 
@@ -3031,8 +3041,10 @@
                 currentUserSession = null;
                 currentUserId = null;
                 currentUser = null;
-                document.getElementById('active-user-badge').innerText = 'Locked';
-                document.getElementById('auth-portal').style.display = 'flex';
+                const badgeUser = document.getElementById('active-user-badge');
+                const authPortal = document.getElementById('auth-portal');
+                if (badgeUser) badgeUser.innerText = 'Locked';
+                if (authPortal) authPortal.style.display = 'flex';
                 hidePreloader();
             }
         });

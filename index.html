@@ -3230,6 +3230,7 @@
             return dB - dA;
         });
         
+        const mf = document.getElementById('month-filter')?.value || 'all';
         if (mf !== 'all') {
             fil = fil.filter(t => new Date(t.created_at || t.date).getMonth() === parseInt(mf));
         }

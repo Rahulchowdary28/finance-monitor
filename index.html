@@ -1710,6 +1710,7 @@
 
     // Real-Time Cross-Device Synchronization State
     let lastDataChecksum = '';
+    let isFetchInProgress = false;
     let liveSyncChannel = null;
     let localDataBc = null;
     let syncPulseTimeout = null;
@@ -1757,109 +1758,11 @@
 
     async function fetchDataSilently() {
         if (!currentUserId && !currentUser) return;
-        try {
-            let rawData = [];
-            const uEmail = (currentUserSession?.user?.email || '').toLowerCase();
-            const candidates = new Set();
-
-            if (currentUser) {
-                const trimmed = currentUser.trim();
-                candidates.add(trimmed);
-                trimmed.split(/\s+/).forEach(p => { if (p.length >= 2) candidates.add(p); });
-            }
-            if (currentUserSession?.user?.user_metadata) {
-                const meta = currentUserSession.user.user_metadata || {};
-                const gName = meta.full_name || meta.name;
-                if (gName) {
-                    const trimmedG = gName.trim();
-                    candidates.add(trimmedG);
-                    trimmedG.split(/\s+/).forEach(p => { if (p.length >= 2) candidates.add(p); });
-                }
-            }
-            if (uEmail) {
-                candidates.add(uEmail);
-                const prefix = uEmail.split('@')[0];
-                candidates.add(prefix);
-                prefix.split(/[\._\-]/).forEach(p => { if (p.length >= 2) candidates.add(p); });
-            }
-
-            if (uEmail.includes('shaikhabd') || uEmail.includes('abdullah') || (currentUser && currentUser.toLowerCase().includes('shaikh'))) {
-                candidates.add('abdullah');
-                candidates.add('Abdullah');
-                candidates.add('shaikhabd');
-                candidates.add('shaikh');
-                candidates.add('abd');
-
-                if (currentUserId) {
-                    _supabase.from('transactions')
-                        .update({ user_id: currentUserId })
-                        .or('user_name.ilike.%abdullah%,user_name.ilike.%shaikhabd%,user_name.ilike.%shaikh%')
-                        .then(() => {}).catch(() => {});
-                }
-            }
-
-            if (currentUserId) {
-                const { data: byId } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('user_id', currentUserId)
-                    .order('created_at', { ascending: false });
-                if (byId && byId.length > 0) rawData = rawData.concat(byId);
-            }
-
-            for (const cand of candidates) {
-                if (!cand || cand.length < 2) continue;
-                const { data: byName } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .ilike('user_name', `%${cand}%`)
-                    .order('created_at', { ascending: false });
-                if (byName && byName.length > 0) {
-                    rawData = rawData.concat(byName);
-                }
-            }
-
-            if (rawData.length === 0) {
-                const { data: allData } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                const targetNames = Array.from(candidates).map(n => n.toLowerCase());
-
-                rawData = (allData || []).filter(t => {
-                    const rowName = (t.user_name || '').toLowerCase().trim();
-                    const rowId = String(t.user_id || '');
-                    return (currentUserId && rowId === String(currentUserId)) ||
-                           targetNames.some(tn => tn && (rowName.includes(tn) || tn.includes(rowName)));
-                });
-            }
-
-            const uniqueRows = [];
-            const seenIds = new Set();
-            rawData.forEach(row => {
-                const idKey = String(row.id);
-                if (!seenIds.has(idKey)) {
-                    seenIds.add(idKey);
-                    uniqueRows.push(row);
-                }
-            });
-
-            uniqueRows.sort((a, b) => {
-                const dA = new Date(a.created_at || a.date || 0).getTime();
-                const dB = new Date(b.created_at || b.date || 0).getTime();
-                return dB - dA;
-            });
-
-            const newChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.type}_${r.category}_${r.user_id}_${r.user_name}_${r.description}_${r.created_at}`).join('|');
-            if (newChecksum !== lastDataChecksum) {
-                lastDataChecksum = newChecksum;
-                allTransactions = uniqueRows;
-                updateUI();
-                triggerSyncPulseBadge();
-            }
-        } catch (e) {
-            console.error("Silent sync error:", e);
+        if (isFetchInProgress) return;
+        const prevChecksum = lastDataChecksum;
+        await fetchData();
+        if (lastDataChecksum !== prevChecksum) {
+            triggerSyncPulseBadge();
         }
     }
 
@@ -3109,9 +3012,20 @@
 
     async function fetchData(){
         if (!currentUserId && !currentUser) return;
+        if (isFetchInProgress) return;
+        isFetchInProgress = true;
         
         try {
-            let rawData = [];
+            const { data: allData, error } = await _supabase
+                .from('transactions')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error("Supabase fetch error:", error);
+                return;
+            }
+
             const uEmail = (currentUserSession?.user?.email || '').toLowerCase();
             const candidates = new Set();
 
@@ -3143,55 +3057,17 @@
                 candidates.add('shaikhabd');
                 candidates.add('shaikh');
                 candidates.add('abd');
-
-                // Permanently link legacy abdullah transactions in database to this user_id
-                if (currentUserId) {
-                    _supabase.from('transactions')
-                        .update({ user_id: currentUserId })
-                        .or('user_name.ilike.%abdullah%,user_name.ilike.%shaikhabd%,user_name.ilike.%shaikh%')
-                        .then(() => {}).catch(() => {});
-                }
             }
 
-            // 1. Fetch by user_id if logged in
-            if (currentUserId) {
-                const { data: byId } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .eq('user_id', currentUserId)
-                    .order('created_at', { ascending: false });
-                if (byId && byId.length > 0) rawData = rawData.concat(byId);
-            }
+            const targetNames = Array.from(candidates).map(n => n.toLowerCase());
 
-            // 2. Fetch by all candidate names
-            for (const cand of candidates) {
-                if (!cand || cand.length < 2) continue;
-                const { data: byName } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .ilike('user_name', `%${cand}%`)
-                    .order('created_at', { ascending: false });
-                if (byName && byName.length > 0) {
-                    rawData = rawData.concat(byName);
-                }
-            }
-
-            // 3. Fallback: If rawData is empty or partial, fetch all accessible transactions and filter client-side
-            if (rawData.length === 0) {
-                const { data: allData } = await _supabase
-                    .from('transactions')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                const targetNames = Array.from(candidates).map(n => n.toLowerCase());
-
-                rawData = (allData || []).filter(t => {
-                    const rowName = (t.user_name || '').toLowerCase().trim();
-                    const rowId = String(t.user_id || '');
-                    return (currentUserId && rowId === String(currentUserId)) ||
-                           targetNames.some(tn => tn && (rowName.includes(tn) || tn.includes(rowName)));
-                });
-            }
+            const rawData = (allData || []).filter(t => {
+                const rowId = String(t.user_id || '');
+                if (currentUserId && rowId === String(currentUserId)) return true;
+                const rowName = (t.user_name || '').toLowerCase().trim();
+                if (!rowName) return false;
+                return targetNames.some(tn => tn && (rowName.includes(tn) || tn.includes(rowName)));
+            });
 
             // Deduplicate by ID so visual loops never occur
             const uniqueRows = [];
@@ -3215,9 +3091,11 @@
             lastDataChecksum = uniqueRows.map(r => `${r.id}_${r.amount}_${r.type}_${r.category}_${r.user_id}_${r.user_name}_${r.description}_${r.created_at}`).join('|');
         } catch (err) {
             console.error("Database fetch exception:", err);
+        } finally {
+            isFetchInProgress = false;
+            updateUI();
+            hidePreloader();
         }
-        updateUI();
-        hidePreloader();
     }
 
     async function purgeDuplicateTransactions() {

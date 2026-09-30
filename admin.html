@@ -326,13 +326,17 @@
 
     /* Tables */
     .twrap {
+        width: 100%;
         max-height: 380px;
+        overflow-x: auto;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         border: 1px solid var(--border);
         border-radius: 12px;
         background: var(--input);
+        position: relative;
     }
-    table { width: 100%; border-collapse: collapse; }
+    table { width: 100%; min-width: 600px; border-collapse: collapse; }
     th {
         font-size: 0.68rem;
         color: var(--dim);
@@ -342,16 +346,18 @@
         text-align: left;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        background: rgba(16, 22, 50, 0.95);
+        background: rgba(16, 22, 50, 0.98);
         position: sticky;
         top: 0;
         z-index: 10;
+        white-space: nowrap;
     }
     td {
         padding: 12px 14px;
         border-bottom: 1px solid var(--border);
         font-size: 0.8rem;
         vertical-align: middle;
+        white-space: nowrap;
     }
     tr:hover td {
         background: rgba(255, 255, 255, 0.02);
@@ -533,6 +539,251 @@
         text-align: center;
         font-weight: 600;
     }
+
+    /* Mobile Responsive Framework */
+    .mobile-swipe-hint {
+        display: none;
+        font-size: 0.68rem;
+        color: var(--cyan);
+        margin-bottom: 8px;
+        align-items: center;
+        gap: 6px;
+        font-weight: 600;
+        opacity: 0.85;
+    }
+
+    .admin-meta-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 10px 14px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .table-search-box {
+        position: relative;
+        width: 220px;
+    }
+
+    .mail-action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 4px;
+    }
+
+    .modal-kpi-grid {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+    }
+
+    .export-actions-wrap {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding: 10px 8px;
+            overflow-x: hidden;
+        }
+        .admin-container {
+            padding: 16px 12px;
+            border-radius: 14px;
+            width: 100%;
+            max-width: 100%;
+        }
+        .admin-container.expanded {
+            padding: 16px 12px;
+            max-width: 100%;
+        }
+
+        /* Prevent unwanted iOS Safari 16px auto-zoom */
+        input, textarea, select {
+            font-size: 16px !important;
+        }
+
+        /* Top Header */
+        .admin-hdr {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+        }
+        .logo-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .logo {
+            font-size: 1.05rem;
+            letter-spacing: 1px;
+        }
+        .telemetry-radar {
+            font-size: 0.65rem;
+            padding: 3px 8px;
+        }
+        .header-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            width: 100%;
+            gap: 6px;
+        }
+        .header-actions .btn-hdr {
+            justify-content: center;
+            padding: 8px 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+        }
+
+        /* Admin Meta Bar */
+        .admin-meta-bar {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 8px !important;
+            padding: 10px 12px !important;
+        }
+
+        /* 2x2 Compact KPI Cards on Mobile */
+        .kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+            margin-bottom: 16px !important;
+        }
+        .kpi-card {
+            padding: 12px 10px !important;
+            border-radius: 10px !important;
+        }
+        .kpi-title {
+            font-size: 0.62rem !important;
+        }
+        .kpi-val {
+            font-size: 1.25rem !important;
+        }
+        .kpi-sub {
+            font-size: 0.62rem !important;
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+        }
+
+        /* Dash section padding */
+        .dash-section {
+            padding: 14px 12px !important;
+            border-radius: 12px !important;
+            margin-bottom: 16px !important;
+        }
+        .section-hdr {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 10px !important;
+            margin-bottom: 12px !important;
+        }
+        .section-title {
+            font-size: 0.82rem !important;
+        }
+
+        /* Show mobile swipe hint */
+        .mobile-swipe-hint {
+            display: flex;
+        }
+
+        /* Filter Pills Horizontal Scroll */
+        .filter-pills {
+            display: flex !important;
+            overflow-x: auto !important;
+            white-space: nowrap !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 6px !important;
+            width: 100% !important;
+            gap: 6px !important;
+        }
+        .pill-btn {
+            padding: 6px 12px !important;
+            font-size: 0.7rem !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* Full width search boxes */
+        .table-search-box {
+            width: 100% !important;
+        }
+
+        /* Tables & Horizontal Scroll Container */
+        .twrap {
+            max-height: 360px !important;
+            overflow-x: auto !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        .twrap table {
+            min-width: 620px !important;
+        }
+        th, td {
+            padding: 10px 10px !important;
+            font-size: 0.74rem !important;
+        }
+
+        /* Email Studio */
+        .mail-studio-grid {
+            grid-template-columns: 1fr !important;
+            gap: 14px !important;
+        }
+        #mail-html-body {
+            min-height: 220px !important;
+        }
+        #mail-preview-wrapper {
+            height: 320px !important;
+        }
+        .mail-action-buttons {
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+        .mail-action-buttons .btn-action,
+        .mail-action-buttons .btn-hdr {
+            width: 100% !important;
+            flex: none !important;
+        }
+
+        /* Modal Overlays */
+        .admin-modal-overlay {
+            padding: 8px !important;
+        }
+        .admin-modal-card {
+            padding: 16px 12px !important;
+            max-height: 92vh !important;
+            overflow-y: auto !important;
+        }
+        .modal-kpi-grid {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+        }
+        .modal-kpi-grid > div {
+            min-width: 0 !important;
+            padding: 8px 10px !important;
+        }
+
+        /* Utilities Buttons */
+        .export-actions-wrap {
+            flex-direction: column !important;
+            width: 100% !important;
+            gap: 8px !important;
+        }
+        .export-actions-wrap .btn-hdr {
+            width: 100% !important;
+            justify-content: center !important;
+        }
+    }
     </style>
 </head>
 <body>
@@ -594,7 +845,7 @@
     <div id="admin-dashboard-section" style="display:none;">
         
         <!-- Connected Admin Bar -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:12px; font-size:0.75rem; flex-wrap:wrap; gap:10px;">
+        <div class="admin-meta-bar">
             <div style="display:flex; align-items:center; gap:8px;">
                 <span style="color:var(--dim); text-transform:uppercase; font-weight:700;">Clearance Level:</span>
                 <span style="background:rgba(0, 255, 136, 0.15); color:var(--lime); padding:2px 8px; border-radius:6px; font-weight:800; font-family:'Orbitron', sans-serif;">ROOT 0x0</span>
@@ -822,7 +1073,7 @@
 
                     <textarea id="mail-html-body" placeholder="<!-- Paste your raw HTML email body code directly here -->" style="font-family:'Courier New', Consolas, monospace; font-size:0.74rem; min-height:360px; line-height:1.45; tab-size:2; white-space:pre; resize:vertical; background:rgba(4, 6, 18, 0.9); border-color:rgba(99, 102, 241, 0.3);" oninput="updateMailPreview()"></textarea>
 
-                    <div style="display:flex; gap:10px; margin-top:4px;">
+                    <div class="mail-action-buttons">
                         <button class="btn-action" id="mail-dispatch-btn" onclick="sendAdminEmailDispatch(false)" style="flex:2; background:linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color:#fff; box-shadow:var(--glow-accent);">
                             <i class="fas fa-paper-plane"></i> Dispatch Email Campaign
                         </button>
@@ -873,13 +1124,14 @@
                         <button class="pill-btn" onclick="setUserFilter('subscribed', this)">Push Subscribed</button>
                     </div>
                     <!-- Live Search -->
-                    <div style="position:relative; width:220px;">
-                        <input type="text" id="user-search-input" placeholder="Search name or email..." oninput="handleUserSearch(this.value)" style="height:32px; font-size:0.75rem; padding-left:28px;">
-                        <i class="fas fa-search" style="position:absolute; left:10px; top:10px; color:var(--dim); font-size:0.75rem;"></i>
+                    <div class="table-search-box">
+                        <input type="text" id="user-search-input" placeholder="Search name or email..." oninput="handleUserSearch(this.value)" style="height:34px; font-size:0.75rem; padding-left:28px;">
+                        <i class="fas fa-search" style="position:absolute; left:10px; top:11px; color:var(--dim); font-size:0.75rem;"></i>
                     </div>
                 </div>
             </div>
 
+            <div class="mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i> Scroll table sideways to view status &amp; controls</div>
             <div class="twrap">
                 <table>
                     <thead>
@@ -922,13 +1174,14 @@
                         <option value="all">Show All</option>
                     </select>
                     <!-- Live Search -->
-                    <div style="position:relative; width:200px;">
+                    <div class="table-search-box">
                         <input type="text" id="txn-search-input" placeholder="Search description, user..." oninput="handleTxnSearch(this.value)" style="height:32px; font-size:0.75rem; padding-left:28px;">
                         <i class="fas fa-search" style="position:absolute; left:10px; top:10px; color:var(--dim); font-size:0.75rem;"></i>
                     </div>
                 </div>
             </div>
 
+            <div class="mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i> Scroll table sideways to view full ledger details</div>
             <div class="twrap" style="max-height:360px;">
                 <table>
                     <thead>
@@ -952,7 +1205,7 @@
                     <i class="fas fa-database"></i> Vault Database Utilities & Data Export
                 </div>
             </div>
-            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <div class="export-actions-wrap">
                 <button onclick="exportVaultJSON()" class="btn-hdr" style="background:rgba(0,212,255,0.1); border-color:rgba(0,212,255,0.3); color:var(--cyan); padding:10px 16px;">
                     <i class="fas fa-file-code"></i> Export Full Vault Backup (JSON)
                 </button>
@@ -979,7 +1232,7 @@
             <button onclick="closeUserInspectorModal()" style="background:none; border:none; color:var(--dim); font-size:1.3rem; cursor:pointer;"><i class="fas fa-times"></i></button>
         </div>
 
-        <div style="display:flex; gap:14px; margin-bottom:14px; flex-wrap:wrap;">
+        <div class="modal-kpi-grid">
             <div style="background:var(--input); padding:10px 14px; border-radius:10px; border:1px solid var(--border); flex:1; min-width:120px;">
                 <div style="font-size:0.68rem; color:var(--dim); text-transform:uppercase; font-weight:700;">Total Entries</div>
                 <div style="font-size:1.2rem; font-weight:800; color:#fff;" id="inspect-modal-txns-count">0</div>
@@ -1009,6 +1262,7 @@
             <span id="inspect-filter-note" style="font-size:0.72rem; color:var(--dim);"></span>
         </div>
 
+        <div class="mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i> Scroll table sideways to view full transaction info</div>
         <div class="twrap" style="max-height:280px;">
             <table>
                 <thead>

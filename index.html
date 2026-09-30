@@ -1800,16 +1800,13 @@
     <!-- PAGE 3: TRANSACTIONS / LEDGER PAGE -->
     <div class="tab-page-view" id="page-view-transactions" style="display: none;">
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div style="margin-bottom:14px;">
                 <div class="tabs">
                     <button class="tab filter-tab active" data-filter="all" onclick="filterData('all',this)">All</button>
                     <button class="tab filter-tab" data-filter="debit" onclick="filterData('debit',this)">Expenses</button>
                     <button class="tab filter-tab" data-filter="credit" onclick="filterData('credit',this)">Income</button>
                     <button class="tab filter-tab" data-filter="saving" onclick="filterData('saving',this)">Savings</button>
                 </div>
-                <button onclick="exportCSV()" style="background: rgba(0, 255, 136, 0.15); border: 1px solid rgba(0, 255, 136, 0.3); color: var(--lime); padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
-                    <i class="fas fa-file-export"></i> Export CSV
-                </button>
             </div>
 
             <!-- FULL TRANSACTIONS TAB SEARCH BAR -->

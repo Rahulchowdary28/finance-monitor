@@ -3380,12 +3380,15 @@
             return false;
         });
 
-        // Always sort descending by date (newest first)
+        // Sort descending by date (newest first)
         fil.sort((a, b) => {
             const dA = new Date(a.created_at || a.date || 0).getTime();
             const dB = new Date(b.created_at || b.date || 0).getTime();
             return dB - dA;
         });
+
+        const userTxns = [...fil];
+        window.lastUserTxns = userTxns;
         
         const mf = document.getElementById('month-filter')?.value || 'all';
         if (mf !== 'all') {
@@ -3539,7 +3542,7 @@
 
         window.lastCalculatedBalances = { bal, cred, deb, saved, sym };
         updateChart(fil);
-        updateSpendingBarChart(fil);
+        updateSpendingBarChart(userTxns);
         applyHomepageFocusHighlight(window.lastCalculatedBalances);
         updateBellUnreadCount();
     }

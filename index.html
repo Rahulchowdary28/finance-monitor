@@ -971,14 +971,15 @@
             display: none !important;
         }
         .wrap {
-            padding: 14px 12px 110px 12px !important;
+            padding: 14px 12px 120px 12px !important;
         }
         .dash-card {
             padding: 16px 14px;
             border-radius: 20px;
+            overflow: visible;
         }
         .chart-container-wrapper {
-            height: 230px;
+            height: 195px !important;
         }
         .balance-mini-stats-row {
             grid-template-columns: 1fr;
@@ -1002,14 +1003,18 @@
             margin-left: auto;
         }
         .fab-quick-add {
-            bottom: 78px;
-            right: 16px;
+            bottom: 82px;
+            right: 18px;
             width: 48px;
             height: 48px;
             font-size: 1.15rem;
+            z-index: 999;
         }
     }
     @media (max-width: 480px) {
+        .chart-container-wrapper {
+            height: 190px !important;
+        }
         .balance-mini-stats-row {
             grid-template-columns: 1fr;
             gap: 8px;
@@ -3905,17 +3910,17 @@
             if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#f472b6'; heroGrowthBadge.innerText = '-2%'; }
             setSparklineColor('#f43f5e');
 
-            // Pill 1: TOTAL BALANCE
-            if (pill1Title) pill1Title.innerText = 'TOTAL BALANCE';
-            if (pill1Val) pill1Val.innerText = formattedBal;
-            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,212,255,0.2)'; pill1Icon.style.color = '#00d4ff'; pill1Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
-            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+4.2%'; }
+            // Pill 1 (Top Pill): INCOME
+            if (pill1Title) pill1Title.innerText = 'INCOME';
+            if (pill1Val) pill1Val.innerText = formattedCred;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,255,136,0.2)'; pill1Icon.style.color = '#00ff88'; pill1Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+6%'; }
 
-            // Pill 2: INCOME
-            if (pill2Title) pill2Title.innerText = 'INCOME';
-            if (pill2Val) pill2Val.innerText = formattedCred;
-            if (pill2Icon) { pill2Icon.style.background = 'rgba(0,255,136,0.2)'; pill2Icon.style.color = '#00ff88'; pill2Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
-            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge'; pill2Badge.innerText = '+6%'; }
+            // Pill 2 (Bottom Pill): TOTAL BALANCE (Swapped down from top!)
+            if (pill2Title) pill2Title.innerText = 'TOTAL BALANCE';
+            if (pill2Val) pill2Val.innerText = formattedBal;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(0,212,255,0.2)'; pill2Icon.style.color = '#00d4ff'; pill2Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge'; pill2Badge.innerText = '+4.2%'; }
 
         } else if (focusVal === 'income') {
             // Main Hero Displays INCOME on top!
@@ -3927,17 +3932,17 @@
             if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#00ff88'; heroGrowthBadge.innerText = '+6%'; }
             setSparklineColor('#00ff88');
 
-            // Pill 1: TOTAL BALANCE
-            if (pill1Title) pill1Title.innerText = 'TOTAL BALANCE';
-            if (pill1Val) pill1Val.innerText = formattedBal;
-            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,212,255,0.2)'; pill1Icon.style.color = '#00d4ff'; pill1Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
-            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+4.2%'; }
+            // Pill 1 (Top Pill): EXPENSES
+            if (pill1Title) pill1Title.innerText = 'EXPENSES';
+            if (pill1Val) pill1Val.innerText = formattedDeb;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(244,63,94,0.2)'; pill1Icon.style.color = '#f43f5e'; pill1Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge negative'; pill1Badge.innerText = '-2%'; }
 
-            // Pill 2: EXPENSES
-            if (pill2Title) pill2Title.innerText = 'EXPENSES';
-            if (pill2Val) pill2Val.innerText = formattedDeb;
-            if (pill2Icon) { pill2Icon.style.background = 'rgba(244,63,94,0.2)'; pill2Icon.style.color = '#f43f5e'; pill2Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
-            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge negative'; pill2Badge.innerText = '-2%'; }
+            // Pill 2 (Bottom Pill): TOTAL BALANCE
+            if (pill2Title) pill2Title.innerText = 'TOTAL BALANCE';
+            if (pill2Val) pill2Val.innerText = formattedBal;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(0,212,255,0.2)'; pill2Icon.style.color = '#00d4ff'; pill2Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge'; pill2Badge.innerText = '+4.2%'; }
 
         } else if (focusVal === 'total_balance') {
             // Main Hero Displays TOTAL BALANCE on top!
@@ -3949,17 +3954,17 @@
             if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#00d4ff'; heroGrowthBadge.innerText = '+4.2%'; }
             setSparklineColor('#00d4ff');
 
-            // Pill 1: EXPENSES
-            if (pill1Title) pill1Title.innerText = 'EXPENSES';
-            if (pill1Val) pill1Val.innerText = formattedDeb;
-            if (pill1Icon) { pill1Icon.style.background = 'rgba(244,63,94,0.2)'; pill1Icon.style.color = '#f43f5e'; pill1Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
-            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge negative'; pill1Badge.innerText = '-2%'; }
+            // Pill 1 (Top Pill): INCOME
+            if (pill1Title) pill1Title.innerText = 'INCOME';
+            if (pill1Val) pill1Val.innerText = formattedCred;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,255,136,0.2)'; pill1Icon.style.color = '#00ff88'; pill1Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+6%'; }
 
-            // Pill 2: INCOME
-            if (pill2Title) pill2Title.innerText = 'INCOME';
-            if (pill2Val) pill2Val.innerText = formattedCred;
-            if (pill2Icon) { pill2Icon.style.background = 'rgba(0,255,136,0.2)'; pill2Icon.style.color = '#00ff88'; pill2Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
-            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge'; pill2Badge.innerText = '+6%'; }
+            // Pill 2 (Bottom Pill): EXPENSES
+            if (pill2Title) pill2Title.innerText = 'EXPENSES';
+            if (pill2Val) pill2Val.innerText = formattedDeb;
+            if (pill2Icon) { pill2Icon.style.background = 'rgba(244,63,94,0.2)'; pill2Icon.style.color = '#f43f5e'; pill2Icon.innerHTML = '<i class="fas fa-arrow-up"></i>'; }
+            if (pill2Badge) { pill2Badge.className = 'mini-growth-badge negative'; pill2Badge.innerText = '-2%'; }
 
         } else if (focusVal === 'savings') {
             // Main Hero Displays SAVINGS on top!
@@ -3971,11 +3976,11 @@
             if (heroGrowthBadge) { heroGrowthBadge.className = 'growth-positive'; heroGrowthBadge.style.color = '#a855f7'; heroGrowthBadge.innerText = 'Active'; }
             setSparklineColor('#a855f7');
 
-            // Pill 1: TOTAL BALANCE
-            if (pill1Title) pill1Title.innerText = 'TOTAL BALANCE';
-            if (pill1Val) pill1Val.innerText = formattedBal;
-            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,212,255,0.2)'; pill1Icon.style.color = '#00d4ff'; pill1Icon.innerHTML = '<i class="fas fa-wallet"></i>'; }
-            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+4.2%'; }
+            // Pill 1: INCOME
+            if (pill1Title) pill1Title.innerText = 'INCOME';
+            if (pill1Val) pill1Val.innerText = formattedCred;
+            if (pill1Icon) { pill1Icon.style.background = 'rgba(0,255,136,0.2)'; pill1Icon.style.color = '#00ff88'; pill1Icon.innerHTML = '<i class="fas fa-arrow-down"></i>'; }
+            if (pill1Badge) { pill1Badge.className = 'mini-growth-badge'; pill1Badge.innerText = '+6%'; }
 
             // Pill 2: EXPENSES
             if (pill2Title) pill2Title.innerText = 'EXPENSES';

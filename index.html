@@ -931,32 +931,76 @@
         }
         .aether-top-nav {
             padding: 10px 14px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
+            border-radius: 16px;
+            gap: 8px;
         }
         .aether-user-name {
             display: none !important;
         }
         .wrap {
-            padding-bottom: 120px !important;
+            padding: 14px 12px 110px 12px !important;
+        }
+        .dash-card {
+            padding: 16px 14px;
+            border-radius: 20px;
+        }
+        .chart-container-wrapper {
+            height: 230px;
+        }
+        .balance-mini-stats-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .mini-stat-pill {
+            padding: 8px 10px;
+            gap: 6px;
+        }
+        .mini-stat-info small {
+            font-size: 0.58rem;
+        }
+        .mini-stat-info strong {
+            font-size: 0.78rem;
+        }
+        .mini-growth-badge {
+            font-size: 0.62rem;
+            padding: 2px 6px;
+        }
+        .fab-quick-add {
+            bottom: 78px;
+            right: 16px;
+            width: 48px;
+            height: 48px;
+            font-size: 1.15rem;
         }
     }
     @media (max-width: 480px) {
         .balance-mini-stats-row {
-            grid-template-columns: 1fr;
-            gap: 8px;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .mini-stat-pill {
+            padding: 8px 6px;
+            gap: 5px;
+        }
+        .mini-growth-badge {
+            display: none !important;
         }
         .hero-balance-val {
-            font-size: 1.8rem;
+            font-size: 1.65rem;
         }
         .dash-card {
-            padding: 18px 14px;
+            padding: 14px 12px;
         }
         .card-fab-btn {
-            width: 44px;
-            height: 44px;
-            font-size: 1rem;
-            bottom: 14px;
-            right: 14px;
+            width: 42px;
+            height: 42px;
+            font-size: 0.95rem;
+            bottom: 12px;
+            right: 12px;
+        }
+        .clock {
+            display: none !important;
         }
     }
     @media (min-width: 768px) {
@@ -3632,11 +3676,20 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                cutout: '72%',
+                layout: {
+                    padding: { top: 6, bottom: 6, left: 6, right: 6 }
+                },
                 plugins: { 
                     legend: { 
                         display: hasData,
                         position: 'bottom',
-                        labels: { color: legendColor, font: { size: 10 } } 
+                        labels: {
+                            color: legendColor,
+                            font: { size: 9, weight: '700' },
+                            boxWidth: 10,
+                            padding: 8
+                        } 
                     },
                     tooltip: { enabled: hasData }
                 }

@@ -1415,6 +1415,10 @@
         <span class="aether-brand-text">FINANCE <span>MONITOR</span></span>
         <span class="aether-divider-pipe">|</span>
         <span class="aether-sub-title" id="aether-section-title">Overview</span>
+        <span id="live-clock" class="clock" style="font-size:0.75rem; font-weight:700; color:var(--dim); margin-left:8px; display:inline-flex; align-items:center; gap:5px;" title="Local Time">
+            <i class="far fa-clock" style="color:var(--cyan); font-size:0.7rem;"></i>
+            <span id="live-clock-text">00:00:00</span>
+        </span>
     </div>
 
     <div class="aether-nav-links">
@@ -1428,10 +1432,6 @@
 
     <div class="aether-user-pill">
         <div style="display:flex; align-items:center; gap: 8px;">
-            <div id="live-clock" class="clock" style="font-size:0.7rem; font-weight:800; color:var(--cyan); background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.2); border-radius:10px; padding:3px 8px; display:flex; align-items:center; gap:5px;" title="Local Time">
-                <i class="far fa-clock" style="font-size:0.65rem; color:#00d4ff;"></i>
-                <span id="live-clock-text">00:00:00</span>
-            </div>
             <div style="position:relative; cursor:pointer;" onclick="openNotificationsModal()" title="Notifications & Cron Summaries">
                 <span class="aether-bell-btn"><i class="fas fa-bell"></i></span>
                 <span class="aether-bell-badge" id="aether-bell-badge" style="position:absolute; top: -5px; right: -6px; background: #f43f5e; color: #fff; border-radius: 10px; font-size: 0.62rem; font-weight: 800; padding: 1px 5px; box-shadow: 0 0 8px rgba(244,63,94,0.6); display: none;">0</span>
@@ -1547,17 +1547,11 @@
             <div class="dash-card recent-transactions-card" id="section-ledger">
                 <div class="dash-card-header">
                     <div class="dash-card-title">RECENT TRANSACTIONS</div>
-                    <div style="display:flex; align-items:center; gap: 10px;">
-                        <select id="view-limit-select" class="view-limit-dropdown" onchange="updateUI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--dim); border-radius: 10px; padding: 2px 8px; font-size: 0.7rem;">
-                            <option value="5" selected>Latest 5</option>
-                            <option value="all">View All</option>
-                        </select>
-                        <a href="#" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions')); return false;" style="color: var(--cyan); font-size: 0.75rem; font-weight: 700; text-decoration: none;">See All</a>
-                    </div>
+                    <a href="#" onclick="switchNavTab('transactions', document.getElementById('nav-btn-transactions')); return false;" style="color: var(--cyan); font-size: 0.78rem; font-weight: 700; text-decoration: none; display:flex; align-items:center; gap:4px;">See All <i class="fas fa-chevron-right" style="font-size:0.65rem;"></i></a>
                 </div>
 
                 <div style="margin-bottom: 8px;">
-                    <input type="text" id="ledger-search-bar" placeholder="🔍 Search description or category..." oninput="updateUI()" style="height:32px; font-size:0.75rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0 10px; color:#fff; width:100%;">
+                    <input type="text" id="ledger-search-bar" placeholder="🔍 Search description or category..." oninput="syncAndFilterLedgerSearch(this.value)" style="height:32px; font-size:0.75rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:0 10px; color:#fff; width:100%;">
                 </div>
 
                 <div class="twrap" style="max-height: 220px; overflow-y: auto;">
@@ -1615,6 +1609,12 @@
                 <button onclick="exportCSV()" style="background: rgba(0, 255, 136, 0.15); border: 1px solid rgba(0, 255, 136, 0.3); color: var(--lime); padding: 6px 14px; border-radius: 10px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
                     <i class="fas fa-file-export"></i> Export CSV
                 </button>
+            </div>
+
+            <!-- FULL TRANSACTIONS TAB SEARCH BAR -->
+            <div style="margin-bottom: 12px; position:relative;">
+                <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--dim); font-size:0.8rem;"></i>
+                <input type="text" id="full-ledger-search-bar" placeholder="🔍 Search description, category, date or amount..." oninput="syncAndFilterLedgerSearch(this.value)" style="height:38px; font-size:0.82rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:0 12px 0 34px; color:#fff; width:100%;">
             </div>
             <div class="twrap" style="max-height: 450px; overflow-y: auto;">
                 <table>
@@ -3320,6 +3320,14 @@
         setTimeout(() => { document.getElementById('ai-msg-parser').value = ''; }, 1200);
     }
 
+    function syncAndFilterLedgerSearch(val) {
+        const s1 = document.getElementById('ledger-search-bar');
+        const s2 = document.getElementById('full-ledger-search-bar');
+        if (s1 && s1.value !== val) s1.value = val;
+        if (s2 && s2.value !== val) s2.value = val;
+        updateUI();
+    }
+
     function updateUI() {
         const tbody = document.getElementById('table-body');
         const fullTbody = document.getElementById('full-table-body');
@@ -3391,15 +3399,16 @@
         if (elCred) elCred.innerText = sym + cred.toLocaleString(undefined, {minimumFractionDigits:2});
         if (elDeb) elDeb.innerText = sym + deb.toLocaleString(undefined, {minimumFractionDigits:2});
         
-        const searchQuery = (document.getElementById('ledger-search-bar')?.value || '').toLowerCase().trim();
-        const limitView = document.getElementById('view-limit-select')?.value || '5';
+        const searchInput1 = document.getElementById('ledger-search-bar');
+        const searchInput2 = document.getElementById('full-ledger-search-bar');
+        const searchQuery = (searchInput2?.value || searchInput1?.value || '').toLowerCase().trim();
         const activeFilter = window.currentFilter || 'all';
 
         let filteredRows = fil.filter(t => (activeFilter === 'all' || t.type === activeFilter));
         
         if (searchQuery) {
             filteredRows = filteredRows.filter(t => {
-                const rowDate = new Date(t.created_at).toLocaleDateString().toLowerCase();
+                const rowDate = new Date(t.created_at || t.date || Date.now()).toLocaleDateString().toLowerCase();
                 const rowDesc = (t.description || '').toLowerCase();
                 const rowCat = (t.category || '').toLowerCase();
                 const rowAmt = (parseFloat(t.amount) * toBaseFactor).toFixed(2);
@@ -3411,7 +3420,7 @@
             });
         }
 
-        const overviewRows = (limitView === '5') ? filteredRows.slice(0, 5) : filteredRows;
+        const overviewRows = filteredRows.slice(0, 5);
 
         overviewRows.forEach(row => {
             const isCredit = row.type === 'credit';

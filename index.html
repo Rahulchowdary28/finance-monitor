@@ -3253,6 +3253,8 @@
         }
         
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        const currencySymbols = { 'USD': '$', 'INR': '₹', 'EUR': '€', 'AED': 'AED ', 'GBP': '£' };
+        const sym = currencySymbols[currentBaseCurrency] || (currentBaseCurrency + ' ');
         
         fil.forEach(t => {
             const a = parseFloat(t.amount) * toBaseFactor;

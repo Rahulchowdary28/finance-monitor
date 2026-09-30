@@ -137,9 +137,10 @@
         width: 100%;
         max-width: 1200px;
         margin: 0 auto;
-        padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(160px, calc(160px + env(safe-area-inset-bottom))) max(16px, env(safe-area-inset-left));
+        padding: 0 16px max(140px, calc(140px + env(safe-area-inset-bottom))) 16px;
         position: relative;
         z-index: 1;
+        box-sizing: border-box;
     }
 
     /* ─── FAB QUICK ADD BUTTON ─── */
@@ -624,15 +625,18 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 24px;
+        padding: 12px 20px;
         background: linear-gradient(135deg, rgba(16, 22, 47, 0.9) 0%, rgba(8, 11, 26, 0.95) 100%);
         backdrop-filter: blur(25px);
         -webkit-backdrop-filter: blur(25px);
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 20px;
-        margin-bottom: 20px;
+        margin: 16px auto 18px auto;
+        max-width: 1200px;
+        width: calc(100% - 32px);
         gap: 16px;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        box-sizing: border-box;
     }
     .aether-brand {
         display: flex;
@@ -961,116 +965,204 @@
         .utility-dropdown-menu {
             right: 0; left: 0; width: 100%; max-width: 100%;
         }
+
+        /* UNIFIED 12px MARGIN FOR TOP BAR & CARDS */
         .aether-top-nav {
-            padding: 10px 12px;
-            margin-bottom: 14px;
+            padding: 8px 12px;
+            margin: 10px auto 14px auto;
             border-radius: 16px;
+            width: calc(100% - 24px);
+            max-width: 100%;
             gap: 6px;
-            width: 100%;
             box-sizing: border-box;
         }
-        .aether-brand-text { font-size: 0.8rem !important; }
-        .aether-logo-icon { font-size: 0.85rem !important; }
-        #live-clock { font-size: 0.65rem !important; margin-left: 4px !important; }
-        .aether-user-name { display: none !important; }
-        .aether-user-pill { padding: 4px 8px !important; gap: 6px !important; }
-
-        .wrap {
-            padding: 10px 10px 110px 10px !important;
+        .aether-brand {
+            gap: 6px;
+            min-width: 0;
+            flex-shrink: 1;
         }
+        .aether-brand-text {
+            font-size: 0.78rem !important;
+            letter-spacing: 0px;
+            white-space: nowrap;
+        }
+        .aether-logo-icon {
+            font-size: 0.85rem !important;
+        }
+        #live-clock {
+            display: none !important;
+        }
+        .aether-user-name {
+            display: none !important;
+        }
+        .aether-user-pill {
+            padding: 4px 6px !important;
+            gap: 6px !important;
+            flex-shrink: 0;
+        }
+
+        /* WRAP PADDING: EXACT 12px SIDES, 115px BOTTOM DOCK CLEARANCE */
+        .wrap {
+            padding: 0 12px 115px 12px !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        /* CARDS VERTICAL FLOW */
         .dashboard-grid-2x2 {
-            grid-template-columns: 1fr;
-            gap: 14px;
-            margin-bottom: 16px;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+            margin-bottom: 16px !important;
+            width: 100% !important;
         }
         .dash-card {
-            padding: 14px 12px;
-            border-radius: 20px;
-            overflow: visible;
-            width: 100%;
-            box-sizing: border-box;
+            padding: 16px 14px !important;
+            border-radius: 20px !important;
+            overflow: hidden !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         .dash-card-header {
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-bottom: 12px;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+            margin-bottom: 12px !important;
         }
         .dash-card-title {
             font-size: 0.76rem !important;
+            letter-spacing: 0.5px !important;
         }
+
+        /* HERO CARD (CARD 1) */
         .hero-balance-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 14px;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            margin-bottom: 14px !important;
+            width: 100% !important;
         }
         .hero-balance-val {
-            font-size: 1.6rem !important;
+            font-size: 1.65rem !important;
+            line-height: 1.15 !important;
+            word-break: break-word !important;
         }
         .sparkline-svg {
-            width: 100px;
-            height: 40px;
-            flex-shrink: 0;
-        }
-        .chart-container-wrapper {
-            height: 190px !important;
+            width: 95px !important;
+            height: 38px !important;
+            flex-shrink: 0 !important;
         }
         .balance-mini-stats-row {
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+            width: 100% !important;
         }
         .mini-stat-pill {
-            padding: 8px 10px;
-            gap: 6px;
-            width: 100%;
-            box-sizing: border-box;
+            padding: 10px 12px !important;
+            border-radius: 14px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
         .mini-stat-icon {
-            width: 28px; height: 28px; font-size: 0.7rem; flex-shrink: 0;
+            width: 30px !important;
+            height: 30px !important;
+            font-size: 0.72rem !important;
+            flex-shrink: 0 !important;
+        }
+        .mini-stat-info {
+            flex: 1 !important;
+            min-width: 0 !important;
         }
         .mini-stat-info small {
-            font-size: 0.58rem;
+            font-size: 0.6rem !important;
+            display: block !important;
         }
         .mini-stat-info strong {
-            font-size: 0.78rem;
+            font-size: 0.88rem !important;
+            display: block !important;
         }
         .mini-growth-badge {
-            font-size: 0.6rem;
-            padding: 2px 4px;
-            margin-left: auto;
+            font-size: 0.68rem !important;
+            padding: 2px 7px !important;
+            margin-left: auto !important;
+            flex-shrink: 0 !important;
+            white-space: nowrap !important;
         }
+
+        /* CHARTS CONTAINER */
+        .chart-container-wrapper {
+            height: 195px !important;
+            position: relative !important;
+            width: 100% !important;
+        }
+
+        /* TABLE */
+        .twrap {
+            width: 100% !important;
+            max-height: 220px !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            border-radius: 10px !important;
+        }
+        .twrap table {
+            min-width: 480px !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        .twrap th, .twrap td {
+            padding: 8px 6px !important;
+            font-size: 0.73rem !important;
+        }
+
+        /* SINGLE CLEAN FAB BUTTON */
         .card-fab-btn {
+            display: none !important;
+        }
+        .fab-quick-add {
             position: fixed !important;
-            bottom: 82px !important;
+            bottom: 78px !important;
             right: 16px !important;
-            width: 48px !important;
-            height: 48px !important;
-            font-size: 1.1rem !important;
-            z-index: 9999 !important;
-            box-shadow: 0 10px 25px rgba(0, 212, 255, 0.5), 0 0 15px rgba(168, 85, 247, 0.4);
+            width: 46px !important;
+            height: 46px !important;
+            font-size: 1.15rem !important;
+            z-index: 9998 !important;
+            display: flex !important;
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5), 0 0 15px rgba(0, 255, 136, 0.4) !important;
+        }
+
+        /* BOTTOM DOCK */
+        .bottom-nav-mask-container {
+            padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 8px)) 10px !important;
+        }
+        .bottom-nav-dock {
+            height: 54px !important;
+            max-width: 100% !important;
+            border-radius: 18px !important;
+            padding: 0 4px !important;
+        }
+        .bottom-nav-btn {
+            font-size: 0.56rem !important;
+            gap: 2px !important;
+            padding: 2px 1px !important;
+        }
+        .bottom-nav-btn i {
+            font-size: 1.05rem !important;
         }
     }
     @media (max-width: 480px) {
         .hero-balance-val {
-            font-size: 1.45rem !important;
+            font-size: 1.55rem !important;
         }
         .dash-card {
-            padding: 12px 10px;
-        }
-        .balance-mini-stats-row {
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-        }
-        .mini-stat-pill {
-            padding: 8px 6px;
-            gap: 4px;
-        }
-        .mini-stat-info strong {
-            font-size: 0.74rem;
-        }
-        .mini-growth-badge {
-            display: none !important;
+            padding: 14px 12px !important;
         }
     }
     @media (min-width: 768px) {
@@ -1479,7 +1571,7 @@
     </div>
 </nav>
 
-<div class="wrap" id="section-top" style="padding-top: 10px;">
+<div class="wrap" id="section-top">
     
     <!-- PAGE 1: OVERVIEW PAGE -->
     <div class="tab-page-view" id="page-view-overview" style="display: block;">
@@ -1602,11 +1694,6 @@
                         <tbody id="table-body"></tbody>
                     </table>
                 </div>
-
-                <!-- Floating Action Button '+' for Quick Adding Transaction -->
-                <button class="card-fab-btn" onclick="openNewTxnModal()" title="Add Transaction">
-                    <i class="fas fa-plus"></i>
-                </button>
             </div>
 
         </div>
@@ -3813,9 +3900,9 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '72%',
+                cutout: '66%',
                 layout: {
-                    padding: { top: 6, bottom: 6, left: 6, right: 6 }
+                    padding: { top: 4, bottom: 4, left: 4, right: 4 }
                 },
                 plugins: { 
                     legend: { 
@@ -3824,8 +3911,8 @@
                         labels: {
                             color: legendColor,
                             font: { size: 9, weight: '700' },
-                            boxWidth: 10,
-                            padding: 8
+                            boxWidth: 8,
+                            padding: 6
                         } 
                     },
                     tooltip: { enabled: hasData }

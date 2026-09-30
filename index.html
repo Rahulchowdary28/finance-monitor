@@ -979,9 +979,110 @@
         .wrap { padding-bottom: 24px; }
         .desktop-only-wm { display: flex; justify-content: flex-end; margin-top: 24px; padding-right: 12px; }
     }
+
+    /* ─── FULL-PAGE APP PRELOADER SPLASH ─── */
+    #app-preloader {
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #040612;
+        z-index: 999999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+        overflow: hidden;
+    }
+    #app-preloader.fade-out {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+    }
+    .preloader-glow-orb {
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0, 212, 255, 0.28) 0%, rgba(99, 102, 241, 0.18) 50%, transparent 70%);
+        filter: blur(50px);
+        animation: preloaderPulse 3s infinite alternate ease-in-out;
+    }
+    @keyframes preloaderPulse {
+        0% { transform: scale(0.85); opacity: 0.4; }
+        100% { transform: scale(1.25); opacity: 0.95; }
+    }
+    .preloader-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        text-align: center;
+    }
+    .preloader-logo {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 900;
+        color: #ffffff;
+        letter-spacing: 2px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-shadow: 0 0 25px rgba(0, 212, 255, 0.6);
+    }
+    .preloader-logo i {
+        color: #00d4ff;
+        filter: drop-shadow(0 0 12px #00d4ff);
+    }
+    .preloader-spinner-box {
+        position: relative;
+        width: 52px;
+        height: 52px;
+    }
+    .preloader-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        border-top-color: #00d4ff;
+        border-right-color: #6366f1;
+        animation: preloaderSpin 0.9s infinite linear;
+    }
+    @keyframes preloaderSpin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .preloader-subtext {
+        font-size: 0.76rem;
+        color: #94a3b8;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        animation: preloaderBlink 1.4s infinite alternate ease-in-out;
+    }
+    @keyframes preloaderBlink {
+        0% { opacity: 0.35; }
+        100% { opacity: 1.0; }
+    }
     </style>
 </head>
 <body>
+<!-- FULL-PAGE APP PRELOADER SPLASH -->
+<div id="app-preloader">
+    <div class="preloader-glow-orb"></div>
+    <div class="preloader-content">
+        <div class="preloader-logo">
+            <i class="fas fa-chart-line"></i> FINANCE MONITOR
+        </div>
+        <div class="preloader-spinner-box">
+            <div class="preloader-ring"></div>
+        </div>
+        <div class="preloader-subtext">Synchronizing vault data...</div>
+    </div>
+</div>
 <div id="parallax-bg"></div>
 
 <!-- ─── AUTHENTICATION PORTAL MODAL ─── -->
@@ -2654,7 +2755,15 @@
         event.stopPropagation();
         document.getElementById('utilityMenu').classList.toggle('show');
     }
-    document.addEventListener('click', () => { document.getElementById('utilityMenu').classList.remove('show'); });
+    function hidePreloader() {
+        const loader = document.getElementById('app-preloader');
+        if (loader && !loader.classList.contains('fade-out')) {
+            loader.classList.add('fade-out');
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 500);
+        }
+    }
 
     // ─── INITIALIZE SYSTEM FLOW & SUPABASE AUTH LISTENER ───
     async function initializeSystemFlow(){
@@ -2668,6 +2777,9 @@
             currentBaseCurrency = localStorage.getItem('vault_base_currency');
             document.getElementById('base-currency-select').value = currentBaseCurrency;
         }
+
+        // Safety Preloader Dismissal (fallback after 2.2s max)
+        setTimeout(hidePreloader, 2200);
 
         if (isRecoveryURL || window.location.hash.includes('type=recovery') || window.location.hash.includes('reset-password')) {
             setTimeout(openUpdatePasswordModal, 150);
@@ -2860,6 +2972,7 @@
                 currentUser = null;
                 document.getElementById('active-user-badge').innerText = 'Locked';
                 document.getElementById('auth-portal').style.display = 'flex';
+                hidePreloader();
             }
         });
     }
@@ -3062,6 +3175,7 @@
             console.error("Database fetch exception:", err);
         }
         updateUI();
+        hidePreloader();
     }
 
     async function purgeDuplicateTransactions() {
@@ -3302,6 +3416,26 @@
             if (fullTbody) fullTbody.innerHTML += trHTML;
         });
 
+        if (overviewRows.length === 0 && tbody) {
+            tbody.innerHTML = `<tr>
+                <td colspan="6" style="text-align:center; padding: 28px 10px; color: var(--dim);">
+                    <i class="fas fa-receipt" style="font-size: 1.5rem; color: rgba(0,212,255,0.4); margin-bottom: 6px; display:block;"></i>
+                    <span style="font-size: 0.82rem; font-weight: 700; color: var(--text);">No transactions recorded yet</span>
+                    <div style="font-size: 0.72rem; color: var(--dim); margin-top: 2px;">Use the + button or paste an SMS alert to add transactions</div>
+                </td>
+            </tr>`;
+        }
+
+        if (filteredRows.length === 0 && fullTbody) {
+            fullTbody.innerHTML = `<tr>
+                <td colspan="6" style="text-align:center; padding: 36px 10px; color: var(--dim);">
+                    <i class="fas fa-search" style="font-size: 1.8rem; color: rgba(0,212,255,0.4); margin-bottom: 8px; display:block;"></i>
+                    <span style="font-size: 0.88rem; font-weight: 700; color: var(--text);">No matching transactions found</span>
+                    <div style="font-size: 0.75rem; color: var(--dim); margin-top: 2px;">Try adjusting your search query or month filter</div>
+                </td>
+            </tr>`;
+        }
+
         const convElem = document.getElementById('convert-to');
         const convValElem = document.getElementById('converted-val');
         if (convElem && convValElem) {
@@ -3518,40 +3652,94 @@
         updateUI();
     }
 
-    function updateChart(data){
-        const ctx = document.getElementById('expenseChart').getContext('2d');
-        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
-        const cats = {};
-        data.filter(t => t.type === 'debit').forEach(t => cats[t.category] = (cats[t.category] || 0) + (parseFloat(t.amount) * toBaseFactor));
-        if(expenseChart) expenseChart.destroy();
-        
-        const isLight = document.body.hasAttribute('data-theme');
-        const legendColor = isLight ? '#475569' : '#94a3b8';
+    let expenseChartReports = null;
+    let spendingBarChartReports = null;
 
-        expenseChart = new Chart(ctx, {
+    function renderDoughnutChartOnCanvas(canvasId, cats, legendColor) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return null;
+        const ctx = canvas.getContext('2d');
+        const hasData = Object.keys(cats).length > 0;
+        const chartLabels = hasData ? Object.keys(cats) : ['No Expenses Yet'];
+        const chartData = hasData ? Object.values(cats) : [1];
+        const chartColors = hasData 
+            ? ['#6366f1','#00ff88','#ff4d4d','#00d4ff','#f59e0b','#a855f7'] 
+            : ['rgba(255, 255, 255, 0.08)'];
+
+        return new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: Object.keys(cats),
+                labels: chartLabels,
                 datasets: [{
-                    data: Object.values(cats),
-                    backgroundColor: ['#6366f1','#00ff88','#ff4d4d','#00d4ff','#f59e0b','#a855f7'],
+                    data: chartData,
+                    backgroundColor: chartColors,
                     borderWidth: 0
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: legendColor, font: { size: 10 } } } }
+                plugins: { 
+                    legend: { 
+                        display: hasData,
+                        position: 'bottom',
+                        labels: { color: legendColor, font: { size: 10 } } 
+                    },
+                    tooltip: { enabled: hasData }
+                }
+            }
+        });
+    }
+
+    function updateChart(data){
+        const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
+        const cats = {};
+        data.filter(t => t.type === 'debit').forEach(t => cats[t.category] = (cats[t.category] || 0) + (parseFloat(t.amount) * toBaseFactor));
+        
+        const isLight = document.body.hasAttribute('data-theme');
+        const legendColor = isLight ? '#475569' : '#94a3b8';
+
+        if (expenseChart) expenseChart.destroy();
+        expenseChart = renderDoughnutChartOnCanvas('expenseChart', cats, legendColor);
+
+        if (expenseChartReports) expenseChartReports.destroy();
+        expenseChartReports = renderDoughnutChartOnCanvas('expenseChartReports', cats, legendColor);
+    }
+
+    function renderBarChartOnCanvas(canvasId, days, dayTotals, hasData) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return null;
+        const ctx = canvas.getContext('2d');
+        const cyanGrad = ctx.createLinearGradient(0, 0, 0, 200);
+        cyanGrad.addColorStop(0, 'rgba(0, 212, 255, 0.95)');
+        cyanGrad.addColorStop(1, 'rgba(168, 85, 247, 0.3)');
+
+        return new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: 'Daily Spend (' + currentBaseCurrency + ')',
+                    data: dayTotals,
+                    backgroundColor: hasData ? cyanGrad : 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10, weight: '700' } } },
+                    y: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#94a3b8', font: { size: 9 } } }
+                }
             }
         });
     }
 
     function updateSpendingBarChart(data) {
-        const canvas = document.getElementById('spendingBarChart');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
         const toBaseFactor = liveRates[currentBaseCurrency] / liveRates['AED'];
-        
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const dayTotals = [0, 0, 0, 0, 0, 0, 0];
 
@@ -3560,42 +3748,13 @@
             dayTotals[dayIdx] += (parseFloat(t.amount) * toBaseFactor);
         });
 
+        const hasData = dayTotals.some(v => v > 0);
+
         if (spendingBarChart) spendingBarChart.destroy();
+        spendingBarChart = renderBarChartOnCanvas('spendingBarChart', days, dayTotals, hasData);
 
-        const cyanGrad = ctx.createLinearGradient(0, 0, 0, 200);
-        cyanGrad.addColorStop(0, 'rgba(0, 212, 255, 0.95)');
-        cyanGrad.addColorStop(1, 'rgba(168, 85, 247, 0.3)');
-
-        spendingBarChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: days,
-                datasets: [{
-                    label: 'Daily Spend (' + currentBaseCurrency + ')',
-                    data: dayTotals,
-                    backgroundColor: cyanGrad,
-                    borderRadius: 6,
-                    borderSkipped: false
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', font: { size: 10, weight: '700' } }
-                    },
-                    y: {
-                        grid: { color: 'rgba(255, 255, 255, 0.04)' },
-                        ticks: { color: '#94a3b8', font: { size: 9 } }
-                    }
-                }
-            }
-        });
+        if (spendingBarChartReports) spendingBarChartReports.destroy();
+        spendingBarChartReports = renderBarChartOnCanvas('spendingBarChartReports', days, dayTotals, hasData);
     }
 
     initializeSystemFlow();

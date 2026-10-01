@@ -147,6 +147,8 @@
     .fab-quick-add {
         position: fixed;
         bottom: 24px;
+        bottom: calc(24px + constant(safe-area-inset-bottom, 0px));
+        bottom: calc(24px + env(safe-area-inset-bottom, 0px));
         right: 24px;
         z-index: 999;
         width: 58px;
@@ -172,6 +174,8 @@
     .fab-log-tooltip {
         position: fixed;
         bottom: 94px;
+        bottom: calc(94px + constant(safe-area-inset-bottom, 0px));
+        bottom: calc(94px + env(safe-area-inset-bottom, 0px));
         right: 20px;
         z-index: 99999;
         display: none;
@@ -1044,9 +1048,10 @@
             flex-shrink: 0;
         }
 
-        /* WRAP PADDING: EXACT 12px SIDES, 115px BOTTOM DOCK CLEARANCE */
+        /* WRAP PADDING: EXACT 12px SIDES, 115px BOTTOM DOCK CLEARANCE WITH IPHONE SAFE AREA */
         .wrap {
-            padding: 0 12px 115px 12px !important;
+            padding: 0 12px calc(115px + constant(safe-area-inset-bottom, 0px)) 12px !important;
+            padding: 0 12px calc(115px + env(safe-area-inset-bottom, 0px)) 12px !important;
             width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
@@ -1179,19 +1184,24 @@
         .fab-quick-add {
             position: fixed !important;
             bottom: 78px !important;
+            bottom: calc(78px + constant(safe-area-inset-bottom, 0px)) !important;
+            bottom: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
             right: 16px !important;
-            width: 46px !important;
-            height: 46px !important;
+            width: 48px !important;
+            height: 48px !important;
             font-size: 1.15rem !important;
-            z-index: 9998 !important;
+            z-index: 10001 !important;
             display: flex !important;
             box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5), 0 0 15px rgba(0, 255, 136, 0.4) !important;
         }
         .fab-log-tooltip {
-            bottom: 134px !important;
+            bottom: 136px !important;
+            bottom: calc(136px + constant(safe-area-inset-bottom, 0px)) !important;
+            bottom: calc(136px + env(safe-area-inset-bottom, 0px)) !important;
             right: 14px !important;
             font-size: 0.74rem !important;
             padding: 5px 10px 5px 9px !important;
+            z-index: 10002 !important;
         }
         .fab-log-tooltip::after {
             right: 20px !important;
